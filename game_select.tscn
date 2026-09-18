@@ -1,0 +1,51 @@
+[gd_scene load_steps=4 format=3]
+
+[ext_resource type="Script" uid="uid://vahipr11c25h" path="res://game_select.gd" id="1_script"]
+[ext_resource type="Texture2D" path="res://assets/title_background.png" id="2_bg"]
+[ext_resource type="Texture2D" path="res://assets/game_selector/start_button.png" id="3_play"]
+
+[node name="GameSelect" type="Control" unique_id=1219180714]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_script")
+
+[node name="Background" type="TextureRect" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+modulate = Color(0.55, 0.55, 0.55, 1)
+texture = ExtResource("2_bg")
+expand_mode = 1
+stretch_mode = 6
+
+[node name="CardContainer" type="Control" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+
+[node name="PlayButton" type="TextureButton" parent="."]
+layout_mode = 1
+anchor_left = 0.5
+anchor_top = 0.85
+anchor_right = 0.5
+anchor_bottom = 0.85
+offset_left = -150.0
+offset_top = -53.0
+offset_right = 150.0
+offset_bottom = 53.0
+grow_horizontal = 2
+grow_vertical = 2
+texture_normal = ExtResource("3_play")
+ignore_texture_size = true
+stretch_mode = 5

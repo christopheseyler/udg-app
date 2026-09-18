@@ -1,0 +1,183 @@
+extends Control
+
+## Ecran de selection de jeu : carrousel d'images disposees sur un
+## cylindre virtuel. L'image en face du joueur est nette, les autres
+## s'estompent progressivement selon leur angle sur le cylindre.
+## Navigation par gesture (glisser au tactile ou a la souris) : la
+## transparence et la position se mettent a jour en temps reel pendant
+## le geste, puis le carrousel se cale sur la carte la plus proche au
+## relachement. Bouton PlayButton pour valider la selection.
+
+const GAMES := [
+	{"id": "301", "name": "301", "image": "res://assets/game_selector/game_selector_301.png"},
+	{"id": "321_zap", "name": "3-2-1 Zap", "image": "res://assets/game_selector/game_selector_321_zap.png"},
+	{"id": "halve_it", "name": "Halve It", "image": "res://assets/game_selector/game_selector_halve_it.png"},
+	{"id": "shanghai", "name": "Shanghai", "image": "res://assets/game_selector/game_selector_shanghai.png"},
+	{"id": "cricket", "name": "Cricket", "image": "res://assets/game_selector/game_selector_cricket.png"},
+	{"id": "around_the_clock", "name": "Around the Clock", "image": "res://assets/game_selector/game_selector_around_the_clock.png"},
+]
+
+@export var card_size: float = 500.0
+@export var cylinder_radius: float = 900.0
+@export var angle_step_degrees: float = 42.0
+@export var min_alpha: float = 0.00
+@export var alpha_falloff_power: float = 4
+@export var min_scale_x: float = 0.06
+@export var carousel_center_y_ratio: float = 0.42
+@export var settle_duration: float = 0.35
+
+@export_group("Bouton Jouer")
+@export var button_press_scale: float = 0.88
+@export var button_press_offset: float = 8.0
+@export var button_press_duration: float = 0.07
+
+@onready var card_container: Control = $CardContainer
+@onready var play_button: TextureButton = $PlayButton
+
+var current_index: int = 0
+var _cards: Array[TextureRect] = []
+var _scroll_offset: float = 0.0
+var _px_per_card: float = 1.0
+
+var _dragging: bool = false
+var _drag_start_x: float = 0.0
+var _drag_start_offset: float = 0.0
+var _tween: Tween
+
+var _play_button_base_position: Vector2
+var _button_tween: Tween
+
+func _ready() -> void:
+	_px_per_card = cylinder_radius * deg_to_rad(angle_step_degrees)
+	_build_cards()
+	_update_cards()
+	_setup_play_button()
+
+	if has_node("LeftButton"):
+		$LeftButton.pressed.connect(func(): _go_to_index(current_index - 1))
+	if has_node("RightButton"):
+		$RightButton.pressed.connect(func(): _go_to_index(current_index + 1))
+
+func _build_cards() -> void:
+	for game in GAMES:
+		var card := TextureRect.new()
+		card.size = Vector2(card_size, card_size)
+		card.pivot_offset = Vector2(card_size, card_size) / 2.0
+		card.texture = load(game["image"])
+		card.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		card.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		card.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		card_container.add_child(card)
+		_cards.append(card)
+
+## Positionne, estompe et "tourne" chaque carte selon son angle sur le
+## cylindre virtuel, en fonction de _scroll_offset courant. Le delta
+## angulaire passe par wrapf pour un defilement infini : une carte peut
+## se rapprocher du centre par la gauche ou par la droite selon le
+## chemin le plus court sur le cylindre.
+## La rotation autour de l'axe Y (comme une carte collee sur un
+## cylindre qui tourne) est simulee en 2D par un ecrasement horizontal :
+## scale.x = cos(angle), la hauteur ne change pas. Une carte de face
+## (angle = 0) garde sa largeur pleine ; une carte de profil (angle =
+## +-90 deg) devient une fine tranche verticale.
+func _update_cards() -> void:
+	var center := get_viewport_rect().size * Vector2(0.5, carousel_center_y_ratio)
+	var angle_step := deg_to_rad(angle_step_degrees)
+	var n := _cards.size()
+
+	for i in n:
+		var card := _cards[i]
+		var delta := wrapf(i - _scroll_offset, -n / 2.0, n / 2.0)
+		var angle := clampf(delta * angle_step, -PI / 2.0, PI / 2.0)
+		var depth := cos(angle)
+
+		card.position = Vector2(
+			center.x + sin(angle) * cylinder_radius - card_size / 2.0,
+			center.y - card_size / 2.0
+		)
+		card.modulate.a = lerpf(min_alpha, 1.0, pow(depth, alpha_falloff_power))
+		card.scale = Vector2(lerpf(min_scale_x, 1.0, depth), 1.0)
+		card.z_index = int(depth * 100.0)
+
+func _gui_input(event: InputEvent) -> void:
+	if event is InputEventScreenTouch or event is InputEventMouseButton:
+		if event.pressed:
+			_start_drag(event.position.x)
+		elif _dragging:
+			_end_drag()
+	elif event is InputEventScreenDrag and _dragging:
+		_update_drag(event.position.x)
+	elif event is InputEventMouseMotion and _dragging and (event.button_mask & MOUSE_BUTTON_MASK_LEFT):
+		_update_drag(event.position.x)
+
+func _start_drag(x: float) -> void:
+	if _tween:
+		_tween.kill()
+	_dragging = true
+	_drag_start_x = x
+	_drag_start_offset = _scroll_offset
+
+func _update_drag(x: float) -> void:
+	var delta_x := x - _drag_start_x
+	_scroll_offset = fposmod(_drag_start_offset - delta_x / _px_per_card, float(_cards.size()))
+	_update_cards()
+
+func _end_drag() -> void:
+	_dragging = false
+	current_index = roundi(_scroll_offset) % _cards.size()
+	_settle_to_current()
+
+func _go_to_index(index: int) -> void:
+	var n := _cards.size()
+	current_index = ((index % n) + n) % n
+	_settle_to_current()
+
+## Anime _scroll_offset vers current_index en empruntant le chemin le
+## plus court sur le cylindre (defilement infini : peut continuer au-dela
+## de 0 ou de n-1 plutot que de revenir en arriere en traversant l'ecran).
+func _settle_to_current() -> void:
+	if _tween:
+		_tween.kill()
+	var n := _cards.size()
+	var shortest_diff := wrapf(float(current_index) - _scroll_offset, -n / 2.0, n / 2.0)
+	var target := _scroll_offset + shortest_diff
+	_tween = create_tween()
+	_tween.tween_method(_set_scroll_offset, _scroll_offset, target, settle_duration) \
+		.set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
+	_tween.finished.connect(func(): _scroll_offset = fposmod(_scroll_offset, float(n)))
+
+func _set_scroll_offset(value: float) -> void:
+	_scroll_offset = value
+	_update_cards()
+
+## Prepare le bouton texture "start_button" : centre le pivot pour que
+## l'enfoncement se fasse depuis son centre, et branche l'animation de
+## pression sur button_down/button_up (independants de "pressed", qui
+## ne se declenche qu'au relachement a l'interieur du bouton).
+func _setup_play_button() -> void:
+	play_button.pivot_offset = play_button.size / 2.0
+	_play_button_base_position = play_button.position
+	play_button.button_down.connect(_on_play_button_down)
+	play_button.button_up.connect(_on_play_button_up)
+	play_button.pressed.connect(_on_play_pressed)
+
+func _on_play_button_down() -> void:
+	if _button_tween:
+		_button_tween.kill()
+	_button_tween = create_tween()
+	_button_tween.set_parallel(true)
+	_button_tween.tween_property(play_button, "scale", Vector2.ONE * button_press_scale, button_press_duration)
+	_button_tween.tween_property(play_button, "position:y", _play_button_base_position.y + button_press_offset, button_press_duration)
+
+func _on_play_button_up() -> void:
+	if _button_tween:
+		_button_tween.kill()
+	_button_tween = create_tween()
+	_button_tween.set_parallel(true)
+	_button_tween.tween_property(play_button, "scale", Vector2.ONE, button_press_duration)
+	_button_tween.tween_property(play_button, "position:y", _play_button_base_position.y, button_press_duration)
+
+func _on_play_pressed() -> void:
+	var selected_game: Dictionary = GAMES[current_index]
+	print("Jeu selectionne : ", selected_game["id"])
+	# TODO: transmettre selected_game["id"] au moteur de score, puis changer de scene
