@@ -1,6 +1,7 @@
 extends Control
 
-## Ecran de selection de jeu : carrousel d'images disposees sur un
+## Ecran de selection de jeu. S'ouvre sur le titre (intro), puis le titre
+## disparait et le carrousel apparait. Carrousel d'images disposees sur un
 ## cylindre virtuel. L'image en face du joueur est nette, les autres
 ## s'estompent progressivement selon leur angle sur le cylindre.
 ## Navigation par gesture (glisser au tactile ou a la souris) : la
@@ -31,10 +32,20 @@ const GAMES := [
 @export var button_press_offset: float = 8.0
 @export var button_press_duration: float = 0.07
 
+@export_group("Intro")
+@export var carousel_fade_in_duration: float = 0.8
+
+@export_group("Selection")
+@export var select_duration: float = 0.6
+@export var selected_zoom: float = 1.15
+@export var others_slide_distance: float = 600.0
+
 @onready var card_container: Control = $CardContainer
 @onready var play_button: TextureButton = $PlayButton
 
 var current_index: int = 0
+var _intro_done := false
+var _selecting := false
 var _cards: Array[TextureRect] = []
 var _scroll_offset: float = 0.0
 var _px_per_card: float = 1.0
@@ -57,6 +68,26 @@ func _ready() -> void:
 		$LeftButton.pressed.connect(func(): _go_to_index(current_index - 1))
 	if has_node("RightButton"):
 		$RightButton.pressed.connect(func(): _go_to_index(current_index + 1))
+
+	_play_intro()
+
+## Ouverture : le carrousel et le bouton apparaissent en fondu sur le
+## fond deja assombri. Les interactions sont bloquees pendant le fondu.
+func _play_intro() -> void:
+	card_container.modulate.a = 0.0
+	play_button.modulate.a = 0.0
+	play_button.disabled = true
+
+	var tween := create_tween()
+	tween.set_parallel(true)
+	tween.tween_property(card_container, "modulate:a", 1.0, carousel_fade_in_duration)
+	tween.tween_property(play_button, "modulate:a", 1.0, carousel_fade_in_duration)
+	tween.set_parallel(false)
+	tween.tween_callback(_on_intro_finished)
+
+func _on_intro_finished() -> void:
+	_intro_done = true
+	play_button.disabled = false
 
 func _build_cards() -> void:
 	for game in GAMES:
@@ -100,6 +131,8 @@ func _update_cards() -> void:
 		card.z_index = int(depth * 100.0)
 
 func _gui_input(event: InputEvent) -> void:
+	if not _intro_done:
+		return
 	if event is InputEventScreenTouch or event is InputEventMouseButton:
 		if event.pressed:
 			_start_drag(event.position.x)
@@ -178,6 +211,42 @@ func _on_play_button_up() -> void:
 	_button_tween.tween_property(play_button, "position:y", _play_button_base_position.y, button_press_duration)
 
 func _on_play_pressed() -> void:
+	if _selecting:
+		return
+	_selecting = true
+	_intro_done = false
+	play_button.disabled = true
+
 	var selected_game: Dictionary = GAMES[current_index]
 	print("Jeu selectionne : ", selected_game["id"])
+	_play_selection_animation()
 	# TODO: transmettre selected_game["id"] au moteur de score, puis changer de scene
+
+## Le logo choisi zoome legerement et se centre au milieu de l'ecran ;
+## les autres logos disparaissent en fondu en glissant lateralement (vers
+## la gauche ou la droite selon leur position d'origine) et le bouton
+## s'efface en fondu.
+func _play_selection_animation() -> void:
+	if _tween:
+		_tween.kill()
+	_scroll_offset = float(current_index)
+	_update_cards()
+
+	var n := _cards.size()
+	var screen_center := get_viewport_rect().size / 2.0
+	var tween := create_tween().set_parallel(true)
+
+	for i in n:
+		var card := _cards[i]
+		if i == current_index:
+			tween.tween_property(card, "position", screen_center - Vector2(card_size, card_size) / 2.0, select_duration) \
+				.set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
+			tween.tween_property(card, "scale", Vector2.ONE * selected_zoom, select_duration) \
+				.set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
+		else:
+			var side := signf(wrapf(i - current_index, -n / 2.0, n / 2.0))
+			tween.tween_property(card, "position:x", card.position.x + side * others_slide_distance, select_duration) \
+				.set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_IN)
+			tween.tween_property(card, "modulate:a", 0.0, select_duration)
+
+	tween.tween_property(play_button, "modulate:a", 0.0, select_duration)

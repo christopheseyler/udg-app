@@ -11,7 +11,7 @@ config_version=5
 [application]
 
 config/name="udg-test"
-run/main_scene="res://game_select.tscn"
+run/main_scene="uid://bqeofgftf7u1o"
 config/features=PackedStringArray("4.7", "Mobile")
 config/icon="res://icon.svg"
 
@@ -30,3 +30,4 @@ window/stretch/aspect="expand"
 
 rendering_device/driver.windows="d3d12"
 renderer/rendering_method="mobile"
+environment/defaults/default_clear_color=Color(0, 0, 0, 1)
