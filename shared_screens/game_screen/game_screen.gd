@@ -9,8 +9,10 @@ extends Control
 ## - add_throw() enregistre la valeur d'un jet (ex. "T20", "25", "Miss") ;
 ## - throw_cancelled est emis avec la valeur retiree par Cancel hit ;
 ## - set_round() met a jour le numero de round affiche ;
-## - next_player_requested est emis par Next player, puis le tour est remis
-##   a zero ;
+## - quand les fleches du tour sont toutes lancees, ou par Next player,
+##   l'ecran "Remove your darts" (RemoveDartsScreen) s'affiche pendant
+##   remove_darts_duration secondes ; ensuite next_player_requested est emis
+##   et le tour est remis a zero ;
 ## - back_confirmed est emis quand le joueur confirme la sortie du jeu.
 
 signal back_confirmed
@@ -21,6 +23,9 @@ const DART_TEXTURE := preload("res://assets/dart.png")
 const EMPTY_THROW_TEXT := "-"
 const THROW_FONT_SIZE := 64
 const DART_ICON_SIZE := Vector2(0, 192)
+
+## Duree (secondes) du decompte "Remove your darts" entre deux tours.
+@export var remove_darts_duration: float = 5.0
 
 @export var darts_per_turn: int = 3:
 	set(value):
@@ -36,6 +41,7 @@ const DART_ICON_SIZE := Vector2(0, 192)
 @onready var throws_list: VBoxContainer = $SidePanel/Margin/Content/ThrowsList
 @onready var darts_list: HBoxContainer = $SidePanel/Margin/Content/DartsList
 @onready var confirm_overlay: Control = $ConfirmOverlay
+@onready var remove_darts_screen: RemoveDartsScreen = $RemoveDartsScreen
 @onready var stay_button: Button = $ConfirmOverlay/Center/Dialog/Margin/Content/Buttons/StayButton
 @onready var leave_button: Button = $ConfirmOverlay/Center/Dialog/Margin/Content/Buttons/LeaveButton
 
@@ -50,7 +56,8 @@ func _ready() -> void:
 	stay_button.pressed.connect(func(): confirm_overlay.visible = false)
 	leave_button.pressed.connect(_on_leave_pressed)
 	cancel_hit_button.pressed.connect(cancel_last_throw)
-	next_player_button.pressed.connect(_on_next_player_pressed)
+	next_player_button.pressed.connect(_start_remove_darts)
+	remove_darts_screen.finished.connect(_finish_turn)
 	_build_slots()
 	DartInputManager.set_active(true)
 	DartInputManager.hit_detected.connect(_on_dart_hit)
@@ -62,9 +69,9 @@ func _exit_tree() -> void:
 ## Jet detecte par la source de jets (carte UART ou simulateur). Par defaut
 ## le jet est simplement ajoute au tour ; un jeu surcharge cette methode pour
 ## y appliquer ses regles (appeler super pour l'affichage). Ignore tant que la
-## confirmation de sortie est ouverte.
+## confirmation de sortie ou le decompte "Remove your darts" est affiche.
 func _on_dart_hit(hit: DartHit) -> void:
-	if confirm_overlay.visible:
+	if confirm_overlay.visible or remove_darts_screen.visible:
 		return
 	add_throw(hit.get_label())
 
@@ -95,12 +102,14 @@ func get_remaining_darts() -> int:
 	return darts_per_turn - _throws.size()
 
 ## Enregistre un jet du tour en cours. Retourne false si les fleches du tour
-## sont deja toutes lancees.
+## sont deja toutes lancees. Le dernier jet declenche "Remove your darts".
 func add_throw(value: String) -> bool:
 	if get_remaining_darts() <= 0:
 		return false
 	_throws.append(value)
 	_refresh()
+	if get_remaining_darts() == 0:
+		_start_remove_darts()
 	return true
 
 ## Retire le dernier jet du tour en cours (bouton Cancel hit).
@@ -116,7 +125,12 @@ func reset_turn() -> void:
 	_throws.clear()
 	_refresh()
 
-func _on_next_player_pressed() -> void:
+func _start_remove_darts() -> void:
+	if remove_darts_screen.visible:
+		return
+	remove_darts_screen.start(remove_darts_duration)
+
+func _finish_turn() -> void:
 	next_player_requested.emit()
 	reset_turn()
 

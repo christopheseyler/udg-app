@@ -1,7 +1,8 @@
-[gd_scene load_steps=6 format=3]
+[gd_scene load_steps=7 format=3]
 
 [ext_resource type="Script" path="res://shared_screens/game_screen/game_screen.gd" id="1_script"]
 [ext_resource type="Texture2D" uid="uid://nw2qty11nas1" path="res://assets/title_background.png" id="2_bg"]
+[ext_resource type="PackedScene" path="res://shared_screens/remove_darts_screen/remove_darts_screen.tscn" id="3_remove"]
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_bar"]
 bg_color = Color(0.05, 0.05, 0.08, 0.78)
@@ -206,3 +207,6 @@ layout_mode = 2
 size_flags_horizontal = 3
 theme_override_font_sizes/font_size = 44
 text = "Leave"
+
+[node name="RemoveDartsScreen" parent="." instance=ExtResource("3_remove")]
+layout_mode = 1
