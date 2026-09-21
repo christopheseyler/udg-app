@@ -7,7 +7,10 @@ extends Control
 ## jeu (set_score_panel()). Un jeu herite de cette scene ; le template gere
 ## les jets du tour en cours et signale les actions du joueur :
 ## - add_throw() enregistre la valeur d'un jet (ex. "T20", "25", "Miss") ;
-## - throw_cancelled est emis avec la valeur retiree par Cancel hit ;
+## - Cancel hit retire le dernier jet (throw_cancelled est emis avec sa
+##   valeur) ; quand le tour du joueur est vide, il revient au joueur
+##   precedent (previous_player_requested, puis son dernier jet est retire),
+##   ce qui permet d'annuler les fleches une par une jusqu'au debut ;
 ## - set_round() met a jour le numero de round affiche ;
 ## - quand les fleches du tour sont toutes lancees, ou par Next player,
 ##   l'ecran "Remove your darts" (RemoveDartsScreen) s'affiche pendant
@@ -18,6 +21,7 @@ extends Control
 signal back_confirmed
 signal throw_cancelled(value: String)
 signal next_player_requested
+signal previous_player_requested
 
 const DART_TEXTURE := preload("res://assets/dart.png")
 const EMPTY_THROW_TEXT := "-"
@@ -48,6 +52,7 @@ const DART_ICON_SIZE := Vector2(0, 192)
 var round_number := 1
 
 var _throws: Array[String] = []
+var _history: Array[Array] = []
 var _throw_labels: Array[Label] = []
 var _dart_icons: Array[TextureRect] = []
 
@@ -112,9 +117,17 @@ func add_throw(value: String) -> bool:
 		_start_remove_darts()
 	return true
 
-## Retire le dernier jet du tour en cours (bouton Cancel hit).
+## Annule le dernier jet (bouton Cancel hit). Si le tour en cours est vide,
+## revient d'abord au tour du joueur precedent (jets restaures, signal
+## previous_player_requested) puis retire son dernier jet, s'il en a.
 func cancel_last_throw() -> void:
 	if _throws.is_empty():
+		if _history.is_empty():
+			return
+		_throws.assign(_history.pop_back())
+		previous_player_requested.emit()
+	if _throws.is_empty():
+		_refresh()
 		return
 	var value: String = _throws.pop_back()
 	_refresh()
@@ -125,12 +138,19 @@ func reset_turn() -> void:
 	_throws.clear()
 	_refresh()
 
+## Oublie les tours precedents (nouvelle partie) : Cancel hit ne peut plus
+## revenir en arriere.
+func clear_history() -> void:
+	_history.clear()
+	_refresh()
+
 func _start_remove_darts() -> void:
 	if remove_darts_screen.visible:
 		return
 	remove_darts_screen.start(remove_darts_duration)
 
 func _finish_turn() -> void:
+	_history.append(_throws.duplicate())
 	next_player_requested.emit()
 	reset_turn()
 
@@ -176,4 +196,4 @@ func _refresh() -> void:
 		# Les icones restent en place pour garder la mise en page : seules
 		# les fleches restantes sont visibles.
 		_dart_icons[i].modulate.a = 1.0 if i < remaining else 0.0
-	cancel_hit_button.disabled = _throws.is_empty()
+	cancel_hit_button.disabled = _throws.is_empty() and _history.is_empty()

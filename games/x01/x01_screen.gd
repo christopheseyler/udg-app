@@ -23,6 +23,7 @@ var _out_condition := "Double"
 func _ready() -> void:
 	super._ready()
 	next_player_requested.connect(_on_next_player_requested)
+	previous_player_requested.connect(_on_previous_player_requested)
 
 func setup(players: Array[String], options: Dictionary) -> void:
 	_players = players.duplicate()
@@ -37,6 +38,8 @@ func setup(players: Array[String], options: Dictionary) -> void:
 		_entered.append(_in_condition == "None")
 	_current_player = 0
 	set_round(1)
+	reset_turn()
+	clear_history()
 
 	score_panel.set_players(_players)
 	for i in _players.size():
@@ -49,6 +52,14 @@ func _on_next_player_requested() -> void:
 	_current_player = (_current_player + 1) % _players.size()
 	if _current_player == 0:
 		set_round(round_number + 1)
+	score_panel.set_current_player(_current_player)
+
+func _on_previous_player_requested() -> void:
+	if _players.is_empty():
+		return
+	if _current_player == 0:
+		set_round(round_number - 1)
+	_current_player = (_current_player - 1 + _players.size()) % _players.size()
 	score_panel.set_current_player(_current_player)
 
 func _refresh_row(index: int) -> void:

@@ -316,8 +316,10 @@ func _show_players_order(player_names: Array[String]) -> void:
 		order_screen.queue_free()
 		_start_game(ordered))
 
-## Remplace l'ecran de selection par l'ecran du jeu choisi. Quitter le jeu
-## (Back confirme) revient a l'ecran de selection.
+## Remplace l'ecran de selection par l'ecran du jeu choisi. L'ecran de
+## selection est retire de l'arbre mais conserve tel quel (jeu choisi, joueurs,
+## options, panneau de configuration) : quitter le jeu (Back confirme) le
+## remet en place, comme avant le Start.
 func _start_game(player_names: Array[String]) -> void:
 	var game := games[current_index]
 	var options := options_panel.get_values()
@@ -326,10 +328,12 @@ func _start_game(player_names: Array[String]) -> void:
 		return
 
 	var tree := get_tree()
-	var select_scene_path := scene_file_path
 	var game_screen: GameScreen = game.screen_scene.instantiate()
-	game_screen.back_confirmed.connect(func(): tree.change_scene_to_file(select_scene_path))
+	game_screen.back_confirmed.connect(func():
+		game_screen.queue_free()
+		tree.root.add_child(self)
+		tree.current_scene = self)
 	tree.root.add_child(game_screen)
 	game_screen.setup(player_names, options)
 	tree.current_scene = game_screen
-	queue_free()
+	tree.root.remove_child(self)
