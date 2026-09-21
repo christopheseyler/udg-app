@@ -1,0 +1,40 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://shared_screens/game_setup_panel/player_edit_panel.gd" id="1_script"]
+
+[node name="PlayerEditPanel" type="VBoxContainer"]
+theme_override_constants/separation = 32
+script = ExtResource("1_script")
+
+[node name="TitleLabel" type="Label" parent="."]
+layout_mode = 2
+theme_override_font_sizes/font_size = 56
+text = "Edit player"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="NameEdit" type="LineEdit" parent="."]
+custom_minimum_size = Vector2(0, 100)
+layout_mode = 2
+theme_override_font_sizes/font_size = 44
+placeholder_text = "Player name"
+max_length = 24
+alignment = 1
+
+[node name="Buttons" type="HBoxContainer" parent="."]
+layout_mode = 2
+theme_override_constants/separation = 32
+
+[node name="CancelButton" type="Button" parent="Buttons"]
+custom_minimum_size = Vector2(0, 100)
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_font_sizes/font_size = 44
+text = "Cancel"
+
+[node name="OkButton" type="Button" parent="Buttons"]
+custom_minimum_size = Vector2(0, 100)
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_font_sizes/font_size = 44
+text = "OK"

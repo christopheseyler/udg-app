@@ -1,0 +1,17 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://shared_screens/game_setup_panel/option_group_title.gd" id="1_script"]
+
+[node name="OptionGroupTitle" type="VBoxContainer"]
+theme_override_constants/separation = 8
+script = ExtResource("1_script")
+
+[node name="TitleLabel" type="Label" parent="."]
+layout_mode = 2
+theme_override_font_sizes/font_size = 44
+text = "Group"
+
+[node name="Line" type="ColorRect" parent="."]
+custom_minimum_size = Vector2(0, 3)
+layout_mode = 2
+color = Color(1, 1, 1, 0.5)

@@ -3,6 +3,9 @@
 [ext_resource type="Script" uid="uid://vahipr11c25h" path="res://main_screens/game_selection/game_select.gd" id="1_nm6v5"]
 [ext_resource type="Texture2D" uid="uid://nw2qty11nas1" path="res://assets/title_background.png" id="2_f0y0j"]
 [ext_resource type="Texture2D" uid="uid://djs54yjgpbuf5" path="res://assets/game_selector/start_button.png" id="3_xd4k3"]
+[ext_resource type="PackedScene" path="res://shared_screens/game_setup_panel/game_setup_panel.tscn" id="4_setup"]
+[ext_resource type="PackedScene" path="res://shared_screens/game_setup_panel/game_players.tscn" id="5_players"]
+[ext_resource type="PackedScene" path="res://shared_screens/game_setup_panel/game_options.tscn" id="6_options"]
 
 [node name="GameSelect" type="Control" unique_id=1219180714]
 layout_mode = 3
@@ -50,3 +53,15 @@ grow_vertical = 2
 texture_normal = ExtResource("3_xd4k3")
 ignore_texture_size = true
 stretch_mode = 5
+
+[node name="PlayersPanel" parent="." instance=ExtResource("5_players")]
+visible = false
+layout_mode = 1
+
+[node name="OptionsPanel" parent="." instance=ExtResource("6_options")]
+visible = false
+layout_mode = 1
+
+[node name="SetupPanel" parent="." instance=ExtResource("4_setup")]
+visible = false
+layout_mode = 1

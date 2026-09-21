@@ -1,0 +1,24 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://shared_screens/game_setup_panel/option_bool_row.gd" id="1_script"]
+
+[node name="OptionBoolRow" type="HBoxContainer"]
+custom_minimum_size = Vector2(0, 90)
+theme_override_constants/separation = 24
+script = ExtResource("1_script")
+
+[node name="NameLabel" type="Label" parent="."]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_font_sizes/font_size = 40
+text = "Option"
+vertical_alignment = 1
+
+[node name="Toggle" type="CheckButton" parent="."]
+layout_mode = 2
+
+[node name="InfoButton" type="Button" parent="."]
+custom_minimum_size = Vector2(80, 80)
+layout_mode = 2
+theme_override_font_sizes/font_size = 40
+text = "?"

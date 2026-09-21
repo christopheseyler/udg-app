@@ -1,0 +1,76 @@
+[gd_scene load_steps=4 format=3]
+
+[ext_resource type="Script" path="res://shared_screens/game_setup_panel/game_players.gd" id="1_script"]
+[ext_resource type="PackedScene" path="res://shared_screens/game_setup_panel/player_edit_panel.tscn" id="2_edit"]
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_panel"]
+bg_color = Color(0.05, 0.05, 0.08, 0.78)
+corner_radius_top_left = 32
+corner_radius_top_right = 32
+
+[node name="GamePlayers" type="PanelContainer"]
+anchors_preset = 12
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_top = -960.0
+offset_bottom = -240.0
+grow_horizontal = 2
+grow_vertical = 0
+theme_override_styles/panel = SubResource("StyleBoxFlat_panel")
+script = ExtResource("1_script")
+
+[node name="Margin" type="MarginContainer" parent="."]
+layout_mode = 2
+theme_override_constants/margin_left = 48
+theme_override_constants/margin_top = 24
+theme_override_constants/margin_right = 48
+theme_override_constants/margin_bottom = 24
+
+[node name="PlayersView" type="VBoxContainer" parent="Margin"]
+layout_mode = 2
+theme_override_constants/separation = 16
+
+[node name="Header" type="HBoxContainer" parent="Margin/PlayersView"]
+layout_mode = 2
+
+[node name="MinusButton" type="Button" parent="Margin/PlayersView/Header"]
+custom_minimum_size = Vector2(110, 110)
+layout_mode = 2
+theme_override_font_sizes/font_size = 64
+text = "-"
+
+[node name="TitleLabel" type="Label" parent="Margin/PlayersView/Header"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_font_sizes/font_size = 56
+text = "Players"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="PlusButton" type="Button" parent="Margin/PlayersView/Header"]
+custom_minimum_size = Vector2(110, 110)
+layout_mode = 2
+theme_override_font_sizes/font_size = 64
+text = "+"
+
+[node name="CountLabel" type="Label" parent="Margin/PlayersView"]
+modulate = Color(1, 1, 1, 0.6)
+layout_mode = 2
+theme_override_font_sizes/font_size = 28
+text = "0 / 4"
+horizontal_alignment = 1
+
+[node name="Scroll" type="ScrollContainer" parent="Margin/PlayersView"]
+layout_mode = 2
+size_flags_vertical = 3
+horizontal_scroll_mode = 0
+
+[node name="PlayerList" type="VBoxContainer" parent="Margin/PlayersView/Scroll"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 16
+
+[node name="PlayerEditPanel" parent="Margin" instance=ExtResource("2_edit")]
+visible = false
+layout_mode = 2

@@ -1,0 +1,71 @@
+[gd_scene load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://shared_screens/game_setup_panel/game_options.gd" id="1_script"]
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_panel"]
+bg_color = Color(0.05, 0.05, 0.08, 0.78)
+corner_radius_top_left = 32
+corner_radius_top_right = 32
+
+[node name="GameOptions" type="PanelContainer"]
+anchors_preset = 12
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_top = -960.0
+offset_bottom = -240.0
+grow_horizontal = 2
+grow_vertical = 0
+theme_override_styles/panel = SubResource("StyleBoxFlat_panel")
+script = ExtResource("1_script")
+
+[node name="Margin" type="MarginContainer" parent="."]
+layout_mode = 2
+theme_override_constants/margin_left = 48
+theme_override_constants/margin_top = 24
+theme_override_constants/margin_right = 48
+theme_override_constants/margin_bottom = 24
+
+[node name="OptionsView" type="VBoxContainer" parent="Margin"]
+layout_mode = 2
+theme_override_constants/separation = 16
+
+[node name="TitleLabel" type="Label" parent="Margin/OptionsView"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 56
+text = "Options"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="Scroll" type="ScrollContainer" parent="Margin/OptionsView"]
+layout_mode = 2
+size_flags_vertical = 3
+horizontal_scroll_mode = 0
+
+[node name="OptionList" type="VBoxContainer" parent="Margin/OptionsView/Scroll"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 16
+
+[node name="InfoView" type="VBoxContainer" parent="Margin"]
+visible = false
+layout_mode = 2
+theme_override_constants/separation = 24
+
+[node name="InfoTitle" type="Label" parent="Margin/InfoView"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 52
+text = "Option"
+horizontal_alignment = 1
+
+[node name="InfoText" type="Label" parent="Margin/InfoView"]
+layout_mode = 2
+size_flags_vertical = 3
+theme_override_font_sizes/font_size = 36
+autowrap_mode = 3
+
+[node name="CloseButton" type="Button" parent="Margin/InfoView"]
+custom_minimum_size = Vector2(0, 100)
+layout_mode = 2
+theme_override_font_sizes/font_size = 44
+text = "OK"
