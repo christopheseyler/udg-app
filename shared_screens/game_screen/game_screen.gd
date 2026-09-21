@@ -52,6 +52,21 @@ func _ready() -> void:
 	cancel_hit_button.pressed.connect(cancel_last_throw)
 	next_player_button.pressed.connect(_on_next_player_pressed)
 	_build_slots()
+	DartInputManager.set_active(true)
+	DartInputManager.hit_detected.connect(_on_dart_hit)
+
+func _exit_tree() -> void:
+	DartInputManager.hit_detected.disconnect(_on_dart_hit)
+	DartInputManager.set_active(false)
+
+## Jet detecte par la source de jets (carte UART ou simulateur). Par defaut
+## le jet est simplement ajoute au tour ; un jeu surcharge cette methode pour
+## y appliquer ses regles (appeler super pour l'affichage). Ignore tant que la
+## confirmation de sortie est ouverte.
+func _on_dart_hit(hit: DartHit) -> void:
+	if confirm_overlay.visible:
+		return
+	add_throw(hit.get_label())
 
 ## Prepare l'ecran pour une partie : joueurs dans l'ordre de passage et
 ## options choisies dans l'ecran de selection. A surcharger par chaque jeu.
