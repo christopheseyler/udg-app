@@ -56,12 +56,15 @@ stretch_mode = 5
 
 [node name="PlayersPanel" parent="." instance=ExtResource("5_players")]
 visible = false
+z_index = 200
 layout_mode = 1
 
 [node name="OptionsPanel" parent="." instance=ExtResource("6_options")]
 visible = false
+z_index = 200
 layout_mode = 1
 
 [node name="SetupPanel" parent="." instance=ExtResource("4_setup")]
 visible = false
+z_index = 200
 layout_mode = 1

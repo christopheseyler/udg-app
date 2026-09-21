@@ -9,39 +9,9 @@ extends Control
 ## le geste, puis le carrousel se cale sur la carte la plus proche au
 ## relachement. Bouton PlayButton pour valider la selection.
 
-## Definition des jeux : "max_players" (defaut DEFAULT_MAX_PLAYERS) et
-## "options" (voir game_options.gd ; un jeu sans option desactive le bouton
-## Options) sont facultatifs.
-const DEFAULT_MAX_PLAYERS := 4
-const GAMES := [
-	{
-		"id": "x01", "name": "X01", "image": "res://assets/game_selector/game_selector_301.png",
-		"max_players": 8,
-		"options": [
-			{
-				"id": "start_value", "type": "enum", "name": "Game",
-				"items": ["301", "501", "701", "1001"], "default": "501",
-				"info": "Starting score. Each player counts down from this value to zero.",
-			},
-			{"type": "group", "name": "In / Out conditions"},
-			{
-				"id": "in_condition", "type": "enum", "name": "In",
-				"items": ["None", "Double", "Triple", "Master"], "default": "None",
-				"info": "Condition to start the game: a player's score only starts to count down once they hit a double (Double), a triple (Triple) or either of them (Master). None: any dart counts.",
-			},
-			{
-				"id": "out_condition", "type": "enum", "name": "Out",
-				"items": ["None", "Double", "Triple", "Master"], "default": "Double",
-				"info": "Condition to finish the game: the last dart must reach exactly zero with a double (Double), a triple (Triple) or either of them (Master). None: any dart finishes.",
-			},
-		],
-	},
-	{"id": "321_zap", "name": "3-2-1 Zap", "image": "res://assets/game_selector/game_selector_321_zap.png"},
-	{"id": "halve_it", "name": "Halve It", "image": "res://assets/game_selector/game_selector_halve_it.png"},
-	{"id": "shanghai", "name": "Shanghai", "image": "res://assets/game_selector/game_selector_shanghai.png"},
-	{"id": "cricket", "name": "Cricket", "image": "res://assets/game_selector/game_selector_cricket.png"},
-	{"id": "around_the_clock", "name": "Around the Clock", "image": "res://assets/game_selector/game_selector_around_the_clock.png"},
-]
+## Les jeux proposes sont definis dans games/ (voir game_registry.gd).
+
+const PLAYERS_ORDER_SCREEN := preload("res://shared_screens/players_order_screen/players_order_screen.tscn")
 
 @export var card_size: float = 500.0
 @export var cylinder_radius: float = 900.0
@@ -71,6 +41,7 @@ const GAMES := [
 @onready var players_panel: GamePlayers = $PlayersPanel
 @onready var options_panel: GameOptions = $OptionsPanel
 
+var games: Array[GameDefinition] = GameRegistry.create_all()
 var current_index: int = 0
 var _intro_done := false
 var _selecting := false
@@ -120,11 +91,11 @@ func _on_intro_finished() -> void:
 	play_button.disabled = false
 
 func _build_cards() -> void:
-	for game in GAMES:
+	for game in games:
 		var card := TextureRect.new()
 		card.size = Vector2(card_size, card_size)
 		card.pivot_offset = Vector2(card_size, card_size) / 2.0
-		card.texture = load(game["image"])
+		card.texture = load(game.image)
 		card.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 		card.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 		card.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -262,8 +233,8 @@ func _on_play_pressed() -> void:
 	_intro_done = false
 	play_button.disabled = true
 
-	var selected_game: Dictionary = GAMES[current_index]
-	print("Jeu selectionne : ", selected_game["id"])
+	var selected_game := games[current_index]
+	print("Jeu selectionne : ", selected_game.id)
 	_configure_panels_for(selected_game)
 	_animate_selection(1.0).finished.connect(setup_panel.show_panel)
 
@@ -297,11 +268,10 @@ func _setup_panels() -> void:
 
 ## Adapte les panneaux au jeu choisi : nombre max de joueurs, options (le
 ## bouton Options est desactive si le jeu n'en a pas).
-func _configure_panels_for(game: Dictionary) -> void:
-	var options: Array = game.get("options", [])
-	players_panel.set_max_players(game.get("max_players", DEFAULT_MAX_PLAYERS))
-	options_panel.set_options(options)
-	setup_panel.set_options_enabled(not options.is_empty())
+func _configure_panels_for(game: GameDefinition) -> void:
+	players_panel.set_max_players(game.max_players)
+	options_panel.set_options(game.options)
+	setup_panel.set_options_enabled(not game.options.is_empty())
 
 func _toggle_sub_panel(panel: SlidePanel) -> void:
 	var other: SlidePanel = options_panel if panel == players_panel else players_panel
@@ -329,8 +299,26 @@ func _on_start_pressed() -> void:
 			_toggle_sub_panel(players_panel)
 		return
 
+	if games[current_index].uses_players_order and player_names.size() > 1:
+		_show_players_order(player_names)
+	else:
+		_start_game(player_names)
+
+## Affiche l'ecran d'ordre de passage par-dessus les panneaux : Back revient a
+## la configuration, Confirm lance la partie avec l'ordre choisi.
+func _show_players_order(player_names: Array[String]) -> void:
+	var order_screen: PlayersOrderScreen = PLAYERS_ORDER_SCREEN.instantiate()
+	order_screen.z_index = 300
+	add_child(order_screen)
+	order_screen.set_players(player_names)
+	order_screen.back_pressed.connect(order_screen.queue_free)
+	order_screen.order_confirmed.connect(func(ordered: Array[String]):
+		order_screen.queue_free()
+		_start_game(ordered))
+
+func _start_game(player_names: Array[String]) -> void:
 	var config := {
-		"game": GAMES[current_index]["id"],
+		"game": games[current_index].id,
 		"players": player_names,
 		"options": options_panel.get_values(),
 	}
