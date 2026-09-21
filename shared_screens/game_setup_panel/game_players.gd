@@ -10,6 +10,10 @@ extends SlidePanel
 ## set_max_players() (ou l'export max_players).
 
 signal players_changed(names: Array[String])
+## Emis a l'ouverture / fermeture de la vue d'edition d'un nom : l'ecran
+## parent y affiche / masque le clavier a l'ecran.
+signal name_edit_opened
+signal name_edit_closed
 
 ## Tous les jeux se jouent a 1 joueur minimum : la liste demarre avec un
 ## joueur et le bouton "-" ne descend pas en dessous.
@@ -88,11 +92,13 @@ func _open_edit(index: int) -> void:
 	players_view.visible = false
 	edit_panel.visible = true
 	edit_panel.open(_names[index])
+	name_edit_opened.emit()
 
 func _close_edit() -> void:
 	_editing_index = -1
 	edit_panel.visible = false
 	players_view.visible = true
+	name_edit_closed.emit()
 
 func _on_name_confirmed(new_name: String) -> void:
 	if _editing_index >= 0 and _editing_index < _names.size():

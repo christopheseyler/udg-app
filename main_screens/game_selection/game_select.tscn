@@ -6,6 +6,12 @@
 [ext_resource type="PackedScene" path="res://shared_screens/game_setup_panel/game_setup_panel.tscn" id="4_setup"]
 [ext_resource type="PackedScene" path="res://shared_screens/game_setup_panel/game_players.tscn" id="5_players"]
 [ext_resource type="PackedScene" path="res://shared_screens/game_setup_panel/game_options.tscn" id="6_options"]
+[ext_resource type="Script" path="res://addons/onscreenkeyboard/onscreen_keyboard.gd" id="7_osk"]
+[ext_resource type="StyleBox" path="res://addons/onscreenkeyboard/customize/styles/defaultBackgroundStyle.tres" id="8_osk_bg"]
+[ext_resource type="StyleBox" path="res://addons/onscreenkeyboard/customize/styles/defaultNormalStyle.tres" id="9_osk_normal"]
+[ext_resource type="StyleBox" path="res://addons/onscreenkeyboard/customize/styles/defaultHoverStlyle.tres" id="10_osk_hover"]
+[ext_resource type="StyleBox" path="res://addons/onscreenkeyboard/customize/styles/defaultPressedStyle.tres" id="11_osk_pressed"]
+[ext_resource type="StyleBox" path="res://addons/onscreenkeyboard/customize/styles/defaultNormalSpecialKeysStyle.tres" id="12_osk_special"]
 
 [node name="GameSelect" type="Control" unique_id=1219180714]
 layout_mode = 3
@@ -68,3 +74,24 @@ layout_mode = 1
 visible = false
 z_index = 200
 layout_mode = 1
+
+[node name="OnscreenKeyboard" type="PanelContainer" parent="."]
+z_index = 400
+custom_minimum_size = Vector2(0, 460)
+layout_mode = 1
+anchors_preset = 12
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_top = -460.0
+grow_horizontal = 2
+grow_vertical = 0
+script = ExtResource("7_osk")
+auto_show = false
+separation = Vector2i(8, 8)
+background = ExtResource("8_osk_bg")
+normal = ExtResource("9_osk_normal")
+hover = ExtResource("10_osk_hover")
+pressed = ExtResource("11_osk_pressed")
+special_keys = ExtResource("12_osk_special")
+font_size = 48

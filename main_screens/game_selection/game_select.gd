@@ -40,6 +40,7 @@ const PLAYERS_ORDER_SCREEN := preload("res://shared_screens/players_order_screen
 @onready var setup_panel: GameSetupPanel = $SetupPanel
 @onready var players_panel: GamePlayers = $PlayersPanel
 @onready var options_panel: GameOptions = $OptionsPanel
+@onready var keyboard: PanelContainer = $OnscreenKeyboard
 
 var games: Array[GameDefinition] = GameRegistry.create_all()
 var current_index: int = 0
@@ -265,6 +266,8 @@ func _setup_panels() -> void:
 	setup_panel.players_pressed.connect(_toggle_sub_panel.bind(players_panel))
 	setup_panel.options_pressed.connect(_toggle_sub_panel.bind(options_panel))
 	setup_panel.start_pressed.connect(_on_start_pressed)
+	players_panel.name_edit_opened.connect(keyboard.show)
+	players_panel.name_edit_closed.connect(keyboard.hide)
 
 ## Adapte les panneaux au jeu choisi : nombre max de joueurs, options (le
 ## bouton Options est desactive si le jeu n'en a pas).
@@ -274,6 +277,7 @@ func _configure_panels_for(game: GameDefinition) -> void:
 	setup_panel.set_options_enabled(not game.options.is_empty())
 
 func _toggle_sub_panel(panel: SlidePanel) -> void:
+	keyboard.hide()
 	var other: SlidePanel = options_panel if panel == players_panel else players_panel
 	other.hide_panel()
 	if panel.is_open:
@@ -282,6 +286,7 @@ func _toggle_sub_panel(panel: SlidePanel) -> void:
 		panel.show_panel()
 
 func _on_back_pressed() -> void:
+	keyboard.hide()
 	players_panel.hide_panel()
 	options_panel.hide_panel()
 	setup_panel.hide_panel()
