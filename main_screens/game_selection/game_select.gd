@@ -316,11 +316,20 @@ func _show_players_order(player_names: Array[String]) -> void:
 		order_screen.queue_free()
 		_start_game(ordered))
 
+## Remplace l'ecran de selection par l'ecran du jeu choisi. Quitter le jeu
+## (Back confirme) revient a l'ecran de selection.
 func _start_game(player_names: Array[String]) -> void:
-	var config := {
-		"game": games[current_index].id,
-		"players": player_names,
-		"options": options_panel.get_values(),
-	}
-	print("Start : ", config)
-	# TODO: lancer la scene de jeu avec cette configuration
+	var game := games[current_index]
+	var options := options_panel.get_values()
+	print("Start : ", {"game": game.id, "players": player_names, "options": options})
+	if game.screen_scene == null:
+		return
+
+	var tree := get_tree()
+	var select_scene_path := scene_file_path
+	var game_screen: GameScreen = game.screen_scene.instantiate()
+	game_screen.back_confirmed.connect(func(): tree.change_scene_to_file(select_scene_path))
+	tree.root.add_child(game_screen)
+	game_screen.setup(player_names, options)
+	tree.current_scene = game_screen
+	queue_free()

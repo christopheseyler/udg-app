@@ -5,10 +5,15 @@ extends SlidePanel
 ## a gauche (retire le dernier joueur) et "+" a droite (ajoute un joueur),
 ## et la liste des joueurs en dessous ("Player #1", "Player #2", ...).
 ## Cliquer un joueur ouvre la vue d'edition de son nom.
+## La liste demarre avec un joueur (minimum : MIN_PLAYERS).
 ## Le nombre maximum de joueurs depend du jeu selectionne : le definir via
 ## set_max_players() (ou l'export max_players).
 
 signal players_changed(names: Array[String])
+
+## Tous les jeux se jouent a 1 joueur minimum : la liste demarre avec un
+## joueur et le bouton "-" ne descend pas en dessous.
+const MIN_PLAYERS := 1
 
 @export var max_players: int = 4
 
@@ -27,6 +32,7 @@ func _ready() -> void:
 	plus_button.pressed.connect(add_player)
 	edit_panel.name_confirmed.connect(_on_name_confirmed)
 	edit_panel.cancelled.connect(_close_edit)
+	_names.append(_next_default_name())
 	_refresh()
 
 func get_player_names() -> Array[String]:
@@ -39,7 +45,7 @@ func add_player() -> void:
 	_refresh()
 
 func remove_last_player() -> void:
-	if _names.is_empty():
+	if _names.size() <= MIN_PLAYERS:
 		return
 	_names.pop_back()
 	_refresh()
@@ -73,7 +79,7 @@ func _refresh() -> void:
 		player_list.add_child(button)
 
 	count_label.text = "%d / %d" % [_names.size(), max_players]
-	minus_button.disabled = _names.is_empty()
+	minus_button.disabled = _names.size() <= MIN_PLAYERS
 	plus_button.disabled = _names.size() >= max_players
 	players_changed.emit(get_player_names())
 

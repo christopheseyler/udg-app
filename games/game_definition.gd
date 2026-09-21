@@ -16,3 +16,5 @@ var image: String
 var max_players: int = DEFAULT_MAX_PLAYERS
 var options: Array = []
 var uses_players_order := true
+## Ecran de jeu (herite de GameScreen). Null tant que le jeu n'en a pas.
+var screen_scene: PackedScene

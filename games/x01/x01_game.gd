@@ -4,6 +4,7 @@ func _init() -> void:
 	id = "x01"
 	name = "X01"
 	image = "res://assets/game_selector/game_selector_301.png"
+	screen_scene = preload("res://games/x01/x01_screen.tscn")
 	max_players = 8
 	options = [
 		{
