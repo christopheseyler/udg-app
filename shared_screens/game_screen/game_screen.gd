@@ -2,9 +2,11 @@ class_name GameScreen
 extends Control
 
 ## Template des ecrans de jeu. Bandeau inferieur (Back avec confirmation,
-## Cancel hit, Next player), panneau lateral droit (valeurs des jets en haut,
-## fleches restantes en bas) et zone de score libre pour le panneau propre au
-## jeu (set_score_panel()). Un jeu herite de cette scene ; le template gere
+## Cancel hit, Next player), panneau lateral droit (liste defilante des
+## valeurs des jets en haut, fleches restantes toujours visibles en bas,
+## meme si la liste des jets s'allonge) et zone de score libre pour le
+## panneau propre au jeu (set_score_panel()). Un jeu herite de cette scene ;
+## le template gere
 ## les jets du tour en cours et signale les actions du joueur :
 ## - add_throw() enregistre la valeur d'un jet (ex. "T20", "25", "Miss") ;
 ## - Cancel hit retire le dernier jet (throw_cancelled est emis avec sa
@@ -46,7 +48,8 @@ const DART_ICON_SIZE := Vector2(0, 192)
 @onready var cancel_hit_button: Button = $BottomBar/Margin/Buttons/CancelHitButton
 @onready var next_player_button: Button = $BottomBar/Margin/Buttons/NextPlayerButton
 @onready var round_label: Label = $SidePanel/Margin/Content/RoundLabel
-@onready var throws_list: VBoxContainer = $SidePanel/Margin/Content/ThrowsList
+@onready var throws_scroll: ScrollContainer = $SidePanel/Margin/Content/ThrowsScroll
+@onready var throws_list: VBoxContainer = $SidePanel/Margin/Content/ThrowsScroll/ThrowsList
 @onready var darts_list: HBoxContainer = $SidePanel/Margin/Content/DartsList
 @onready var confirm_overlay: Control = $ConfirmOverlay
 @onready var remove_darts_screen: RemoveDartsScreen = $RemoveDartsScreen
@@ -227,3 +230,18 @@ func _refresh() -> void:
 		# les fleches restantes sont visibles.
 		_dart_icons[i].modulate.a = 1.0 if i < remaining else 0.0
 	cancel_hit_button.disabled = _throws.is_empty() and _history.is_empty()
+	# Differe au prochain "idle" : le ScrollContainer ne connait la position
+	# reelle du label qu'une fois la mise en page (queue_sort) retraitee,
+	# ce qui n'a pas encore eu lieu juste apres avoir change son texte.
+	_scroll_to_latest_throw.call_deferred()
+
+## Fait defiler la liste des jets pour garder le dernier jet visible (le
+## defilement se fait vers le haut ou le bas selon ce qui est deja visible).
+## Appele a chaque changement de _throws, dont l'annulation d'un jet (le
+## "dernier jet" devient alors le precedent).
+func _scroll_to_latest_throw() -> void:
+	if _throws.is_empty():
+		return
+	var index := mini(_throws.size() - 1, _throw_labels.size() - 1)
+	if index >= 0:
+		throws_scroll.ensure_control_visible(_throw_labels[index])
