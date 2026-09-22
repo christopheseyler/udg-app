@@ -2,3 +2,6 @@
 .godot/
 /android/
 export/
+
+# Never commit private keys / secrets (RAUC signing key, voice API key, ...)
+secrets/
