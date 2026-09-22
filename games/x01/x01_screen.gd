@@ -25,13 +25,15 @@ extends GameScreen
 ## L'etat courant (scores, entree, dette de fleches, nombre de fleches du
 ## tour) n'est jamais modifie au coup par coup : il est entierement recalcule
 ## par _replay_turn() a partir d'un instantane pris au debut du tour en
-## cours et de la liste des jets de ce tour (_turn_hits). C'est ce qui rend
-## Cancel hit correct par construction, y compris pour les effets
-## same_score_hit sur d'autres joueurs : annuler le jet qui a declenche un
-## Wipe-Out ou une donation de fleches annule aussi cet effet. La encore,
-## la portee de Cancel hit reste le tour courant ou le precedent (comme pour
-## le score) : un effet d'un tour plus ancien n'est plus annulable une fois
-## qu'un autre tour a eu lieu depuis.
+## cours et de la liste des jets de ce tour (_turn_hits). Chaque tour termine
+## garde son propre instantane de depart dans _turn_history (voir
+## _capture_turn_history_entry), donc Cancel hit peut remonter tour par tour
+## sans limite jusqu'au tout debut de la partie, en annulant a chaque fois
+## les jets un a un puis en restaurant l'instantane exact du tour precedent
+## (scores, entree et dette de TOUS les joueurs) : les effets same_score_hit
+## sur d'autres joueurs (Wipe-Out, fleches donnees) sont annules tout aussi
+## correctement que le score du joueur courant, quel que soit le nombre de
+## tours ecoules depuis.
 
 ## Score maximal terminable en une fleche selon la condition de sortie : en
 ## dessous, le joueur voit ce qu'il doit faire pour finir.
