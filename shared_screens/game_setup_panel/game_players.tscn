@@ -1,6 +1,6 @@
-[gd_scene load_steps=4 format=3]
+[gd_scene format=3 uid="uid://bv3bly4d6ll6v"]
 
-[ext_resource type="Script" path="res://shared_screens/game_setup_panel/game_players.gd" id="1_script"]
+[ext_resource type="Script" uid="uid://cj8dnte2jak4l" path="res://shared_screens/game_setup_panel/game_players.gd" id="1_script"]
 [ext_resource type="PackedScene" path="res://shared_screens/game_setup_panel/player_edit_panel.tscn" id="2_edit"]
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_panel"]
@@ -8,7 +8,7 @@ bg_color = Color(0.05, 0.05, 0.08, 0.78)
 corner_radius_top_left = 32
 corner_radius_top_right = 32
 
-[node name="GamePlayers" type="PanelContainer"]
+[node name="GamePlayers" type="PanelContainer" unique_id=950180914]
 anchors_preset = 12
 anchor_top = 1.0
 anchor_right = 1.0
@@ -20,27 +20,27 @@ grow_vertical = 0
 theme_override_styles/panel = SubResource("StyleBoxFlat_panel")
 script = ExtResource("1_script")
 
-[node name="Margin" type="MarginContainer" parent="."]
+[node name="Margin" type="MarginContainer" parent="." unique_id=37774847]
 layout_mode = 2
 theme_override_constants/margin_left = 48
 theme_override_constants/margin_top = 24
 theme_override_constants/margin_right = 48
 theme_override_constants/margin_bottom = 24
 
-[node name="PlayersView" type="VBoxContainer" parent="Margin"]
+[node name="PlayersView" type="VBoxContainer" parent="Margin" unique_id=964587120]
 layout_mode = 2
 theme_override_constants/separation = 16
 
-[node name="Header" type="HBoxContainer" parent="Margin/PlayersView"]
+[node name="Header" type="HBoxContainer" parent="Margin/PlayersView" unique_id=559346986]
 layout_mode = 2
 
-[node name="MinusButton" type="Button" parent="Margin/PlayersView/Header"]
+[node name="MinusButton" type="Button" parent="Margin/PlayersView/Header" unique_id=1711545030]
 custom_minimum_size = Vector2(110, 110)
 layout_mode = 2
 theme_override_font_sizes/font_size = 64
 text = "-"
 
-[node name="TitleLabel" type="Label" parent="Margin/PlayersView/Header"]
+[node name="TitleLabel" type="Label" parent="Margin/PlayersView/Header" unique_id=24937059]
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_font_sizes/font_size = 56
@@ -48,29 +48,29 @@ text = "Players"
 horizontal_alignment = 1
 vertical_alignment = 1
 
-[node name="PlusButton" type="Button" parent="Margin/PlayersView/Header"]
+[node name="PlusButton" type="Button" parent="Margin/PlayersView/Header" unique_id=2124278003]
 custom_minimum_size = Vector2(110, 110)
 layout_mode = 2
 theme_override_font_sizes/font_size = 64
 text = "+"
 
-[node name="CountLabel" type="Label" parent="Margin/PlayersView"]
+[node name="CountLabel" type="Label" parent="Margin/PlayersView" unique_id=696179433]
 modulate = Color(1, 1, 1, 0.6)
 layout_mode = 2
 theme_override_font_sizes/font_size = 28
 text = "0 / 4"
 horizontal_alignment = 1
 
-[node name="Scroll" type="ScrollContainer" parent="Margin/PlayersView"]
+[node name="Scroll" type="ScrollContainer" parent="Margin/PlayersView" unique_id=1095272596]
 layout_mode = 2
 size_flags_vertical = 3
 horizontal_scroll_mode = 0
 
-[node name="PlayerList" type="VBoxContainer" parent="Margin/PlayersView/Scroll"]
+[node name="PlayerList" type="VBoxContainer" parent="Margin/PlayersView/Scroll" unique_id=914031515]
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_constants/separation = 16
 
-[node name="PlayerEditPanel" parent="Margin" instance=ExtResource("2_edit")]
+[node name="PlayerEditPanel" parent="Margin" unique_id=2086582311 instance=ExtResource("2_edit")]
 visible = false
 layout_mode = 2
