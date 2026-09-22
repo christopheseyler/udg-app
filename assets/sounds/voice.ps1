@@ -1,0 +1,3 @@
+
+$env:OPENAI_API_KEY="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"
+python generate_voice.py
