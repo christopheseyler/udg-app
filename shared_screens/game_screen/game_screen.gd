@@ -16,7 +16,11 @@ extends Control
 ##   l'ecran "Remove your darts" (RemoveDartsScreen) s'affiche pendant
 ##   remove_darts_duration secondes ; ensuite next_player_requested est emis
 ##   et le tour est remis a zero ;
-## - back_confirmed est emis quand le joueur confirme la sortie du jeu.
+## - back_confirmed est emis quand le joueur confirme la sortie du jeu ;
+## - announce_winner() termine la partie sur une victoire et affiche l'ecran
+##   partage PlayerWinsScreen ; end_game() la termine sans vainqueur (ex :
+##   nombre de rounds maximal atteint). Les deux bloquent les jets et
+##   ramenent a la configuration de la partie quand l'ecran se ferme.
 
 signal back_confirmed
 signal throw_cancelled(value: String)
@@ -46,10 +50,13 @@ const DART_ICON_SIZE := Vector2(0, 192)
 @onready var darts_list: HBoxContainer = $SidePanel/Margin/Content/DartsList
 @onready var confirm_overlay: Control = $ConfirmOverlay
 @onready var remove_darts_screen: RemoveDartsScreen = $RemoveDartsScreen
+@onready var winner_screen: PlayerWinsScreen = $PlayerWinsScreen
 @onready var stay_button: Button = $ConfirmOverlay/Center/Dialog/Margin/Content/Buttons/StayButton
 @onready var leave_button: Button = $ConfirmOverlay/Center/Dialog/Margin/Content/Buttons/LeaveButton
 
 var round_number := 1
+
+var _game_over := false
 
 var _throws: Array[String] = []
 var _history: Array[Array] = []
@@ -63,6 +70,7 @@ func _ready() -> void:
 	cancel_hit_button.pressed.connect(cancel_last_throw)
 	next_player_button.pressed.connect(_start_remove_darts)
 	remove_darts_screen.finished.connect(_finish_turn)
+	winner_screen.continue_pressed.connect(func(): back_confirmed.emit())
 	_build_slots()
 	DartInputManager.set_active(true)
 	DartInputManager.hit_detected.connect(_on_dart_hit)
@@ -74,9 +82,10 @@ func _exit_tree() -> void:
 ## Jet detecte par la source de jets (carte UART ou simulateur). Par defaut
 ## le jet est simplement ajoute au tour ; un jeu surcharge cette methode pour
 ## y appliquer ses regles (appeler super pour l'affichage). Ignore tant que la
-## confirmation de sortie ou le decompte "Remove your darts" est affiche.
+## confirmation de sortie ou le decompte "Remove your darts" est affiche, ou
+## une fois la partie terminee.
 func _on_dart_hit(hit: DartHit) -> void:
-	if confirm_overlay.visible or remove_darts_screen.visible:
+	if _game_over or confirm_overlay.visible or remove_darts_screen.visible:
 		return
 	add_throw(hit.get_label())
 
@@ -84,6 +93,27 @@ func _on_dart_hit(hit: DartHit) -> void:
 ## options choisies dans l'ecran de selection. A surcharger par chaque jeu.
 func setup(_players: Array[String], _options: Dictionary) -> void:
 	pass
+
+## Termine la partie sur une victoire : bloque les jets et affiche l'ecran
+## partage de victoire (contenu provisoire). A appeler par le jeu quand ses
+## regles determinent un gagnant.
+func announce_winner(player_name: String) -> void:
+	if _game_over:
+		return
+	_game_over = true
+	DartInputManager.set_active(false)
+	winner_screen.show_winner(player_name)
+
+## Termine la partie sans vainqueur (ex : nombre de rounds maximal atteint) :
+## bloque les jets et revient directement a la configuration de la partie.
+func end_game(reason: String = "") -> void:
+	if _game_over:
+		return
+	_game_over = true
+	DartInputManager.set_active(false)
+	if reason != "":
+		print(reason)
+	back_confirmed.emit()
 
 ## Place le panneau de score du jeu dans la zone dediee (il en remplit tout
 ## l'espace). Remplace le panneau precedent s'il y en avait un.
