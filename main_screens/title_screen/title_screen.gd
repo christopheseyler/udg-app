@@ -15,12 +15,14 @@ extends Control
 
 @onready var background: TextureRect = $Background
 @onready var title_image: TextureRect = $TitleImage
+@onready var version_label: Label = $VersionLabel
 
 var _going_to_next_scene := false
 var _preload_paths: Array[String] = []
 
 func _ready() -> void:
 	_preload_next_scene()
+	_show_version()
 	title_image.modulate.a = 0.0
 	title_image.pivot_offset = title_image.size / 2.0
 	title_image.resized.connect(func(): title_image.pivot_offset = title_image.size / 2.0)
@@ -47,11 +49,22 @@ func _unhandled_input(event: InputEvent) -> void:
 ## sont gardees sur la racine du SceneTree pour survivre a cette scene.
 func _preload_next_scene() -> void:
 	_preload_paths = [next_scene_path]
-	var game_select_script: GDScript = load("res://main_screens/game_selection/game_select.gd")
-	for game in game_select_script.get_script_constant_map().get("GAMES", []):
-		_preload_paths.append(game["image"])
+	for game in GameRegistry.create_all():
+		_preload_paths.append(game.image)
 	for path in _preload_paths:
 		ResourceLoader.load_threaded_request(path)
+
+## Affiche le numero de version du projet (config/version) en bas a droite,
+## en italique synthetique (le projet n'embarque pas de police italique
+## dediee pour ce style de texte).
+func _show_version() -> void:
+	var version: String = ProjectSettings.get_setting("application/config/version", "0.0.0")
+	version_label.text = "v%s" % version
+
+	var italic_font := FontVariation.new()
+	italic_font.base_font = version_label.get_theme_default_font()
+	italic_font.variation_transform = Transform2D(Vector2(1.0, 0.0), Vector2(0.22, 1.0), Vector2.ZERO)
+	version_label.add_theme_font_override("font", italic_font)
 
 func _go_to_next_scene() -> void:
 	if _going_to_next_scene:
