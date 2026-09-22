@@ -167,6 +167,12 @@ func _advance_and_start_turn() -> void:
 	_turn_hits = []
 	_start_turn_snapshot()
 	score_panel.set_current_player(_current_player)
+	# La dette vient de changer (remboursee ou reduite par un saut) sans
+	# passer par _apply_turn_state() : rafraichir explicitement, sinon les
+	# gommettes restent affichees avec l'ancienne valeur jusqu'au prochain
+	# jet lance.
+	for i in _players.size():
+		_refresh_row(i)
 
 ## Revient au tour du joueur precedent (Cancel hit avec le tour courant
 ## vide) : restaure son instantane de depart et ses jets, qui seront retires
@@ -326,6 +332,7 @@ func _is_bust(new_score: int, hit: DartHit) -> bool:
 
 func _refresh_row(index: int) -> void:
 	score_panel.set_row(index, _scores[index], _hint_for(index))
+	score_panel.set_debt(index, _dart_debt[index])
 
 ## Texte d'aide du joueur : condition d'entree tant qu'il n'est pas entre dans
 ## la partie, puis condition de sortie quand son score devient terminable.
