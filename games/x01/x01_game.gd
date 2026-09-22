@@ -23,4 +23,10 @@ func _init() -> void:
 			"items": ["None", "Double", "Triple", "Master"], "default": "Double",
 			"info": "Condition to finish the game: the last dart must reach exactly zero with a double (Double), a triple (Triple) or either of them (Master). None: any dart finishes.",
 		},
+		{"type": "group", "name": "Special / Fun"},
+		{
+			"id": "same_score_hit", "type": "enum", "name": "Same Score Hit",
+			"items": ["Nothing", "Wipe-Out", "Give-me your darts"], "default": "Nothing",
+			"info": "What happens when a player's score becomes equal to another player's score. Nothing: no effect. Wipe-Out: the other player's score falls back to 0 (they stay in the game, no need to re-enter). Give-me your darts: the other player hands over darts (1 for a single, 2 for a double, 3 for a triple that caused the tie), which can be thrown right away in the same turn ; those darts are deducted from the other player's next turn, at worst skipping it entirely if 3 or more are owed. This stacks if several players tie into the same score before that player's turn comes up, and at most 3 owed darts are cleared each round.",
+		},
 	]
