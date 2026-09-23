@@ -1,14 +1,7 @@
-[gd_scene load_steps=7 format=3]
+[gd_scene format=3 uid="uid://dpk0pkk2sk3y"]
 
-[ext_resource type="Script" path="res://shared_screens/game_screen/game_screen.gd" id="1_script"]
+[ext_resource type="Script" uid="uid://botfrrx2enkqa" path="res://shared_screens/game_screen/game_screen.gd" id="1_script"]
 [ext_resource type="Texture2D" uid="uid://nw2qty11nas1" path="res://assets/title_background.png" id="2_bg"]
-[ext_resource type="PackedScene" path="res://shared_screens/remove_darts_screen/remove_darts_screen.tscn" id="3_remove"]
-[ext_resource type="PackedScene" path="res://shared_screens/player_wins_screen/player_wins_screen.tscn" id="4_winner"]
-
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_bar"]
-bg_color = Color(0.05, 0.05, 0.08, 0.78)
-corner_radius_top_left = 32
-corner_radius_top_right = 32
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_side"]
 bg_color = Color(0.05, 0.05, 0.08, 0.78)
@@ -17,6 +10,11 @@ corner_radius_top_right = 32
 corner_radius_bottom_right = 32
 corner_radius_bottom_left = 32
 
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_bar"]
+bg_color = Color(0.05, 0.05, 0.08, 0.78)
+corner_radius_top_left = 32
+corner_radius_top_right = 32
+
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_dialog"]
 bg_color = Color(0.09, 0.09, 0.13, 1)
 corner_radius_top_left = 32
@@ -24,7 +22,28 @@ corner_radius_top_right = 32
 corner_radius_bottom_right = 32
 corner_radius_bottom_left = 32
 
-[node name="GameScreen" type="Control"]
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_next_normal"]
+bg_color = Color(0.95, 0.75, 0.2, 1)
+corner_radius_top_left = 90
+corner_radius_top_right = 90
+corner_radius_bottom_right = 90
+corner_radius_bottom_left = 90
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_next_pressed"]
+bg_color = Color(0.78, 0.6, 0.12, 1)
+corner_radius_top_left = 90
+corner_radius_top_right = 90
+corner_radius_bottom_right = 90
+corner_radius_bottom_left = 90
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_next_hover"]
+bg_color = Color(1, 0.82, 0.32, 1)
+corner_radius_top_left = 90
+corner_radius_top_right = 90
+corner_radius_bottom_right = 90
+corner_radius_bottom_left = 90
+
+[node name="GameScreen" type="Control" unique_id=1109840664]
 layout_mode = 3
 anchors_preset = 15
 anchor_right = 1.0
@@ -33,7 +52,7 @@ grow_horizontal = 2
 grow_vertical = 2
 script = ExtResource("1_script")
 
-[node name="Background" type="TextureRect" parent="."]
+[node name="Background" type="TextureRect" parent="." unique_id=282533826]
 modulate = Color(0.55, 0.55, 0.55, 1)
 layout_mode = 1
 anchors_preset = 15
@@ -45,9 +64,8 @@ texture = ExtResource("2_bg")
 expand_mode = 1
 stretch_mode = 6
 
-[node name="ScoreArea" type="Control" parent="."]
+[node name="ScoreArea" type="Control" parent="." unique_id=1846616834]
 layout_mode = 1
-anchors_preset = -1
 anchor_right = 1.0
 anchor_bottom = 1.0
 offset_left = 24.0
@@ -57,7 +75,7 @@ offset_bottom = -224.0
 grow_horizontal = 2
 grow_vertical = 2
 
-[node name="SidePanel" type="PanelContainer" parent="."]
+[node name="SidePanel" type="PanelContainer" parent="." unique_id=1162380304]
 layout_mode = 1
 anchors_preset = -1
 anchor_left = 1.0
@@ -66,87 +84,87 @@ anchor_bottom = 1.0
 offset_left = -440.0
 offset_top = 24.0
 offset_right = -24.0
-offset_bottom = -224.0
+offset_bottom = -60.0
 grow_horizontal = 0
 grow_vertical = 2
 theme_override_styles/panel = SubResource("StyleBoxFlat_side")
 
-[node name="Margin" type="MarginContainer" parent="SidePanel"]
+[node name="Margin" type="MarginContainer" parent="SidePanel" unique_id=1180502646]
 layout_mode = 2
 theme_override_constants/margin_left = 24
 theme_override_constants/margin_top = 24
 theme_override_constants/margin_right = 24
 theme_override_constants/margin_bottom = 24
 
-[node name="Content" type="VBoxContainer" parent="SidePanel/Margin"]
+[node name="Content" type="VBoxContainer" parent="SidePanel/Margin" unique_id=310897470]
 layout_mode = 2
 theme_override_constants/separation = 24
 
-[node name="RoundLabel" type="Label" parent="SidePanel/Margin/Content"]
+[node name="RoundLabel" type="Label" parent="SidePanel/Margin/Content" unique_id=1312519182]
 layout_mode = 2
 theme_override_font_sizes/font_size = 48
 text = "Round #1"
 horizontal_alignment = 1
 vertical_alignment = 1
 
-[node name="ThrowsScroll" type="ScrollContainer" parent="SidePanel/Margin/Content"]
+[node name="ThrowsScroll" type="ScrollContainer" parent="SidePanel/Margin/Content" unique_id=285716644]
 layout_mode = 2
 size_flags_vertical = 3
 horizontal_scroll_mode = 0
 
-[node name="ThrowsList" type="VBoxContainer" parent="SidePanel/Margin/Content/ThrowsScroll"]
+[node name="ThrowsList" type="VBoxContainer" parent="SidePanel/Margin/Content/ThrowsScroll" unique_id=669599968]
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_constants/separation = 16
 
-[node name="DartsList" type="HBoxContainer" parent="SidePanel/Margin/Content"]
+[node name="DartsFan" type="Control" parent="SidePanel/Margin/Content" unique_id=1293271075]
+custom_minimum_size = Vector2(0, 220)
 layout_mode = 2
-theme_override_constants/separation = 8
 
-[node name="BottomBar" type="PanelContainer" parent="."]
+[node name="BottomBar" type="PanelContainer" parent="." unique_id=867021162]
 layout_mode = 1
 anchors_preset = 12
 anchor_top = 1.0
 anchor_right = 1.0
 anchor_bottom = 1.0
 offset_top = -200.0
+offset_right = -468.0
 grow_horizontal = 2
 grow_vertical = 0
 theme_override_styles/panel = SubResource("StyleBoxFlat_bar")
 
-[node name="Margin" type="MarginContainer" parent="BottomBar"]
+[node name="Margin" type="MarginContainer" parent="BottomBar" unique_id=1542031066]
 layout_mode = 2
 theme_override_constants/margin_left = 48
 theme_override_constants/margin_top = 24
 theme_override_constants/margin_right = 48
 theme_override_constants/margin_bottom = 24
 
-[node name="Buttons" type="HBoxContainer" parent="BottomBar/Margin"]
+[node name="Buttons" type="HBoxContainer" parent="BottomBar/Margin" unique_id=1640309207]
 layout_mode = 2
 theme_override_constants/separation = 32
 
-[node name="BackButton" type="Button" parent="BottomBar/Margin/Buttons"]
-custom_minimum_size = Vector2(0, 120)
+[node name="BackButton" type="Button" parent="BottomBar/Margin/Buttons" unique_id=1974761495]
+custom_minimum_size = Vector2(320, 120)
 layout_mode = 2
-size_flags_horizontal = 3
 theme_override_font_sizes/font_size = 44
 text = "Back"
 
-[node name="CancelHitButton" type="Button" parent="BottomBar/Margin/Buttons"]
-custom_minimum_size = Vector2(0, 120)
+[node name="CancelHitButton" type="Button" parent="BottomBar/Margin/Buttons" unique_id=164312371]
+custom_minimum_size = Vector2(280, 120)
+layout_mode = 2
+theme_override_font_sizes/font_size = 44
+text = "Cancel"
+
+[node name="GameNameLabel" type="Label" parent="BottomBar/Margin/Buttons" unique_id=948003211]
 layout_mode = 2
 size_flags_horizontal = 3
+size_flags_vertical = 1
 theme_override_font_sizes/font_size = 44
-text = "Cancel hit"
+text = "Game Name"
+vertical_alignment = 1
 
-[node name="NextPlayerButton" type="Button" parent="BottomBar/Margin/Buttons"]
-custom_minimum_size = Vector2(0, 120)
-layout_mode = 2
-size_flags_horizontal = 3
-theme_override_font_sizes/font_size = 44
-text = "Next player"
-
-[node name="ConfirmOverlay" type="Control" parent="."]
+[node name="ConfirmOverlay" type="Control" parent="." unique_id=832388185]
 visible = false
 layout_mode = 1
 anchors_preset = 15
@@ -155,7 +173,7 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 
-[node name="Dim" type="ColorRect" parent="ConfirmOverlay"]
+[node name="Dim" type="ColorRect" parent="ConfirmOverlay" unique_id=1807768175]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
@@ -164,7 +182,7 @@ grow_horizontal = 2
 grow_vertical = 2
 color = Color(0, 0, 0, 0.6)
 
-[node name="Center" type="CenterContainer" parent="ConfirmOverlay"]
+[node name="Center" type="CenterContainer" parent="ConfirmOverlay" unique_id=683153343]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
@@ -173,49 +191,63 @@ grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
 
-[node name="Dialog" type="PanelContainer" parent="ConfirmOverlay/Center"]
+[node name="Dialog" type="PanelContainer" parent="ConfirmOverlay/Center" unique_id=2121655434]
 custom_minimum_size = Vector2(900, 0)
 layout_mode = 2
 theme_override_styles/panel = SubResource("StyleBoxFlat_dialog")
 
-[node name="Margin" type="MarginContainer" parent="ConfirmOverlay/Center/Dialog"]
+[node name="Margin" type="MarginContainer" parent="ConfirmOverlay/Center/Dialog" unique_id=1620216318]
 layout_mode = 2
 theme_override_constants/margin_left = 48
 theme_override_constants/margin_top = 48
 theme_override_constants/margin_right = 48
 theme_override_constants/margin_bottom = 48
 
-[node name="Content" type="VBoxContainer" parent="ConfirmOverlay/Center/Dialog/Margin"]
+[node name="Content" type="VBoxContainer" parent="ConfirmOverlay/Center/Dialog/Margin" unique_id=11326793]
 layout_mode = 2
 theme_override_constants/separation = 40
 
-[node name="MessageLabel" type="Label" parent="ConfirmOverlay/Center/Dialog/Margin/Content"]
+[node name="MessageLabel" type="Label" parent="ConfirmOverlay/Center/Dialog/Margin/Content" unique_id=681354247]
 layout_mode = 2
 theme_override_font_sizes/font_size = 48
 text = "Leave the game?"
 horizontal_alignment = 1
 vertical_alignment = 1
 
-[node name="Buttons" type="HBoxContainer" parent="ConfirmOverlay/Center/Dialog/Margin/Content"]
+[node name="Buttons" type="HBoxContainer" parent="ConfirmOverlay/Center/Dialog/Margin/Content" unique_id=1208320011]
 layout_mode = 2
 theme_override_constants/separation = 32
 
-[node name="StayButton" type="Button" parent="ConfirmOverlay/Center/Dialog/Margin/Content/Buttons"]
+[node name="StayButton" type="Button" parent="ConfirmOverlay/Center/Dialog/Margin/Content/Buttons" unique_id=55752056]
 custom_minimum_size = Vector2(0, 110)
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_font_sizes/font_size = 44
 text = "Cancel"
 
-[node name="LeaveButton" type="Button" parent="ConfirmOverlay/Center/Dialog/Margin/Content/Buttons"]
+[node name="LeaveButton" type="Button" parent="ConfirmOverlay/Center/Dialog/Margin/Content/Buttons" unique_id=1309154873]
 custom_minimum_size = Vector2(0, 110)
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_font_sizes/font_size = 44
 text = "Leave"
 
-[node name="RemoveDartsScreen" parent="." instance=ExtResource("3_remove")]
+[node name="NextButton" type="Button" parent="." unique_id=2119518528]
 layout_mode = 1
-
-[node name="PlayerWinsScreen" parent="." instance=ExtResource("4_winner")]
-layout_mode = 1
+anchors_preset = 3
+anchor_left = 1.0
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = -320.0
+offset_top = -198.0
+offset_right = -140.0
+offset_bottom = -18.0
+grow_horizontal = 0
+grow_vertical = 0
+theme_override_font_sizes/font_size = 40
+theme_override_styles/normal = SubResource("StyleBoxFlat_next_normal")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_next_pressed")
+theme_override_styles/hover = SubResource("StyleBoxFlat_next_hover")
+theme_override_styles/focus = SubResource("StyleBoxFlat_next_normal")
+text = "NEXT"

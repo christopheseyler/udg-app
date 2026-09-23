@@ -339,6 +339,7 @@ func _start_game(player_names: Array[String]) -> void:
 		tree.root.add_child(self)
 		tree.current_scene = self)
 	tree.root.add_child(game_screen)
+	game_screen.set_game_name(game.name)
 	game_screen.setup(player_names, options)
 	tree.current_scene = game_screen
 	tree.root.remove_child(self)

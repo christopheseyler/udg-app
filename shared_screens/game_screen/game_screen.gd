@@ -2,11 +2,12 @@ class_name GameScreen
 extends Control
 
 ## Template des ecrans de jeu. Bandeau inferieur (Back avec confirmation,
-## Cancel hit, Next player), panneau lateral droit (liste defilante des
-## valeurs des jets en haut, fleches restantes toujours visibles en bas,
+## Cancel, nom du jeu), panneau lateral droit (liste defilante des valeurs
+## des jets en haut, fleches restantes toujours visibles en bas en eventail,
 ## meme si la liste des jets s'allonge) et zone de score libre pour le
-## panneau propre au jeu (set_score_panel()). Un jeu herite de cette scene ;
-## le template gere
+## panneau propre au jeu (set_score_panel()). Le bouton Next flotte en rond
+## au coin bas-droit, devant l'eventail de fleches. Un jeu herite de cette
+## scene ; le template gere
 ## les jets du tour en cours et signale les actions du joueur :
 ## - add_throw() enregistre la valeur d'un jet (ex. "T20", "25", "Miss") ;
 ## - Cancel hit retire le dernier jet (throw_cancelled est emis avec sa
@@ -32,7 +33,16 @@ signal previous_player_requested
 const DART_TEXTURE := preload("res://assets/dart.png")
 const EMPTY_THROW_TEXT := "-"
 const THROW_FONT_SIZE := 64
-const DART_ICON_SIZE := Vector2(0, 192)
+const DART_ICON_SIZE := Vector2(128, 192)
+## RemoveDartsScreen et PlayerWinsScreen ne sont pas des enfants fixes de la
+## scene (voir _ready()) : instancies au runtime, pas de dependance dans le
+## .tscn du template.
+const REMOVE_DARTS_SCREEN := preload("res://shared_screens/remove_darts_screen/remove_darts_screen.tscn")
+const PLAYER_WINS_SCREEN := preload("res://shared_screens/player_wins_screen/player_wins_screen.tscn")
+## Ecart angulaire total de l'eventail de fleches (voir _build_slots) : la
+## premiere et la derniere fleche sont chacune a la moitie de cette valeur
+## de part et d'autre du centre.
+const DART_FAN_SPREAD_DEGREES := 44.0
 
 ## Duree (secondes) du decompte "Remove your darts" entre deux tours.
 @export var remove_darts_duration: float = 5.0
@@ -46,16 +56,21 @@ const DART_ICON_SIZE := Vector2(0, 192)
 @onready var score_area: Control = $ScoreArea
 @onready var back_button: Button = $BottomBar/Margin/Buttons/BackButton
 @onready var cancel_hit_button: Button = $BottomBar/Margin/Buttons/CancelHitButton
-@onready var next_player_button: Button = $BottomBar/Margin/Buttons/NextPlayerButton
+@onready var game_name_label: Label = $BottomBar/Margin/Buttons/GameNameLabel
+@onready var next_player_button: Button = $NextButton
 @onready var round_label: Label = $SidePanel/Margin/Content/RoundLabel
 @onready var throws_scroll: ScrollContainer = $SidePanel/Margin/Content/ThrowsScroll
 @onready var throws_list: VBoxContainer = $SidePanel/Margin/Content/ThrowsScroll/ThrowsList
-@onready var darts_list: HBoxContainer = $SidePanel/Margin/Content/DartsList
+## Fleches restantes, en eventail derriere le bouton Next (voir
+## _build_slots) plutot qu'en simple rangee.
+@onready var darts_fan: Control = $SidePanel/Margin/Content/DartsFan
 @onready var confirm_overlay: Control = $ConfirmOverlay
-@onready var remove_darts_screen: RemoveDartsScreen = $RemoveDartsScreen
-@onready var winner_screen: PlayerWinsScreen = $PlayerWinsScreen
 @onready var stay_button: Button = $ConfirmOverlay/Center/Dialog/Margin/Content/Buttons/StayButton
 @onready var leave_button: Button = $ConfirmOverlay/Center/Dialog/Margin/Content/Buttons/LeaveButton
+
+## Instancies au runtime plutot que fixes dans le .tscn (voir _ready()).
+var remove_darts_screen: RemoveDartsScreen
+var winner_screen: PlayerWinsScreen
 
 var round_number := 1
 
@@ -67,6 +82,11 @@ var _throw_labels: Array[Label] = []
 var _dart_icons: Array[TextureRect] = []
 
 func _ready() -> void:
+	remove_darts_screen = REMOVE_DARTS_SCREEN.instantiate()
+	add_child(remove_darts_screen)
+	winner_screen = PLAYER_WINS_SCREEN.instantiate()
+	add_child(winner_screen)
+
 	back_button.pressed.connect(func(): confirm_overlay.visible = true)
 	stay_button.pressed.connect(func(): confirm_overlay.visible = false)
 	leave_button.pressed.connect(_on_leave_pressed)
@@ -133,6 +153,10 @@ func set_round(number: int) -> void:
 	round_number = maxi(number, 1)
 	round_label.text = "Round #%d" % round_number
 
+## Affiche le nom du jeu en cours dans la barre du bas.
+func set_game_name(value: String) -> void:
+	game_name_label.text = value
+
 func get_throws() -> Array[String]:
 	return _throws.duplicate()
 
@@ -195,8 +219,8 @@ func _build_slots() -> void:
 	for child in throws_list.get_children():
 		throws_list.remove_child(child)
 		child.queue_free()
-	for child in darts_list.get_children():
-		darts_list.remove_child(child)
+	for child in darts_fan.get_children():
+		darts_fan.remove_child(child)
 		child.queue_free()
 	_throw_labels.clear()
 	_dart_icons.clear()
@@ -209,16 +233,34 @@ func _build_slots() -> void:
 		throws_list.add_child(label)
 		_throw_labels.append(label)
 
+		# Toutes les fleches partagent le meme point de pivot (centre-bas de
+		# darts_fan, derriere le bouton Next) et ne different que par leur
+		# rotation : c'est ce qui donne l'effet d'eventail.
 		var icon := TextureRect.new()
 		icon.texture = DART_TEXTURE
-		icon.custom_minimum_size = DART_ICON_SIZE
 		icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 		icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-		icon.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		darts_list.add_child(icon)
+		icon.anchor_left = 0.5
+		icon.anchor_right = 0.5
+		icon.anchor_top = 1.0
+		icon.anchor_bottom = 1.0
+		icon.offset_left = -DART_ICON_SIZE.x / 2.0
+		icon.offset_right = DART_ICON_SIZE.x / 2.0
+		icon.offset_top = -DART_ICON_SIZE.y
+		icon.offset_bottom = 0.0
+		icon.pivot_offset = Vector2(DART_ICON_SIZE.x / 2.0, DART_ICON_SIZE.y)
+		icon.rotation_degrees = _fan_angle_degrees(i, darts_per_turn)
+		darts_fan.add_child(icon)
 		_dart_icons.append(icon)
 
 	_refresh()
+
+## Angle (degres) de la i-eme fleche dans l'eventail, reparties
+## symetriquement de part et d'autre du centre sur DART_FAN_SPREAD_DEGREES.
+func _fan_angle_degrees(index: int, count: int) -> float:
+	if count <= 1:
+		return 0.0
+	return lerpf(-DART_FAN_SPREAD_DEGREES / 2.0, DART_FAN_SPREAD_DEGREES / 2.0, float(index) / float(count - 1))
 
 func _refresh() -> void:
 	var remaining := get_remaining_darts()
