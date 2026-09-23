@@ -13,9 +13,9 @@ signal back_pressed
 const ROW_HEIGHT := 90
 const ROW_FONT_SIZE := 40
 
-@onready var player_list: VBoxContainer = $Panel/Margin/Content/Scroll/PlayerList
-@onready var back_button: Button = $Panel/Margin/Content/Buttons/BackButton
-@onready var confirm_button: Button = $Panel/Margin/Content/Buttons/ConfirmButton
+@onready var player_list: VBoxContainer = $Panel/Layout/Margin/Content/Scroll/PlayerList
+@onready var back_button: Button = $Panel/Layout/Margin/Content/Buttons/BackButton
+@onready var confirm_button: Button = $Panel/Layout/Margin/Content/Buttons/ConfirmButton
 
 var _names: Array[String] = []
 

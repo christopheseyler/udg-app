@@ -1,14 +1,28 @@
-[gd_scene load_steps=4 format=3]
+[gd_scene load_steps=5 format=3]
 
 [ext_resource type="Script" path="res://shared_screens/players_order_screen/players_order_screen.gd" id="1_script"]
 [ext_resource type="Texture2D" uid="uid://nw2qty11nas1" path="res://assets/title_background.png" id="2_bg"]
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_panel"]
 bg_color = Color(0.05, 0.05, 0.08, 0.78)
+border_width_left = 4
+border_width_top = 4
+border_width_right = 4
+border_width_bottom = 4
+border_color = Color(0.95, 0.75, 0.2, 1)
 corner_radius_top_left = 32
 corner_radius_top_right = 32
 corner_radius_bottom_right = 32
 corner_radius_bottom_left = 32
+content_margin_left = 4.0
+content_margin_top = 4.0
+content_margin_right = 4.0
+content_margin_bottom = 4.0
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_title_banner"]
+bg_color = Color(0.95, 0.75, 0.2, 1)
+corner_radius_top_left = 28
+corner_radius_top_right = 28
 
 [node name="PlayersOrderScreen" type="Control"]
 layout_mode = 3
@@ -42,25 +56,36 @@ grow_horizontal = 2
 grow_vertical = 2
 theme_override_styles/panel = SubResource("StyleBoxFlat_panel")
 
-[node name="Margin" type="MarginContainer" parent="Panel"]
+[node name="Layout" type="VBoxContainer" parent="Panel"]
 layout_mode = 2
+theme_override_constants/separation = 0
+
+[node name="TitleBanner" type="PanelContainer" parent="Panel/Layout"]
+layout_mode = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_title_banner")
+
+[node name="TitleLabel" type="Label" parent="Panel/Layout/TitleBanner"]
+custom_minimum_size = Vector2(0, 64)
+layout_mode = 2
+theme_override_colors/font_color = Color(0.1, 0.08, 0.02, 1)
+theme_override_font_sizes/font_size = 40
+text = "THROWING ORDER"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="Margin" type="MarginContainer" parent="Panel/Layout"]
+layout_mode = 2
+size_flags_vertical = 3
 theme_override_constants/margin_left = 48
 theme_override_constants/margin_top = 32
 theme_override_constants/margin_right = 48
 theme_override_constants/margin_bottom = 32
 
-[node name="Content" type="VBoxContainer" parent="Panel/Margin"]
+[node name="Content" type="VBoxContainer" parent="Panel/Layout/Margin"]
 layout_mode = 2
 theme_override_constants/separation = 24
 
-[node name="TitleLabel" type="Label" parent="Panel/Margin/Content"]
-layout_mode = 2
-theme_override_font_sizes/font_size = 56
-text = "Throwing order"
-horizontal_alignment = 1
-vertical_alignment = 1
-
-[node name="InstructionLabel" type="Label" parent="Panel/Margin/Content"]
+[node name="InstructionLabel" type="Label" parent="Panel/Layout/Margin/Content"]
 modulate = Color(1, 1, 1, 0.8)
 layout_mode = 2
 theme_override_font_sizes/font_size = 32
@@ -68,30 +93,30 @@ text = "Each player throws one dart as close to the bullseye as possible. The cl
 horizontal_alignment = 1
 autowrap_mode = 3
 
-[node name="Scroll" type="ScrollContainer" parent="Panel/Margin/Content"]
+[node name="Scroll" type="ScrollContainer" parent="Panel/Layout/Margin/Content"]
 layout_mode = 2
 size_flags_vertical = 3
 horizontal_scroll_mode = 0
 
-[node name="PlayerList" type="VBoxContainer" parent="Panel/Margin/Content/Scroll"]
+[node name="PlayerList" type="VBoxContainer" parent="Panel/Layout/Margin/Content/Scroll"]
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_constants/separation = 16
 
-[node name="Buttons" type="HBoxContainer" parent="Panel/Margin/Content"]
+[node name="Buttons" type="HBoxContainer" parent="Panel/Layout/Margin/Content"]
 layout_mode = 2
 theme_override_constants/separation = 32
 
-[node name="BackButton" type="Button" parent="Panel/Margin/Content/Buttons"]
+[node name="BackButton" type="Button" parent="Panel/Layout/Margin/Content/Buttons"]
 custom_minimum_size = Vector2(0, 120)
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_font_sizes/font_size = 44
 text = "Back"
 
-[node name="ConfirmButton" type="Button" parent="Panel/Margin/Content/Buttons"]
+[node name="ConfirmButton" type="Button" parent="Panel/Layout/Margin/Content/Buttons"]
 custom_minimum_size = Vector2(0, 120)
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_font_sizes/font_size = 44
-text = "Confirm"
+text = "Continue"
