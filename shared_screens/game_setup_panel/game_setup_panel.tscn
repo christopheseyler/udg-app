@@ -1,56 +1,67 @@
-[gd_scene load_steps=3 format=3]
+[gd_scene format=3 uid="uid://d32ew8tbge6ju"]
 
-[ext_resource type="Script" path="res://shared_screens/game_setup_panel/game_setup_panel.gd" id="1_script"]
+[ext_resource type="Script" uid="uid://hdeo0ej04hk6" path="res://shared_screens/game_setup_panel/game_setup_panel.gd" id="1_script"]
+[ext_resource type="Texture2D" uid="uid://d3wouyqiu7wgq" path="res://assets/button_panel_large.png" id="2_bar_bg"]
 
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_panel"]
-bg_color = Color(0.05, 0.05, 0.08, 0.78)
-corner_radius_top_left = 32
-corner_radius_top_right = 32
+[sub_resource type="StyleBoxTexture" id="StyleBoxTexture_panel"]
+texture = ExtResource("2_bar_bg")
+texture_margin_left = 40.0
+texture_margin_top = 40.0
+texture_margin_right = 40.0
+texture_margin_bottom = 40.0
+content_margin_left = 0.0
+content_margin_top = 0.0
+content_margin_right = 0.0
+content_margin_bottom = 0.0
 
-[node name="GameSetupPanel" type="PanelContainer"]
-anchors_preset = 12
+[node name="GameSetupPanel" type="PanelContainer" unique_id=1105001273]
+anchors_preset = -1
+anchor_left = 0.0
 anchor_top = 1.0
 anchor_right = 1.0
 anchor_bottom = 1.0
-offset_top = -240.0
+offset_left = 80.0
+offset_top = -168.0
+offset_right = -80.0
+offset_bottom = 0.0
 grow_horizontal = 2
 grow_vertical = 0
-theme_override_styles/panel = SubResource("StyleBoxFlat_panel")
+theme_override_styles/panel = SubResource("StyleBoxTexture_panel")
 script = ExtResource("1_script")
 
-[node name="Margin" type="MarginContainer" parent="."]
+[node name="Margin" type="MarginContainer" parent="." unique_id=566324534]
 layout_mode = 2
 theme_override_constants/margin_left = 48
 theme_override_constants/margin_top = 24
 theme_override_constants/margin_right = 48
 theme_override_constants/margin_bottom = 24
 
-[node name="Buttons" type="HBoxContainer" parent="Margin"]
+[node name="Buttons" type="HBoxContainer" parent="Margin" unique_id=714688909]
 layout_mode = 2
 theme_override_constants/separation = 32
 
-[node name="BackButton" type="Button" parent="Margin/Buttons"]
+[node name="BackButton" type="Button" parent="Margin/Buttons" unique_id=190691682]
 custom_minimum_size = Vector2(0, 120)
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_font_sizes/font_size = 44
 text = "Back"
 
-[node name="PlayersButton" type="Button" parent="Margin/Buttons"]
+[node name="PlayersButton" type="Button" parent="Margin/Buttons" unique_id=1850851355]
 custom_minimum_size = Vector2(0, 120)
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_font_sizes/font_size = 44
 text = "Players"
 
-[node name="OptionsButton" type="Button" parent="Margin/Buttons"]
+[node name="OptionsButton" type="Button" parent="Margin/Buttons" unique_id=1601949072]
 custom_minimum_size = Vector2(0, 120)
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_font_sizes/font_size = 44
 text = "Options"
 
-[node name="StartButton" type="Button" parent="Margin/Buttons"]
+[node name="StartButton" type="Button" parent="Margin/Buttons" unique_id=38918722]
 custom_minimum_size = Vector2(0, 120)
 layout_mode = 2
 size_flags_horizontal = 3

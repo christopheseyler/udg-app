@@ -1,9 +1,9 @@
 class_name GamePlayers
 extends SlidePanel
 
-## Panneau de gestion des joueurs : titre "Players" avec un bouton "-"
-## a gauche (retire le dernier joueur) et "+" a droite (ajoute un joueur),
-## et la liste des joueurs en dessous ("Player #1", "Player #2", ...).
+## Panneau de gestion des joueurs : bandeau titre "PLAYERS" en haut, puis un
+## bouton "-" a gauche (retire le dernier joueur) et "+" a droite (ajoute un
+## joueur), et la liste des joueurs en dessous ("Player #1", "Player #2", ...).
 ## Cliquer un joueur ouvre la vue d'edition de son nom.
 ## La liste demarre avec un joueur (minimum : MIN_PLAYERS).
 ## Le nombre maximum de joueurs depend du jeu selectionne : le definir via
@@ -21,12 +21,12 @@ const MIN_PLAYERS := 1
 
 @export var max_players: int = 4
 
-@onready var players_view: VBoxContainer = $Margin/PlayersView
-@onready var edit_panel: PlayerEditPanel = $Margin/PlayerEditPanel
-@onready var minus_button: Button = $Margin/PlayersView/Header/MinusButton
-@onready var plus_button: Button = $Margin/PlayersView/Header/PlusButton
-@onready var count_label: Label = $Margin/PlayersView/CountLabel
-@onready var player_list: VBoxContainer = $Margin/PlayersView/Scroll/PlayerList
+@onready var players_view: VBoxContainer = $Layout/Margin/PlayersView
+@onready var edit_panel: PlayerEditPanel = $Layout/Margin/PlayerEditPanel
+@onready var minus_button: Button = $Layout/Margin/PlayersView/Header/MinusButton
+@onready var plus_button: Button = $Layout/Margin/PlayersView/Header/PlusButton
+@onready var count_label: Label = $Layout/Margin/PlayersView/Header/CountLabel
+@onready var player_list: VBoxContainer = $Layout/Margin/PlayersView/Scroll/PlayerList
 
 var _names: Array[String] = []
 var _editing_index := -1

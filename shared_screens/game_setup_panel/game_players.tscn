@@ -5,72 +5,103 @@
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_panel"]
 bg_color = Color(0.05, 0.05, 0.08, 0.78)
+border_width_left = 4
+border_width_top = 4
+border_width_right = 4
+border_width_bottom = 4
+border_color = Color(0.95, 0.75, 0.2, 1)
 corner_radius_top_left = 32
 corner_radius_top_right = 32
+corner_radius_bottom_right = 32
+corner_radius_bottom_left = 32
+content_margin_left = 4.0
+content_margin_top = 4.0
+content_margin_right = 4.0
+content_margin_bottom = 4.0
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_title_banner"]
+bg_color = Color(0.95, 0.75, 0.2, 1)
+corner_radius_top_left = 28
+corner_radius_top_right = 28
 
 [node name="GamePlayers" type="PanelContainer" unique_id=950180914]
-anchors_preset = 12
+anchors_preset = -1
+anchor_left = 0.0
 anchor_top = 1.0
 anchor_right = 1.0
 anchor_bottom = 1.0
-offset_top = -960.0
-offset_bottom = -240.0
+offset_left = 20.0
+offset_top = -1060.0
+offset_right = -20.0
+offset_bottom = -188.0
 grow_horizontal = 2
 grow_vertical = 0
 theme_override_styles/panel = SubResource("StyleBoxFlat_panel")
 script = ExtResource("1_script")
 
-[node name="Margin" type="MarginContainer" parent="." unique_id=37774847]
+[node name="Layout" type="VBoxContainer" parent="."]
 layout_mode = 2
+theme_override_constants/separation = 0
+
+[node name="TitleBanner" type="PanelContainer" parent="Layout"]
+layout_mode = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_title_banner")
+
+[node name="TitleLabel" type="Label" parent="Layout/TitleBanner"]
+custom_minimum_size = Vector2(0, 64)
+layout_mode = 2
+theme_override_colors/font_color = Color(0.1, 0.08, 0.02, 1)
+theme_override_font_sizes/font_size = 40
+text = "PLAYERS"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="Margin" type="MarginContainer" parent="Layout" unique_id=37774847]
+layout_mode = 2
+size_flags_vertical = 3
 theme_override_constants/margin_left = 48
 theme_override_constants/margin_top = 24
 theme_override_constants/margin_right = 48
 theme_override_constants/margin_bottom = 24
 
-[node name="PlayersView" type="VBoxContainer" parent="Margin" unique_id=964587120]
+[node name="PlayersView" type="VBoxContainer" parent="Layout/Margin" unique_id=964587120]
 layout_mode = 2
 theme_override_constants/separation = 16
 
-[node name="Header" type="HBoxContainer" parent="Margin/PlayersView" unique_id=559346986]
+[node name="Header" type="HBoxContainer" parent="Layout/Margin/PlayersView" unique_id=559346986]
 layout_mode = 2
 
-[node name="MinusButton" type="Button" parent="Margin/PlayersView/Header" unique_id=1711545030]
-custom_minimum_size = Vector2(110, 110)
+[node name="MinusButton" type="Button" parent="Layout/Margin/PlayersView/Header" unique_id=1711545030]
+custom_minimum_size = Vector2(72, 72)
 layout_mode = 2
-theme_override_font_sizes/font_size = 64
+theme_override_font_sizes/font_size = 44
 text = "-"
 
-[node name="TitleLabel" type="Label" parent="Margin/PlayersView/Header" unique_id=24937059]
-layout_mode = 2
-size_flags_horizontal = 3
-theme_override_font_sizes/font_size = 56
-text = "Players"
-horizontal_alignment = 1
-vertical_alignment = 1
-
-[node name="PlusButton" type="Button" parent="Margin/PlayersView/Header" unique_id=2124278003]
-custom_minimum_size = Vector2(110, 110)
-layout_mode = 2
-theme_override_font_sizes/font_size = 64
-text = "+"
-
-[node name="CountLabel" type="Label" parent="Margin/PlayersView" unique_id=696179433]
+[node name="CountLabel" type="Label" parent="Layout/Margin/PlayersView/Header" unique_id=696179433]
 modulate = Color(1, 1, 1, 0.6)
 layout_mode = 2
+size_flags_horizontal = 3
 theme_override_font_sizes/font_size = 28
 text = "0 / 4"
 horizontal_alignment = 1
+vertical_alignment = 1
 
-[node name="Scroll" type="ScrollContainer" parent="Margin/PlayersView" unique_id=1095272596]
+[node name="PlusButton" type="Button" parent="Layout/Margin/PlayersView/Header" unique_id=2124278003]
+custom_minimum_size = Vector2(72, 72)
+layout_mode = 2
+theme_override_font_sizes/font_size = 44
+text = "+"
+
+[node name="Scroll" type="ScrollContainer" parent="Layout/Margin/PlayersView" unique_id=1095272596]
 layout_mode = 2
 size_flags_vertical = 3
 horizontal_scroll_mode = 0
 
-[node name="PlayerList" type="VBoxContainer" parent="Margin/PlayersView/Scroll" unique_id=914031515]
+[node name="PlayerList" type="VBoxContainer" parent="Layout/Margin/PlayersView/Scroll" unique_id=914031515]
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_constants/separation = 16
 
-[node name="PlayerEditPanel" parent="Margin" unique_id=2086582311 instance=ExtResource("2_edit")]
+[node name="PlayerEditPanel" parent="Layout/Margin" unique_id=2086582311 instance=ExtResource("2_edit")]
 visible = false
 layout_mode = 2
