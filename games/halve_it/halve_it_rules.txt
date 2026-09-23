@@ -1,0 +1,31 @@
+halve-it
+
+1 to 8 players
+No player reorder screen 
+
+Options
+
+game mode
+
+	 9 Rounds Way (15 to Bulleye) : 15, 16, 17, Any Double, 18, 19, 20, Any Triple, Bull eye
+	 Extendend Way (12 to Bulleye) : 12, 13, 14 , Any Double, 15, 16, 17, Any Triple, 18, 19, 20, Bull eye
+	
+
+Starting Score : initial score you get when the game begins
+	0 (default)
+	40
+	80
+	
+
+Rules
+
+Each round is associated to a specific target (according to the game mode). Each player throws his 3 darts attempting to hit the target.
+If the target is hit, the player increases his score by the value x multiplier
+If the player fails to hit the target with his three darts, his score is halved (divided by 2, rounded down)
+
+Winning
+
+At the end of the last round, the player with the higher score wins
+
+
+	
