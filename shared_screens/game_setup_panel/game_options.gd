@@ -18,12 +18,12 @@ const GROUP_TITLE := preload("res://shared_screens/game_setup_panel/option_group
 const BOOL_ROW := preload("res://shared_screens/game_setup_panel/option_bool_row.tscn")
 const ENUM_ROW := preload("res://shared_screens/game_setup_panel/option_enum_row.tscn")
 
-@onready var options_view: VBoxContainer = $Margin/OptionsView
-@onready var option_list: VBoxContainer = $Margin/OptionsView/Scroll/OptionList
-@onready var info_view: VBoxContainer = $Margin/InfoView
-@onready var info_title: Label = $Margin/InfoView/InfoTitle
-@onready var info_text: Label = $Margin/InfoView/InfoText
-@onready var close_button: Button = $Margin/InfoView/CloseButton
+@onready var options_view: VBoxContainer = $Layout/Margin/OptionsView
+@onready var option_list: VBoxContainer = $Layout/Margin/OptionsView/Scroll/OptionList
+@onready var info_view: VBoxContainer = $Layout/Margin/InfoView
+@onready var info_title: Label = $Layout/Margin/InfoView/InfoTitle
+@onready var info_text: Label = $Layout/Margin/InfoView/InfoText
+@onready var close_button: Button = $Layout/Margin/InfoView/CloseButton
 
 var _elements: Array[Control] = []
 var _rows: Array[Control] = []
