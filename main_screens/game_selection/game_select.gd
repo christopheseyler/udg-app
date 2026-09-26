@@ -12,6 +12,7 @@ extends Control
 ## Les jeux proposes sont definis dans games/ (voir game_registry.gd).
 
 const PLAYERS_ORDER_SCREEN := preload("res://shared_screens/players_order_screen/players_order_screen.tscn")
+const SETTINGS_SCREEN := preload("res://main_screens/settings_screen/settings_screen.tscn")
 
 @export var card_size: float = 500.0
 @export var cylinder_radius: float = 900.0
@@ -41,6 +42,7 @@ const PLAYERS_ORDER_SCREEN := preload("res://shared_screens/players_order_screen
 @onready var players_panel: GamePlayers = $PlayersPanel
 @onready var options_panel: GameOptions = $OptionsPanel
 @onready var keyboard: PanelContainer = $OnscreenKeyboard
+@onready var settings_button: Button = $SettingsButton
 
 var games: Array[GameDefinition] = GameRegistry.create_all()
 var current_index: int = 0
@@ -65,6 +67,7 @@ func _ready() -> void:
 	_update_cards()
 	_setup_play_button()
 	_setup_panels()
+	settings_button.pressed.connect(_on_settings_pressed)
 
 	if has_node("LeftButton"):
 		$LeftButton.pressed.connect(func(): _go_to_index(current_index - 1))
@@ -90,6 +93,12 @@ func _play_intro() -> void:
 func _on_intro_finished() -> void:
 	_intro_done = true
 	play_button.disabled = false
+
+func _on_settings_pressed() -> void:
+	var screen: SettingsScreen = SETTINGS_SCREEN.instantiate()
+	screen.z_index = 300
+	add_child(screen)
+	screen.back_pressed.connect(screen.queue_free)
 
 func _build_cards() -> void:
 	for game in games:
