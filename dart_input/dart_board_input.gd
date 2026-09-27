@@ -25,9 +25,18 @@ extends DartInput
 ## du meme peripherique) : ecrire une commande pendant que le thread est
 ## bloque dans une lecture ne doit jamais attendre que cette lecture
 ## aboutisse.
+##
+## send_command()/response_received permettent d'envoyer une commande
+## quelconque (alive, scan, help, ...) et de recuperer sa reponse "#...#",
+## en dehors de la politique de tour ; utilise par l'ecran Settings pour le
+## test de l'interface (voir settings_screen.gd).
 
 const PORT := "/dev/udg-dartboard"
 const HIT_EVENT_PATTERN := "^\\*HIT:(\\d+)-(\\d+)-([A-Za-z])\\*$"
+
+## Emis (sur le thread principal) pour chaque reponse "#...#" recue, guillemets
+## compris (ex. "#alive-v01.00.0000#", "#3,4 5,2#", "##").
+signal response_received(text: String)
 
 var _read_file: FileAccess
 var _write_file: FileAccess
@@ -115,14 +124,22 @@ func stop_waiting() -> void:
 	_waiting = false
 	_send_line("StopWaitingHit")
 
+## Envoie une commande brute (alive, scan, help, ...) sans suivre de
+## protocole particulier : la reponse arrive via response_received. No-op si
+## la carte n'est pas connectee.
+func send_command(command: String) -> void:
+	if not _connected:
+		return
+	_send_line(command)
+
 func _send_line(command: String) -> void:
 	if _write_file:
 		_write_file.store_string(command + "\r\n")
 
-## Tourne dans _read_thread : lecture bloquante ligne par ligne. Seuls les
-## evenements *HIT:...* nous interessent ici (pas de suivi commande/reponse,
-## la politique de tour n'en a pas besoin) ; ils sont postes sur le thread
-## principal via call_deferred, DartHit ne devant etre manipule que la-bas.
+## Tourne dans _read_thread : lecture bloquante ligne par ligne. Les
+## evenements *HIT:...* et les reponses #...# sont postes sur le thread
+## principal via call_deferred (DartHit et les signaux ne doivent etre
+## manipules que la-bas) ; le prompt ">" et l'echo sont ignores.
 func _read_loop() -> void:
 	var file := _read_file
 	while not _stop_requested:
@@ -135,7 +152,12 @@ func _read_loop() -> void:
 			break
 		if line.begins_with("*"):
 			call_deferred("_on_event_line", line)
+		elif line.begins_with("#"):
+			call_deferred("_on_response_line", line)
 	file.close()
+
+func _on_response_line(line: String) -> void:
+	response_received.emit(line)
 
 func _on_event_line(line: String) -> void:
 	var result := _hit_regex.search(line)
