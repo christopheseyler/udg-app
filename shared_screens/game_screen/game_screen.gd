@@ -24,6 +24,10 @@ extends Control
 ##   partage PlayerWinsScreen ; end_game() la termine sans vainqueur (ex :
 ##   nombre de rounds maximal atteint). Les deux bloquent les jets et
 ##   ramenent a la configuration de la partie quand l'ecran se ferme.
+## Pilote aussi la carte d'interface reelle (DartInputManager) : chaque debut
+## de tour (reset_turn()) et chaque jet tant qu'il en reste (add_throw())
+## arme l'attente d'un jet ; la fin du tour (_start_remove_darts(), donc
+## Next player comme un tour termine normalement) l'interrompt.
 
 signal back_confirmed
 signal throw_cancelled(value: String)
@@ -172,6 +176,10 @@ func add_throw(value: String) -> bool:
 	_refresh()
 	if get_remaining_darts() == 0:
 		_start_remove_darts()
+	else:
+		# Il reste des flechettes dans le tour : reargue l'attente sur la
+		# carte reelle pour le prochain jet (voir DartInputManager).
+		DartInputManager.start_turn()
 	return true
 
 ## Annule le dernier jet (bouton Cancel hit). Si le tour en cours est vide,
@@ -190,10 +198,12 @@ func cancel_last_throw() -> void:
 	_refresh()
 	throw_cancelled.emit(value)
 
-## Efface les jets du tour (debut du tour du joueur suivant).
+## Efface les jets du tour (debut du tour du joueur suivant) et arme
+## l'attente d'un jet sur la carte reelle pour ce nouveau tour.
 func reset_turn() -> void:
 	_throws.clear()
 	_refresh()
+	DartInputManager.start_turn()
 
 ## Oublie les tours precedents (nouvelle partie) : Cancel hit ne peut plus
 ## revenir en arriere.
@@ -202,6 +212,10 @@ func clear_history() -> void:
 	_refresh()
 
 func _start_remove_darts() -> void:
+	# Coupe l'attente sur la carte reelle : sans effet si elle vient deja de
+	# se terminer d'elle-meme sur le dernier jet, utile si le tour se termine
+	# autrement (bouton Next player, bust en X01, ...).
+	DartInputManager.stop_turn()
 	if remove_darts_screen.visible:
 		return
 	remove_darts_screen.start(remove_darts_duration)
