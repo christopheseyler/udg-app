@@ -65,13 +65,32 @@ const VALUE_HEIGHT_RATIO := 0.38
 const VALUE_ZONE_FULL := Vector2(0.08, 0.92)
 const VALUE_ZONE_RIGHT := Vector2(0.54, 0.91)
 
+## Animation d'apparition (voir play_appear) : la medaille jaillit d'une
+## petite taille jusqu'a depasser sa taille normale (APPEAR_OVERSHOOT_SCALE)
+## puis s'y pose, suivie d'un flash lumineux si le jet compte ; "MISSED"
+## tremble a la place, de moins en moins fort. Courbes rapides au depart et
+## amorties a l'arrivee (EXPO/BACK), jamais lineaires.
+const APPEAR_START_SCALE := 0.3
+const APPEAR_OVERSHOOT_SCALE := 1.18
+const APPEAR_GROW_DURATION := 0.11
+const APPEAR_SETTLE_DURATION := 0.14
+const APPEAR_FADE_DURATION := 0.07
+const HIGHLIGHT_FLASH_COLOR := Color(1.8, 1.7, 1.35)
+const HIGHLIGHT_FLASH_IN_DURATION := 0.05
+const HIGHLIGHT_FLASH_OUT_DURATION := 0.16
+const MISSED_SHAKE_DEGREES := [14.0, -10.0, 6.0, -3.0, 0.0]
+const MISSED_SHAKE_DURATION := 0.04
+
 enum Badge { SINGLE, DOUBLE, TRIPLE, SINGLE_BULL, DOUBLE_BULL }
 
-@onready var background: TextureRect = $Background
-@onready var value: TextureRect = $Value
-@onready var missed: TextureRect = $Missed
+@onready var content: Control = $Content
+@onready var background: TextureRect = $Content/Background
+@onready var value: TextureRect = $Content/Value
+@onready var missed: TextureRect = $Content/Missed
 
 var _badge := Badge.SINGLE
+var _highlighted := false
+var _appear_tween: Tween
 
 func _ready() -> void:
 	missed.texture = MISSED_TEXTURE
@@ -88,7 +107,46 @@ func show_missed() -> void:
 
 ## Vide le badge (aucun jet a cet emplacement, ex. fleche pas encore lancee).
 func clear() -> void:
+	_stop_appear()
 	_hide_all()
+
+## Anime l'apparition du contenu affiche (medaille ou "MISSED"), apres delay
+## secondes : a appeler juste apres show_hit/show_missed pour un nouveau jet.
+## Anime content plutot que le badge lui-meme : le conteneur parent (liste
+## des jets) remet l'echelle et la rotation du badge a zero a chaque mise en
+## page.
+func play_appear(delay: float = 0.0) -> void:
+	_stop_appear()
+	content.pivot_offset = content.size / 2.0
+	content.scale = Vector2.ONE * APPEAR_START_SCALE
+	content.modulate.a = 0.0
+
+	_appear_tween = create_tween()
+	_appear_tween.tween_interval(delay)
+	_appear_tween.tween_property(content, "modulate:a", 1.0, APPEAR_FADE_DURATION) \
+		.set_trans(Tween.TRANS_EXPO).set_ease(Tween.EASE_OUT)
+	_appear_tween.parallel().tween_property(content, "scale", Vector2.ONE * APPEAR_OVERSHOOT_SCALE, APPEAR_GROW_DURATION) \
+		.set_trans(Tween.TRANS_EXPO).set_ease(Tween.EASE_OUT)
+	_appear_tween.tween_property(content, "scale", Vector2.ONE, APPEAR_SETTLE_DURATION) \
+		.set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+	if missed.visible:
+		for angle in MISSED_SHAKE_DEGREES:
+			_appear_tween.tween_property(content, "rotation_degrees", angle, MISSED_SHAKE_DURATION) \
+				.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+	elif _highlighted:
+		# Le flash demarre pendant que la medaille se pose.
+		_appear_tween.parallel().tween_property(content, "modulate", HIGHLIGHT_FLASH_COLOR, HIGHLIGHT_FLASH_IN_DURATION) \
+			.set_trans(Tween.TRANS_EXPO).set_ease(Tween.EASE_OUT)
+		_appear_tween.tween_property(content, "modulate", Color.WHITE, HIGHLIGHT_FLASH_OUT_DURATION) \
+			.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+
+func _stop_appear() -> void:
+	if _appear_tween:
+		_appear_tween.kill()
+		_appear_tween = null
+	content.scale = Vector2.ONE
+	content.rotation = 0.0
+	content.modulate = Color.WHITE
 
 ## Affiche le jet hit sous forme de medaille : segment (1-20, ou 25 pour le
 ## bull) et multiplicateur (1 simple, 2 double, 3 triple ; au bull, 2 = bull
@@ -103,6 +161,7 @@ func show_hit(hit: DartHit, highlighted: bool) -> void:
 	background.visible = true
 	value.visible = true
 	_badge = _badge_for(hit)
+	_highlighted = highlighted
 	background.texture = _atlas_region(BACKGROUND_ATLAS, PLATE_REGIONS[1 if highlighted else 0][_badge])
 	value.texture = _value_region(hit.segment, highlighted)
 	_layout_value()

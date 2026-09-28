@@ -51,13 +51,33 @@ const DART_FAN_SPREAD_DEGREES := 44.0
 ## tasse legerement et s'assombrit pendant l'appui.
 const NEXT_BUTTON_PRESS_SCALE := 0.9
 const NEXT_BUTTON_PRESS_DURATION := 0.08
+## Animation d'un jet (voir _animate_dart_out / _animate_dart_in) : la
+## fleche lancee s'envole dans l'axe de l'eventail en s'effacant, puis la
+## medaille du jet apparait (TargetValueBadge.play_appear). Une fleche
+## rendue (Cancel hit, nouveau tour) redescend a sa place.
+const DART_FLY_DISTANCE := 260.0
+const DART_FLY_DURATION := 0.3
+const DART_RETURN_DISTANCE := 80.0
+const DART_RETURN_DURATION := 0.25
+## Decalage entre les fleches rendues ensemble (nouveau tour).
+const DART_RETURN_STAGGER := 0.08
+## Delai avant l'apparition de la medaille : la fleche est deja bien partie.
+const BADGE_APPEAR_DELAY := 0.1
+## Delai avant "Remove your darts" apres le dernier jet du tour, pour laisser
+## l'animation du jet se terminer (voir start_remove_darts_after_throw).
+const REMOVE_DARTS_DELAY := 0.8
 
 ## Duree (secondes) du decompte "Remove your darts" entre deux tours.
 @export var remove_darts_duration: float = 5.0
 
 @export var darts_per_turn: int = 3:
 	set(value):
-		darts_per_turn = maxi(value, 1)
+		value = maxi(value, 1)
+		# Les jeux peuvent le reaffecter a chaque jet (X01) : ne reconstruire
+		# que si le nombre change, pour ne pas interrompre les animations.
+		if value == darts_per_turn:
+			return
+		darts_per_turn = value
 		if is_node_ready():
 			_build_slots()
 
@@ -90,6 +110,17 @@ var _throws: Array[Dictionary] = []
 var _history: Array[Array] = []
 var _throw_badges: Array[TargetValueBadge] = []
 var _dart_icons: Array[TextureRect] = []
+## Etat affiche de chaque fleche de l'eventail et animation en cours : les
+## animations ne sont jouees que quand une fleche change d'etat (voir
+## _refresh).
+var _dart_shown: Array[bool] = []
+var _dart_tweens: Array[Tween] = []
+## Nombre de medailles deja affichees : seules les suivantes sont animees.
+var _badges_shown := 0
+## Incremente a chaque changement de _throws : un "Remove your darts"
+## differe (voir start_remove_darts_after_throw) est abandonne si un jet a ete
+## ajoute ou annule entre-temps.
+var _throws_serial := 0
 
 func _ready() -> void:
 	remove_darts_screen = REMOVE_DARTS_SCREEN.instantiate()
@@ -178,15 +209,28 @@ func get_remaining_darts() -> int:
 ## Enregistre un jet du tour en cours. highlighted indique si ce jet compte
 ## pour le score du joueur (medaille doree) ou non (medaille neutre) : voir
 ## TargetValueBadge.show_hit(). Retourne false si les fleches du tour sont
-## deja toutes lancees. Le dernier jet declenche "Remove your darts".
+## deja toutes lancees. Le dernier jet declenche "Remove your darts" (une fois
+## son animation terminee).
 func add_throw(hit: DartHit, highlighted: bool) -> bool:
 	if get_remaining_darts() <= 0:
 		return false
 	_throws.append({"hit": hit, "highlighted": highlighted})
 	_refresh()
 	if get_remaining_darts() == 0:
-		_start_remove_darts()
+		start_remove_darts_after_throw()
 	return true
+
+## Affiche "Remove your darts" une fois l'animation du dernier jet terminee
+## (REMOVE_DARTS_DELAY). Abandonne si un jet est ajoute ou annule entre-temps,
+## ou si la partie se termine (victoire sur ce jet).
+func start_remove_darts_after_throw() -> void:
+	# Connexion plutot qu'await : deconnectee automatiquement si l'ecran est
+	# libere avant la fin du delai (sortie du jeu).
+	get_tree().create_timer(REMOVE_DARTS_DELAY).timeout.connect(_on_remove_darts_delay_elapsed.bind(_throws_serial))
+
+func _on_remove_darts_delay_elapsed(serial: int) -> void:
+	if serial == _throws_serial and not _game_over:
+		_start_remove_darts()
 
 ## Annule le dernier jet (bouton Cancel hit). Si le tour en cours est vide,
 ## revient d'abord au tour du joueur precedent (jets restaures, signal
@@ -248,8 +292,15 @@ func _build_slots() -> void:
 	for child in darts_fan.get_children():
 		darts_fan.remove_child(child)
 		child.queue_free()
+	for tween in _dart_tweens:
+		if tween:
+			tween.kill()
 	_throw_badges.clear()
 	_dart_icons.clear()
+	_dart_shown.clear()
+	_dart_tweens.clear()
+	# Les jets deja enregistres sont reaffiches sans animation.
+	_badges_shown = _throws.size()
 
 	for i in darts_per_turn:
 		var badge: TargetValueBadge = THROW_BADGE.instantiate()
@@ -269,16 +320,56 @@ func _build_slots() -> void:
 		icon.anchor_right = 0.5
 		icon.anchor_top = 1.0
 		icon.anchor_bottom = 1.0
-		icon.offset_left = -DART_ICON_SIZE.x / 2.0
-		icon.offset_right = DART_ICON_SIZE.x / 2.0
-		icon.offset_top = -DART_ICON_SIZE.y
-		icon.offset_bottom = 0.0
+		_set_dart_shift(icon, Vector2.ZERO)
 		icon.pivot_offset = Vector2(DART_ICON_SIZE.x / 2.0, DART_ICON_SIZE.y)
 		icon.rotation_degrees = _fan_angle_degrees(i, darts_per_turn)
 		darts_fan.add_child(icon)
 		_dart_icons.append(icon)
+		# Etat initial pose sans animation.
+		_dart_shown.append(i < get_remaining_darts())
+		_dart_tweens.append(null)
+		icon.modulate.a = 1.0 if _dart_shown[i] else 0.0
 
 	_refresh()
+
+## Decale une fleche de l'eventail de shift par rapport a sa place (offsets
+## plutot que position : la fleche reste ancree au centre-bas de darts_fan).
+func _set_dart_shift(icon: Control, shift: Vector2) -> void:
+	icon.offset_left = -DART_ICON_SIZE.x / 2.0 + shift.x
+	icon.offset_right = DART_ICON_SIZE.x / 2.0 + shift.x
+	icon.offset_top = -DART_ICON_SIZE.y + shift.y
+	icon.offset_bottom = shift.y
+
+## Fleche lancee : elle part dans son axe (vers la pointe) en accelerant et
+## s'efface, puis est remise en place, invisible.
+func _animate_dart_out(index: int) -> void:
+	var icon := _dart_icons[index]
+	var direction := Vector2.UP.rotated(icon.rotation)
+	var tween := _restart_dart_tween(index)
+	tween.tween_method(func(t: float): _set_dart_shift(icon, direction * DART_FLY_DISTANCE * t), 0.0, 1.0, DART_FLY_DURATION) \
+		.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
+	tween.parallel().tween_property(icon, "modulate:a", 0.0, DART_FLY_DURATION) \
+		.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
+	tween.tween_callback(_set_dart_shift.bind(icon, Vector2.ZERO))
+
+## Fleche rendue : elle redescend a sa place depuis le haut de son axe en
+## apparaissant, apres delay secondes.
+func _animate_dart_in(index: int, delay: float) -> void:
+	var icon := _dart_icons[index]
+	var direction := Vector2.UP.rotated(icon.rotation)
+	var tween := _restart_dart_tween(index)
+	icon.modulate.a = 0.0
+	_set_dart_shift(icon, direction * DART_RETURN_DISTANCE)
+	tween.tween_interval(delay)
+	tween.tween_method(func(t: float): _set_dart_shift(icon, direction * DART_RETURN_DISTANCE * (1.0 - t)), 0.0, 1.0, DART_RETURN_DURATION) \
+		.set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+	tween.parallel().tween_property(icon, "modulate:a", 1.0, DART_RETURN_DURATION)
+
+func _restart_dart_tween(index: int) -> Tween:
+	if _dart_tweens[index]:
+		_dart_tweens[index].kill()
+	_dart_tweens[index] = create_tween()
+	return _dart_tweens[index]
 
 ## Angle (degres) de la i-eme fleche dans l'eventail, reparties
 ## symetriquement de part et d'autre du centre sur DART_FAN_SPREAD_DEGREES.
@@ -288,16 +379,30 @@ func _fan_angle_degrees(index: int, count: int) -> float:
 	return lerpf(-DART_FAN_SPREAD_DEGREES / 2.0, DART_FAN_SPREAD_DEGREES / 2.0, float(index) / float(count - 1))
 
 func _refresh() -> void:
+	_throws_serial += 1
 	var remaining := get_remaining_darts()
+	var returned := 0
 	for i in darts_per_turn:
 		var thrown := i < _throws.size()
 		if thrown:
 			_throw_badges[i].show_hit(_throws[i].hit, _throws[i].highlighted)
+			if i >= _badges_shown:
+				_throw_badges[i].play_appear(BADGE_APPEAR_DELAY)
 		else:
 			_throw_badges[i].clear()
 		# Les icones restent en place pour garder la mise en page : seules
-		# les fleches restantes sont visibles.
-		_dart_icons[i].modulate.a = 1.0 if i < remaining else 0.0
+		# les fleches restantes sont visibles. La fleche la plus a droite part
+		# en premier ; les fleches rendues ensemble reviennent de gauche a
+		# droite.
+		var shown := i < remaining
+		if shown != _dart_shown[i]:
+			_dart_shown[i] = shown
+			if shown:
+				_animate_dart_in(i, returned * DART_RETURN_STAGGER)
+				returned += 1
+			else:
+				_animate_dart_out(i)
+	_badges_shown = _throws.size()
 	cancel_hit_button.disabled = _throws.is_empty() and _history.is_empty()
 	# Differe au prochain "idle" : le ScrollContainer ne connait la position
 	# reelle du badge qu'une fois la mise en page (queue_sort) retraitee, ce
