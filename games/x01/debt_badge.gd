@@ -5,7 +5,8 @@ extends PanelContainer
 ## (mode "Give-me your darts" du X01), ex. "-2". set_debt(0) la masque.
 ## Une premiere apparition (masquee -> visible) se fait en fondu avec un
 ## zoom depuis le centre (leger effet de rebond) ; une mise a jour alors
-## qu'elle est deja visible ne refait qu'un petit zoom (pas de fondu).
+## qu'elle est deja visible ne refait qu'un petit zoom (pas de fondu), et
+## seulement si le nombre change.
 
 const POP_DURATION := 0.28
 const PULSE_DURATION := 0.22
@@ -24,7 +25,11 @@ func _ready() -> void:
 	modulate.a = 0.0
 	visible = false
 
+## Appele a chaque rafraichissement de la ligne du joueur (a chaque jet,
+## pour tous les joueurs) : n'anime la gommette que si la dette change.
 func set_debt(debt: int) -> void:
+	if maxi(debt, 0) == _shown_debt:
+		return
 	if debt <= 0:
 		_hide_badge()
 		_shown_debt = 0
