@@ -125,7 +125,9 @@ func _on_dart_hit(hit: DartHit) -> void:
 
 	_turn_hits.append(hit)
 	var result := _apply_turn_state()
-	add_throw(hit.get_label())
+	# Pas de notion de cible en X01 : chaque jet compte toujours pour le
+	# score (badge toujours dore).
+	add_throw(hit, true)
 
 	if result.finished:
 		announce_winner(_players[_current_player])
@@ -193,7 +195,7 @@ func _on_previous_player_requested() -> void:
 	_apply_turn_state()
 	score_panel.set_current_player(_current_player)
 
-func _on_throw_cancelled(_value: String) -> void:
+func _on_throw_cancelled() -> void:
 	if _turn_hits.is_empty():
 		return
 	_turn_hits.pop_back()

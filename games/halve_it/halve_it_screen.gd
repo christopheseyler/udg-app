@@ -95,7 +95,7 @@ func _on_dart_hit(hit: DartHit) -> void:
 		return
 
 	_turn_hits.append(hit)
-	add_throw(hit.get_label())
+	add_throw(hit, _hit_matches_target(hit, _current_target()))
 	_refresh_row(_current_player)
 
 ## Declenchement de l'ecran "Remove your darts" (3e fleche du tour, ou
@@ -165,7 +165,7 @@ func _on_previous_player_requested() -> void:
 	for i in _players.size():
 		_refresh_row(i)
 
-func _on_throw_cancelled(_value: String) -> void:
+func _on_throw_cancelled() -> void:
 	if _turn_hits.is_empty():
 		return
 	_turn_hits.pop_back()

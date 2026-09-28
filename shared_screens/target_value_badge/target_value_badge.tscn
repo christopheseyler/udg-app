@@ -1,0 +1,34 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://shared_screens/target_value_badge/target_value_badge.gd" id="1_script"]
+
+[node name="TargetValueBadge" type="Control"]
+custom_minimum_size = Vector2(150, 125)
+layout_mode = 3
+anchors_preset = 0
+script = ExtResource("1_script")
+
+[node name="Background" type="TextureRect" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+expand_mode = 1
+stretch_mode = 5
+
+[node name="Value" type="TextureRect" parent="."]
+layout_mode = 0
+expand_mode = 1
+stretch_mode = 5
+
+[node name="Missed" type="TextureRect" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+expand_mode = 1
+stretch_mode = 5

@@ -2,6 +2,7 @@
 
 [ext_resource type="Script" uid="uid://botfrrx2enkqa" path="res://shared_screens/game_screen/game_screen.gd" id="1_script"]
 [ext_resource type="Texture2D" uid="uid://nw2qty11nas1" path="res://assets/title_background.png" id="2_bg"]
+[ext_resource type="Texture2D" path="res://assets/game_screen/button_next.png" id="3_next_btn"]
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_side"]
 bg_color = Color(0.05, 0.05, 0.08, 0.78)
@@ -21,27 +22,6 @@ corner_radius_top_left = 32
 corner_radius_top_right = 32
 corner_radius_bottom_right = 32
 corner_radius_bottom_left = 32
-
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_next_normal"]
-bg_color = Color(0.95, 0.75, 0.2, 1)
-corner_radius_top_left = 90
-corner_radius_top_right = 90
-corner_radius_bottom_right = 90
-corner_radius_bottom_left = 90
-
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_next_pressed"]
-bg_color = Color(0.78, 0.6, 0.12, 1)
-corner_radius_top_left = 90
-corner_radius_top_right = 90
-corner_radius_bottom_right = 90
-corner_radius_bottom_left = 90
-
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_next_hover"]
-bg_color = Color(1, 0.82, 0.32, 1)
-corner_radius_top_left = 90
-corner_radius_top_right = 90
-corner_radius_bottom_right = 90
-corner_radius_bottom_left = 90
 
 [node name="GameScreen" type="Control" unique_id=1109840664]
 layout_mode = 3
@@ -70,7 +50,7 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 offset_left = 24.0
 offset_top = 24.0
-offset_right = -464.0
+offset_right = -368.0
 offset_bottom = -224.0
 grow_horizontal = 2
 grow_vertical = 2
@@ -81,7 +61,7 @@ anchors_preset = -1
 anchor_left = 1.0
 anchor_right = 1.0
 anchor_bottom = 1.0
-offset_left = -440.0
+offset_left = -344.0
 offset_top = 24.0
 offset_right = -24.0
 offset_bottom = -60.0
@@ -118,7 +98,7 @@ size_flags_horizontal = 3
 theme_override_constants/separation = 16
 
 [node name="DartsFan" type="Control" parent="SidePanel/Margin/Content" unique_id=1293271075]
-custom_minimum_size = Vector2(0, 220)
+custom_minimum_size = Vector2(0, 290)
 layout_mode = 2
 
 [node name="BottomBar" type="PanelContainer" parent="." unique_id=867021162]
@@ -128,7 +108,7 @@ anchor_top = 1.0
 anchor_right = 1.0
 anchor_bottom = 1.0
 offset_top = -200.0
-offset_right = -468.0
+offset_right = -372.0
 grow_horizontal = 2
 grow_vertical = 0
 theme_override_styles/panel = SubResource("StyleBoxFlat_bar")
@@ -232,22 +212,20 @@ size_flags_horizontal = 3
 theme_override_font_sizes/font_size = 44
 text = "Leave"
 
-[node name="NextButton" type="Button" parent="." unique_id=2119518528]
+[node name="NextButton" type="TextureButton" parent="." unique_id=2119518528]
 layout_mode = 1
 anchors_preset = 3
 anchor_left = 1.0
 anchor_top = 1.0
 anchor_right = 1.0
 anchor_bottom = 1.0
-offset_left = -320.0
-offset_top = -198.0
-offset_right = -140.0
+offset_left = -299.0
+offset_top = -248.0
+offset_right = -69.0
 offset_bottom = -18.0
 grow_horizontal = 0
 grow_vertical = 0
-theme_override_font_sizes/font_size = 40
-theme_override_styles/normal = SubResource("StyleBoxFlat_next_normal")
-theme_override_styles/pressed = SubResource("StyleBoxFlat_next_pressed")
-theme_override_styles/hover = SubResource("StyleBoxFlat_next_hover")
-theme_override_styles/focus = SubResource("StyleBoxFlat_next_normal")
-text = "NEXT"
+pivot_offset = Vector2(115, 115)
+texture_normal = ExtResource("3_next_btn")
+ignore_texture_size = true
+stretch_mode = 4

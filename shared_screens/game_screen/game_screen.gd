@@ -9,11 +9,12 @@ extends Control
 ## au coin bas-droit, devant l'eventail de fleches. Un jeu herite de cette
 ## scene ; le template gere
 ## les jets du tour en cours et signale les actions du joueur :
-## - add_throw() enregistre la valeur d'un jet (ex. "T20", "25", "Miss") ;
-## - Cancel hit retire le dernier jet (throw_cancelled est emis avec sa
-##   valeur) ; quand le tour du joueur est vide, il revient au joueur
-##   precedent (previous_player_requested, puis son dernier jet est retire),
-##   ce qui permet d'annuler les fleches une par une jusqu'au debut ;
+## - add_throw() enregistre un jet (DartHit) et si ce jet compte pour le
+##   score du joueur (badge dore ou neutre, voir TargetValueBadge) ;
+## - Cancel hit retire le dernier jet (throw_cancelled est emis) ; quand le
+##   tour du joueur est vide, il revient au joueur precedent
+##   (previous_player_requested, puis son dernier jet est retire), ce qui
+##   permet d'annuler les fleches une par une jusqu'au debut ;
 ## - set_round() met a jour le numero de round affiche ;
 ## - quand les fleches du tour sont toutes lancees, ou par Next player,
 ##   l'ecran "Remove your darts" (RemoveDartsScreen) s'affiche pendant
@@ -26,14 +27,17 @@ extends Control
 ##   ramenent a la configuration de la partie quand l'ecran se ferme.
 
 signal back_confirmed
-signal throw_cancelled(value: String)
+signal throw_cancelled
 signal next_player_requested
 signal previous_player_requested
 
 const DART_TEXTURE := preload("res://assets/dart.png")
-const EMPTY_THROW_TEXT := "-"
-const THROW_FONT_SIZE := 64
-const DART_ICON_SIZE := Vector2(128, 192)
+const THROW_BADGE := preload("res://shared_screens/target_value_badge/target_value_badge.tscn")
+## Taille d'affichage d'un badge de jet dans la liste (le composant a une
+## taille fixe par defaut, voir target_value_badge.tscn ; agrandie ici pour
+## rester lisible dans le panneau lateral).
+const THROW_BADGE_SIZE := Vector2(195, 163)
+const DART_ICON_SIZE := Vector2(170, 255)
 ## RemoveDartsScreen et PlayerWinsScreen ne sont pas des enfants fixes de la
 ## scene (voir _ready()) : instancies au runtime, pas de dependance dans le
 ## .tscn du template.
@@ -43,6 +47,10 @@ const PLAYER_WINS_SCREEN := preload("res://shared_screens/player_wins_screen/pla
 ## premiere et la derniere fleche sont chacune a la moitie de cette valeur
 ## de part et d'autre du centre.
 const DART_FAN_SPREAD_DEGREES := 44.0
+## Effet "pushed" du bouton Next (voir _on_next_button_down/_up) : il se
+## tasse legerement et s'assombrit pendant l'appui.
+const NEXT_BUTTON_PRESS_SCALE := 0.9
+const NEXT_BUTTON_PRESS_DURATION := 0.08
 
 ## Duree (secondes) du decompte "Remove your darts" entre deux tours.
 @export var remove_darts_duration: float = 5.0
@@ -57,7 +65,7 @@ const DART_FAN_SPREAD_DEGREES := 44.0
 @onready var back_button: Button = $BottomBar/Margin/Buttons/BackButton
 @onready var cancel_hit_button: Button = $BottomBar/Margin/Buttons/CancelHitButton
 @onready var game_name_label: Label = $BottomBar/Margin/Buttons/GameNameLabel
-@onready var next_player_button: Button = $NextButton
+@onready var next_player_button: TextureButton = $NextButton
 @onready var round_label: Label = $SidePanel/Margin/Content/RoundLabel
 @onready var throws_scroll: ScrollContainer = $SidePanel/Margin/Content/ThrowsScroll
 @onready var throws_list: VBoxContainer = $SidePanel/Margin/Content/ThrowsScroll/ThrowsList
@@ -76,9 +84,11 @@ var round_number := 1
 
 var _game_over := false
 
-var _throws: Array[String] = []
+## Chaque entree : {"hit": DartHit, "highlighted": bool} (highlighted = ce
+## jet compte pour le score du joueur, voir TargetValueBadge.show_hit).
+var _throws: Array[Dictionary] = []
 var _history: Array[Array] = []
-var _throw_labels: Array[Label] = []
+var _throw_badges: Array[TargetValueBadge] = []
 var _dart_icons: Array[TextureRect] = []
 
 func _ready() -> void:
@@ -92,6 +102,8 @@ func _ready() -> void:
 	leave_button.pressed.connect(_on_leave_pressed)
 	cancel_hit_button.pressed.connect(cancel_last_throw)
 	next_player_button.pressed.connect(_start_remove_darts)
+	next_player_button.button_down.connect(_on_next_button_down)
+	next_player_button.button_up.connect(_on_next_button_up)
 	remove_darts_screen.finished.connect(_finish_turn)
 	winner_screen.continue_pressed.connect(func(): back_confirmed.emit())
 	_build_slots()
@@ -110,7 +122,7 @@ func _exit_tree() -> void:
 func _on_dart_hit(hit: DartHit) -> void:
 	if _game_over or confirm_overlay.visible or remove_darts_screen.visible:
 		return
-	add_throw(hit.get_label())
+	add_throw(hit, true)
 
 ## Prepare l'ecran pour une partie : joueurs dans l'ordre de passage et
 ## options choisies dans l'ecran de selection. A surcharger par chaque jeu.
@@ -157,18 +169,20 @@ func set_round(number: int) -> void:
 func set_game_name(value: String) -> void:
 	game_name_label.text = value
 
-func get_throws() -> Array[String]:
+func get_throws() -> Array[Dictionary]:
 	return _throws.duplicate()
 
 func get_remaining_darts() -> int:
 	return darts_per_turn - _throws.size()
 
-## Enregistre un jet du tour en cours. Retourne false si les fleches du tour
-## sont deja toutes lancees. Le dernier jet declenche "Remove your darts".
-func add_throw(value: String) -> bool:
+## Enregistre un jet du tour en cours. highlighted indique si ce jet compte
+## pour le score du joueur (medaille doree) ou non (medaille neutre) : voir
+## TargetValueBadge.show_hit(). Retourne false si les fleches du tour sont
+## deja toutes lancees. Le dernier jet declenche "Remove your darts".
+func add_throw(hit: DartHit, highlighted: bool) -> bool:
 	if get_remaining_darts() <= 0:
 		return false
-	_throws.append(value)
+	_throws.append({"hit": hit, "highlighted": highlighted})
 	_refresh()
 	if get_remaining_darts() == 0:
 		_start_remove_darts()
@@ -186,9 +200,9 @@ func cancel_last_throw() -> void:
 	if _throws.is_empty():
 		_refresh()
 		return
-	var value: String = _throws.pop_back()
+	_throws.pop_back()
 	_refresh()
-	throw_cancelled.emit(value)
+	throw_cancelled.emit()
 
 ## Efface les jets du tour (debut du tour du joueur suivant).
 func reset_turn() -> void:
@@ -206,6 +220,18 @@ func _start_remove_darts() -> void:
 		return
 	remove_darts_screen.start(remove_darts_duration)
 
+func _on_next_button_down() -> void:
+	var tween := create_tween()
+	tween.tween_property(next_player_button, "scale", Vector2.ONE * NEXT_BUTTON_PRESS_SCALE, NEXT_BUTTON_PRESS_DURATION) \
+		.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+	tween.parallel().tween_property(next_player_button, "modulate", Color(0.75, 0.75, 0.75, 1.0), NEXT_BUTTON_PRESS_DURATION)
+
+func _on_next_button_up() -> void:
+	var tween := create_tween()
+	tween.tween_property(next_player_button, "scale", Vector2.ONE, NEXT_BUTTON_PRESS_DURATION) \
+		.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+	tween.parallel().tween_property(next_player_button, "modulate", Color.WHITE, NEXT_BUTTON_PRESS_DURATION)
+
 func _finish_turn() -> void:
 	_history.append(_throws.duplicate())
 	next_player_requested.emit()
@@ -222,16 +248,15 @@ func _build_slots() -> void:
 	for child in darts_fan.get_children():
 		darts_fan.remove_child(child)
 		child.queue_free()
-	_throw_labels.clear()
+	_throw_badges.clear()
 	_dart_icons.clear()
 
 	for i in darts_per_turn:
-		var label := Label.new()
-		label.add_theme_font_size_override("font_size", THROW_FONT_SIZE)
-		label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		throws_list.add_child(label)
-		_throw_labels.append(label)
+		var badge: TargetValueBadge = THROW_BADGE.instantiate()
+		badge.custom_minimum_size = THROW_BADGE_SIZE
+		badge.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+		throws_list.add_child(badge)
+		_throw_badges.append(badge)
 
 		# Toutes les fleches partagent le meme point de pivot (centre-bas de
 		# darts_fan, derriere le bouton Next) et ne different que par leur
@@ -266,15 +291,17 @@ func _refresh() -> void:
 	var remaining := get_remaining_darts()
 	for i in darts_per_turn:
 		var thrown := i < _throws.size()
-		_throw_labels[i].text = _throws[i] if thrown else EMPTY_THROW_TEXT
-		_throw_labels[i].modulate.a = 1.0 if thrown else 0.35
+		if thrown:
+			_throw_badges[i].show_hit(_throws[i].hit, _throws[i].highlighted)
+		else:
+			_throw_badges[i].clear()
 		# Les icones restent en place pour garder la mise en page : seules
 		# les fleches restantes sont visibles.
 		_dart_icons[i].modulate.a = 1.0 if i < remaining else 0.0
 	cancel_hit_button.disabled = _throws.is_empty() and _history.is_empty()
 	# Differe au prochain "idle" : le ScrollContainer ne connait la position
-	# reelle du label qu'une fois la mise en page (queue_sort) retraitee,
-	# ce qui n'a pas encore eu lieu juste apres avoir change son texte.
+	# reelle du badge qu'une fois la mise en page (queue_sort) retraitee, ce
+	# qui n'a pas encore eu lieu juste apres avoir change son contenu.
 	_scroll_to_latest_throw.call_deferred()
 
 ## Fait defiler la liste des jets pour garder le dernier jet visible (le
@@ -284,6 +311,6 @@ func _refresh() -> void:
 func _scroll_to_latest_throw() -> void:
 	if _throws.is_empty():
 		return
-	var index := mini(_throws.size() - 1, _throw_labels.size() - 1)
+	var index := mini(_throws.size() - 1, _throw_badges.size() - 1)
 	if index >= 0:
-		throws_scroll.ensure_control_visible(_throw_labels[index])
+		throws_scroll.ensure_control_visible(_throw_badges[index])
