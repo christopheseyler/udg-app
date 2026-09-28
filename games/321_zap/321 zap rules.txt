@@ -1,0 +1,58 @@
+321 Zap
+
+2 to 8 players
+players ordering screen required with reverse order
+
+rules
+
+le jeu consiste a partir de 0 et d'atteindre exactement 321 points. en cas de bust, on rebondit sur 321. par exemple, si le joueur à 301 et fait un triple 20 (60 points), 20 point pour arriver à 321 (il reste 40 points), il retombe à 321-40
+
+lors de la partie, si un joueur A obtient exactement le score d'un autre joueur B, il le "zap" le joueur B retombe à 0
+
+
+option 
+
+max round 8 à 20
+stop on the first winner
+
+in condition : none, doube, triple, master
+auto entering : enable / disable si le joueur n'a pas su entrer au bout des 3 fleches, il entre autoamtiquement avec un jet de fleche fictif et random (la valeur obtenue doit correspondre à un vrai jet de fleche, c-à-d 1 à 20 ou bulleye, simple, double ou triple (sauf pour bulleye)
+
+out condition : none, double triple, master
+
+en cas de out condition, si le joueur obtient 321 en ne respectant pas la out condition. il est "Zop"
+
+Master zap : les joueur doivent avoir zappé au moins un joueur pour pouvoir sortir. 
+Lorsque un joueur atteint les 321 sans avoir zappé alors que le master zap est activé, il est "zop"
+
+
+Both Ways : enable/disable (default) : en mode both ways, le joueur détermine son chemin en fonction de la valeur de la target qu'il touche pour entrer. si la valeur est pair, le chemin classique de 0 à 321. si la valeur est impaire, le chemin est inversé. il part de 321 et doit atteindre 0
+
+
+Auto-zap : enable /disable : en mode auto-zap, si un joueur rebondit sur le 321 (ou 0 en mode both ways) et qu'il reobtient le même score, il s'auto zap (par example, le joueur à 301 et fait un double 20)
+l'auto zap compte pour un zap pour le mode master zap
+
+Zop behavior : 
+	bust (default) : un jet de fleche qui place un joueur en "zop" est simple annulé et le tour du joueur est terminé
+	nothing : le joueur zop reste avec son score et son tour est terminé
+	auto-zap : le joueur zop s'auto-zap
+	
+
+
+
+
+
+détermination du rang des joueurs
+en fin de partie, on détermine le reng des joueurs qui n'ont pas terminés suivant le plus petit delta par rapport à la valeur cible qu'ils ont obtenu
+
+
+
+Point d'attention
+
+sur un auto-entering et both ways, le jet fictif respecte le sens d'entrée du mode both ways
+
+en mode zop behavior nothing
+	si le joueur est zop sur un 321, il reste à 321. il devra, lors de son prochain tour, faire un premier jet pour rebondir.
+	un cas particulier. un joueur est zop sur 321 et un autre joueur atteind les 321 , il zap le joueur. ce zap est comptabilisé pour le master zap avant d'évaluer si le joueur a gagné (si il n'avait pas de zap et master zap actif, il joueur obtient son zap et termine)
+	
+	
