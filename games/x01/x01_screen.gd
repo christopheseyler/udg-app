@@ -87,8 +87,8 @@ func _ready() -> void:
 
 func setup(players: Array[String], options: Dictionary) -> void:
 	_players = players.duplicate()
-	_in_condition = options.get("in_condition", "None")
-	_out_condition = options.get("out_condition", "Double")
+	_in_condition = _condition_type(options.get("in_condition", "Open In"))
+	_out_condition = _condition_type(options.get("out_condition", "Double Out"))
 	_same_score_hit = options.get("same_score_hit", "Nothing")
 	var start_value := int(options.get("start_value", "501"))
 
@@ -308,6 +308,13 @@ func _apply_same_score_hit(other_index: int, hit: DartHit, scores: Array[int], d
 			dart_debt[other_index] += count
 			turn_darts += count
 	return turn_darts
+
+## Type de condition d'une option In/Out telle qu'affichee (voir
+## x01_game.gd : "Open In", "Double Out"...) : "None" pour Open, sinon
+## "Double", "Triple" ou "Master".
+func _condition_type(option_value: String) -> String:
+	var kind := option_value.get_slice(" ", 0)
+	return "None" if kind == "Open" else kind
 
 func _satisfies_in(hit: DartHit) -> bool:
 	match _in_condition:

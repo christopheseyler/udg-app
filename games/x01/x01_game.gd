@@ -15,13 +15,13 @@ func _init() -> void:
 		{"type": "group", "name": "In / Out conditions"},
 		{
 			"id": "in_condition", "type": "enum", "name": "In",
-			"items": ["None", "Double", "Triple", "Master"], "default": "None",
-			"info": "Condition to start the game: a player's score only starts to count down once they hit a double (Double), a triple (Triple) or either of them (Master). None: any dart counts.",
+			"items": ["Open In", "Double In", "Triple In", "Master In"], "default": "Open In",
+			"info": "Condition to start the game: a player's score only starts to count down once they hit a double (Double In), a triple (Triple In) or either of them (Master In). Open In: any dart counts.",
 		},
 		{
 			"id": "out_condition", "type": "enum", "name": "Out",
-			"items": ["None", "Double", "Triple", "Master"], "default": "Double",
-			"info": "Condition to finish the game: the last dart must reach exactly zero with a double (Double), a triple (Triple) or either of them (Master). None: any dart finishes.",
+			"items": ["Open Out", "Double Out", "Triple Out", "Master Out"], "default": "Double Out",
+			"info": "Condition to finish the game: the last dart must reach exactly zero with a double (Double Out), a triple (Triple Out) or either of them (Master Out). Open Out: any dart finishes.",
 		},
 		{"type": "group", "name": "Special / Fun"},
 		{
