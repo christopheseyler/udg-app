@@ -142,6 +142,8 @@ var _badges_shown := 0
 ## differe (voir start_remove_darts_after_throw) est abandonne si un jet a ete
 ## ajoute ou annule entre-temps.
 var _throws_serial := 0
+## Derniere demande de "Remove your darts" differe : seule elle aboutit.
+var _remove_darts_request := 0
 var _next_pulse_tween: Tween
 
 func _ready() -> void:
@@ -274,16 +276,20 @@ func add_throw(hit: DartHit, highlighted: bool) -> bool:
 		start_remove_darts_after_throw()
 	return true
 
-## Affiche "Remove your darts" une fois l'animation du dernier jet terminee
-## (REMOVE_DARTS_DELAY). Abandonne si un jet est ajoute ou annule entre-temps,
-## ou si la partie se termine (victoire sur ce jet).
-func start_remove_darts_after_throw() -> void:
+## Affiche "Remove your darts" apres delay secondes (par defaut
+## REMOVE_DARTS_DELAY, le temps de l'animation du dernier jet ; un jeu peut
+## allonger ce delai pour sa propre animation, ex. le Bust du X01). Un nouvel
+## appel remplace le precedent. Abandonne si un jet est ajoute ou annule
+## entre-temps, ou si la partie se termine (victoire sur ce jet).
+func start_remove_darts_after_throw(delay: float = REMOVE_DARTS_DELAY) -> void:
+	_remove_darts_request += 1
 	# Connexion plutot qu'await : deconnectee automatiquement si l'ecran est
 	# libere avant la fin du delai (sortie du jeu).
-	get_tree().create_timer(REMOVE_DARTS_DELAY).timeout.connect(_on_remove_darts_delay_elapsed.bind(_throws_serial))
+	get_tree().create_timer(delay).timeout.connect(
+		_on_remove_darts_delay_elapsed.bind(_remove_darts_request, _throws_serial))
 
-func _on_remove_darts_delay_elapsed(serial: int) -> void:
-	if serial == _throws_serial and not _game_over:
+func _on_remove_darts_delay_elapsed(request: int, serial: int) -> void:
+	if request == _remove_darts_request and serial == _throws_serial and not _game_over:
 		_start_remove_darts()
 
 ## Annule le dernier jet (bouton Cancel hit). Si le tour en cours est vide,

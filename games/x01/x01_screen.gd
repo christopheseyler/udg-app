@@ -40,11 +40,26 @@ extends GameScreen
 ## dessous, le joueur voit ce qu'il doit faire pour finir.
 const MAX_FINISH := {"None": 60, "Double": 40, "Triple": 60, "Master": 60}
 
+## Image "Bust!" affichee au centre de la zone de score quand le joueur fait
+## un bust (voir _show_bust) : elle arrive en tourbillonnant et en grossissant
+## tres vite, et finit par un rebond. "Remove your darts" suit apres
+## BUST_DISPLAY_DURATION ; les jets sont ignores entre-temps.
+const BUST_TEXTURE := preload("res://assets/games/x01/bust.png")
+const BUST_SIZE := Vector2(1000, 500)
+const BUST_START_SCALE := 0.05
+const BUST_SPIN_TURNS := 2.0
+const BUST_SPIN_DURATION := 0.45
+const BUST_ZOOM_DURATION := 0.9
+const BUST_DISPLAY_DURATION := 1.6
+
 ## Nombre de rounds (cycles complets de tous les joueurs) au-dela duquel la
 ## partie s'arrete sans vainqueur, pour eviter une partie infinie.
 @export var max_rounds: int = 50
 
 @onready var score_panel: X01ScorePanel = $ScoreArea/ScorePanel
+
+var _bust_image: TextureRect
+var _bust_tween: Tween
 
 var _players: Array[String] = []
 var _scores: Array[int] = []
@@ -84,6 +99,7 @@ func _ready() -> void:
 	next_player_requested.connect(_on_next_player_requested)
 	previous_player_requested.connect(_on_previous_player_requested)
 	throw_cancelled.connect(_on_throw_cancelled)
+	_create_bust_image()
 
 func setup(players: Array[String], options: Dictionary) -> void:
 	_players = players.duplicate()
@@ -119,7 +135,7 @@ func setup(players: Array[String], options: Dictionary) -> void:
 ## tour aussitot sur un bust ; declare la victoire aussitot sur un score a 0
 ## valide.
 func _on_dart_hit(hit: DartHit) -> void:
-	if _game_over or confirm_overlay.visible or remove_darts_screen.visible:
+	if _game_over or confirm_overlay.visible or remove_darts_screen.visible or _bust_image.visible:
 		return
 	if get_remaining_darts() <= 0:
 		return
@@ -135,9 +151,11 @@ func _on_dart_hit(hit: DartHit) -> void:
 		announce_rank(winner, 1)
 		finish_game(_standings(_current_player))
 	elif result.busted:
-		_start_remove_darts()
+		_show_bust()
+		start_remove_darts_after_throw(BUST_DISPLAY_DURATION)
 
 func _on_next_player_requested() -> void:
+	_hide_bust()
 	if _players.is_empty():
 		return
 	_turn_history.append(_capture_turn_history_entry())
@@ -199,6 +217,9 @@ func _on_previous_player_requested() -> void:
 	score_panel.set_current_player(_current_player)
 
 func _on_throw_cancelled() -> void:
+	# Le jet annule est forcement celui du bust (plus aucun jet n'est accepte
+	# ensuite) : le bust n'a plus lieu d'etre.
+	_hide_bust()
 	if _turn_hits.is_empty():
 		return
 	_turn_hits.pop_back()
@@ -341,6 +362,45 @@ func _is_bust(new_score: int, hit: DartHit) -> bool:
 	if new_score == 1 and _out_condition != "None":
 		return true
 	return false
+
+## Image "Bust!" centree sur la zone de score, au-dessus du panneau de score
+## (et sous le panneau lateral et les ecrans d'overlay), masquee par defaut.
+func _create_bust_image() -> void:
+	_bust_image = TextureRect.new()
+	_bust_image.texture = BUST_TEXTURE
+	_bust_image.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	_bust_image.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	_bust_image.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_bust_image.set_anchors_preset(Control.PRESET_CENTER)
+	_bust_image.offset_left = -BUST_SIZE.x / 2.0
+	_bust_image.offset_right = BUST_SIZE.x / 2.0
+	_bust_image.offset_top = -BUST_SIZE.y / 2.0
+	_bust_image.offset_bottom = BUST_SIZE.y / 2.0
+	_bust_image.pivot_offset = BUST_SIZE / 2.0
+	_bust_image.visible = false
+	score_area.add_child(_bust_image)
+
+## Fait apparaitre "Bust!" : quelques tours sur lui-meme en ralentissant,
+## pendant qu'il grossit tres vite depuis presque rien jusqu'a depasser sa
+## taille puis s'y poser en rebondissant (courbe elastique).
+func _show_bust() -> void:
+	_hide_bust()
+	_bust_image.visible = true
+	_bust_image.scale = Vector2.ONE * BUST_START_SCALE
+	_bust_image.rotation = -TAU * BUST_SPIN_TURNS
+	_bust_image.modulate.a = 0.0
+	_bust_tween = create_tween().set_parallel()
+	_bust_tween.tween_property(_bust_image, "rotation", 0.0, BUST_SPIN_DURATION) \
+		.set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
+	_bust_tween.tween_property(_bust_image, "scale", Vector2.ONE, BUST_ZOOM_DURATION) \
+		.set_trans(Tween.TRANS_ELASTIC).set_ease(Tween.EASE_OUT)
+	_bust_tween.tween_property(_bust_image, "modulate:a", 1.0, BUST_SPIN_DURATION / 3.0)
+
+func _hide_bust() -> void:
+	if _bust_tween:
+		_bust_tween.kill()
+		_bust_tween = null
+	_bust_image.visible = false
 
 ## Classement final : le gagnant (winner, -1 si la partie s'arrete sans
 ## vainqueur, voir max_rounds) en tete, puis les autres joueurs par points
