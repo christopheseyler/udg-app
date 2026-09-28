@@ -233,16 +233,22 @@ func _display_score(index: int) -> int:
 func _refresh_row(index: int) -> void:
 	score_panel.set_row(index, _display_score(index), _hint_for(index))
 
-## Termine la partie : le(s) joueur(s) au score le plus eleve gagnent (tous
-## annonces ensemble en cas d'egalite).
+## Termine la partie : classement par score decroissant ; le(s) joueur(s) au
+## score le plus eleve gagnent (tous annonces ensemble en cas d'egalite),
+## puis l'ecran de classement suit.
 func _announce_result() -> void:
-	var best: int = _scores.max()
-	var winners := PackedStringArray()
+	var entries: Array[Dictionary] = []
 	for i in _players.size():
-		if _scores[i] == best:
-			winners.append(_players[i])
-	announce_winner(" & ".join(winners))
-	# _game_over est maintenant vrai (voir GameScreen.announce_winner) : chaque
+		entries.append({"name": _players[i], "score": _scores[i]})
+	var standings := rank_standings(entries, func(a: Dictionary, b: Dictionary) -> bool:
+		return a.score > b.score)
+	var winners: Array[String] = []
+	for entry in standings:
+		if entry.rank == 1:
+			winners.append(entry.name)
+	announce_rank(winners, 1)
+	finish_game(standings)
+	# _game_over est maintenant vrai (voir GameScreen.finish_game) : chaque
 	# ligne affiche son score enregistre, plus de previsualisation en cours.
 	for i in _players.size():
 		_refresh_row(i)

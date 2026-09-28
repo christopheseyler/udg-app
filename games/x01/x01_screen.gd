@@ -14,7 +14,8 @@ extends GameScreen
 ## sur d'autres joueurs (voir plus bas) : tout revient a ce que c'etait au
 ## debut du tour, qui se termine aussitot. Un score exactement a 0 en
 ## respectant out_condition gagne la partie. Au-dela de max_rounds, la
-## partie s'arrete sans vainqueur.
+## partie s'arrete sans vainqueur. Dans les deux cas, l'ecran de classement
+## suit (voir _standings).
 ##
 ## same_score_hit : quand un jet amene le joueur courant exactement au score
 ## d'un autre joueur, applique un effet a cet autre joueur (Wipe-Out ou
@@ -130,7 +131,9 @@ func _on_dart_hit(hit: DartHit) -> void:
 	add_throw(hit, true)
 
 	if result.finished:
-		announce_winner(_players[_current_player])
+		var winner: Array[String] = [_players[_current_player]]
+		announce_rank(winner, 1)
+		finish_game(_standings(_current_player))
 	elif result.busted:
 		_start_remove_darts()
 
@@ -154,7 +157,7 @@ func _advance_and_start_turn() -> void:
 	if _current_player == 0:
 		set_round(round_number + 1)
 		if round_number > max_rounds:
-			end_game("X01: max rounds reached, game over with no winner")
+			finish_game(_standings(-1))
 			return
 
 	var debt := _dart_debt[_current_player]
@@ -331,6 +334,18 @@ func _is_bust(new_score: int, hit: DartHit) -> bool:
 	if new_score == 1 and _out_condition != "None":
 		return true
 	return false
+
+## Classement final : le gagnant (winner, -1 si la partie s'arrete sans
+## vainqueur, voir max_rounds) en tete, puis les autres joueurs par points
+## restants croissants (ex aequo a points egaux).
+func _standings(winner: int) -> Array[Dictionary]:
+	var entries: Array[Dictionary] = []
+	for i in _players.size():
+		entries.append({"name": _players[i], "score": _scores[i], "index": i})
+	return rank_standings(entries, func(a: Dictionary, b: Dictionary) -> bool:
+		if (a.index == winner) != (b.index == winner):
+			return a.index == winner
+		return a.score < b.score)
 
 func _refresh_row(index: int) -> void:
 	score_panel.set_row(index, _scores[index], _hint_for(index))

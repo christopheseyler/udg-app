@@ -22,10 +22,15 @@ extends Control
 ##   decompte) ; ensuite next_player_requested est emis et le tour est remis
 ##   a zero ;
 ## - back_confirmed est emis quand le joueur confirme la sortie du jeu ;
-## - announce_winner() termine la partie sur une victoire et affiche l'ecran
-##   partage PlayerWinsScreen ; end_game() la termine sans vainqueur (ex :
-##   nombre de rounds maximal atteint). Les deux bloquent les jets et
-##   ramenent a la configuration de la partie quand l'ecran se ferme.
+## - announce_rank() annonce qu'un joueur (ou plusieurs ex aequo) termine a
+##   une place donnee (ecran partage PlayerWinsScreen, avec coupe pour les
+##   trois premieres places) ; les jets sont bloques tant qu'il est affiche.
+##   Un jeu qui continue apres le premier gagnant reprend la partie a sa
+##   fermeture ;
+## - finish_game() termine la partie avec le classement final de tous les
+##   joueurs (voir rank_standings) : apres l'eventuelle annonce en cours,
+##   l'ecran de classement (RankingScreen) s'affiche, puis ramene a la
+##   configuration de la partie quand il se ferme.
 
 signal back_confirmed
 signal throw_cancelled
@@ -45,11 +50,12 @@ const THROW_BADGE_SIZE := Vector2(195, 163)
 const THROW_BADGE_SPACING := 16.0
 const THROW_BADGE_MIN_GAP := 8.0
 const DART_ICON_SIZE := Vector2(170, 255)
-## RemoveDartsScreen et PlayerWinsScreen ne sont pas des enfants fixes de la
-## scene (voir _ready()) : instancies au runtime, pas de dependance dans le
-## .tscn du template.
+## RemoveDartsScreen, PlayerWinsScreen et RankingScreen ne sont pas des
+## enfants fixes de la scene (voir _ready()) : instancies au runtime, pas de
+## dependance dans le .tscn du template.
 const REMOVE_DARTS_SCREEN := preload("res://shared_screens/remove_darts_screen/remove_darts_screen.tscn")
 const PLAYER_WINS_SCREEN := preload("res://shared_screens/player_wins_screen/player_wins_screen.tscn")
+const RANKING_SCREEN := preload("res://shared_screens/ranking_screen/ranking_screen.tscn")
 ## Ecart angulaire total de l'eventail de fleches (voir _build_slots) : la
 ## premiere et la derniere fleche sont chacune a la moitie de cette valeur
 ## de part et d'autre du centre.
@@ -111,10 +117,13 @@ const REMOVE_DARTS_DELAY := 0.8
 ## Instancies au runtime plutot que fixes dans le .tscn (voir _ready()).
 var remove_darts_screen: RemoveDartsScreen
 var winner_screen: PlayerWinsScreen
+var ranking_screen: RankingScreen
 
 var round_number := 1
 
 var _game_over := false
+## Classement final (voir finish_game), affiche par ranking_screen.
+var _final_standings: Array[Dictionary] = []
 
 ## Chaque entree : {"hit": DartHit, "highlighted": bool} (highlighted = ce
 ## jet compte pour le score du joueur, voir TargetValueBadge.show_hit).
@@ -143,6 +152,8 @@ func _ready() -> void:
 	move_child(remove_darts_screen, next_player_button.get_index())
 	winner_screen = PLAYER_WINS_SCREEN.instantiate()
 	add_child(winner_screen)
+	ranking_screen = RANKING_SCREEN.instantiate()
+	add_child(ranking_screen)
 
 	back_button.pressed.connect(func(): confirm_overlay.visible = true)
 	stay_button.pressed.connect(func(): confirm_overlay.visible = false)
@@ -153,7 +164,8 @@ func _ready() -> void:
 	next_player_button.button_up.connect(_on_next_button_up)
 	remove_darts_screen.finished.connect(_finish_turn)
 	throws_scroll.resized.connect(_fit_throw_badges)
-	winner_screen.continue_pressed.connect(func(): back_confirmed.emit())
+	winner_screen.continue_pressed.connect(_on_winner_continue)
+	ranking_screen.continue_pressed.connect(func(): back_confirmed.emit())
 	_build_slots()
 	DartInputManager.set_active(true)
 	DartInputManager.hit_detected.connect(_on_dart_hit)
@@ -177,26 +189,51 @@ func _on_dart_hit(hit: DartHit) -> void:
 func setup(_players: Array[String], _options: Dictionary) -> void:
 	pass
 
-## Termine la partie sur une victoire : bloque les jets et affiche l'ecran
-## partage de victoire (contenu provisoire). A appeler par le jeu quand ses
-## regles determinent un gagnant.
-func announce_winner(player_name: String) -> void:
+## Annonce que player_names (plusieurs noms = ex aequo) terminent a la place
+## rank (1 = victoire) : ecran PlayerWinsScreen, jets bloques tant qu'il est
+## affiche. A sa fermeture, la partie reprend, sauf si finish_game() a ete
+## appele entre-temps (l'ecran de classement s'affiche alors).
+func announce_rank(player_names: Array[String], rank: int) -> void:
 	if _game_over:
 		return
-	_game_over = true
 	DartInputManager.set_active(false)
-	winner_screen.show_winner(player_name)
+	winner_screen.show_rank(player_names, rank)
 
-## Termine la partie sans vainqueur (ex : nombre de rounds maximal atteint) :
-## bloque les jets et revient directement a la configuration de la partie.
-func end_game(reason: String = "") -> void:
+## Termine la partie : bloque les jets et affiche l'ecran de classement
+## (apres l'annonce announce_rank() en cours, s'il y en a une).
+## standings : classement de tous les joueurs du premier au dernier, voir
+## rank_standings() pour le construire.
+func finish_game(standings: Array[Dictionary]) -> void:
 	if _game_over:
 		return
 	_game_over = true
 	DartInputManager.set_active(false)
-	if reason != "":
-		print(reason)
-	back_confirmed.emit()
+	_final_standings = standings
+	if not winner_screen.visible:
+		ranking_screen.show_standings(_final_standings)
+
+## Construit un classement a passer a finish_game() : entries (un
+## Dictionary par joueur : "name", "score", "stats" facultatif, plus tout
+## champ utile a better) triees avec better(a, b) (vrai si a est mieux classe
+## que b), puis numerotees dans "rank". Les ex aequo (aucun des deux mieux
+## classe que l'autre) partagent le meme rang et le suivant est decale
+## (1, 2, 2, 4).
+static func rank_standings(entries: Array[Dictionary], better: Callable) -> Array[Dictionary]:
+	var sorted := entries.duplicate()
+	sorted.sort_custom(better)
+	for i in sorted.size():
+		if i > 0 and not better.call(sorted[i - 1], sorted[i]):
+			sorted[i]["rank"] = sorted[i - 1]["rank"]
+		else:
+			sorted[i]["rank"] = i + 1
+	return sorted
+
+func _on_winner_continue() -> void:
+	winner_screen.hide_screen()
+	if _game_over:
+		ranking_screen.show_standings(_final_standings)
+	else:
+		DartInputManager.set_active(true)
 
 ## Place le panneau de score du jeu dans la zone dediee (il en remplit tout
 ## l'espace). Remplace le panneau precedent s'il y en avait un.
