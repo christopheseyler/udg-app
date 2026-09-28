@@ -13,9 +13,12 @@ extends GameScreen
 ## double/triple) annule tout le tour, y compris ses effets same_score_hit
 ## sur d'autres joueurs (voir plus bas) : tout revient a ce que c'etait au
 ## debut du tour, qui se termine aussitot. Un score exactement a 0 en
-## respectant out_condition gagne la partie. Au-dela de max_rounds, la
-## partie s'arrete sans vainqueur. Dans les deux cas, l'ecran de classement
-## suit (voir _standings).
+## respectant out_condition termine la partie pour ce joueur : avec
+## end_at_first_finish (par defaut), il gagne et la partie s'arrete ; sinon
+## il sort du jeu avec son rang (ordre d'arrivee, voir _finished) et les
+## autres continuent, jusqu'a ce qu'il ne reste qu'un joueur. Au-dela de
+## max_rounds, la partie s'arrete aussi. Dans tous les cas, l'ecran de
+## classement suit (voir _standings).
 ##
 ## same_score_hit : quand un jet amene le joueur courant exactement au score
 ## d'un autre joueur, applique un effet a cet autre joueur (Wipe-Out ou
@@ -53,7 +56,7 @@ const BUST_ZOOM_DURATION := 0.9
 const BUST_DISPLAY_DURATION := 1.6
 
 ## Nombre de rounds (cycles complets de tous les joueurs) au-dela duquel la
-## partie s'arrete sans vainqueur, pour eviter une partie infinie.
+## partie s'arrete, pour eviter une partie infinie (option max_rounds).
 @export var max_rounds: int = 50
 
 @onready var score_panel: X01ScorePanel = $ScoreArea/ScorePanel
@@ -68,6 +71,17 @@ var _current_player := 0
 var _in_condition := "None"
 var _out_condition := "Double"
 var _same_score_hit := "Nothing"
+var _end_at_first_finish := true
+
+## Joueurs ayant termine (score a 0), dans l'ordre d'arrivee : leur rang est
+## leur position + 1. Ils ne jouent plus (voir _advance_and_start_turn).
+## Recalcule comme le reste de l'etat (voir _apply_turn_state), depuis
+## l'instantane _turn_start_finished : annuler le jet gagnant remet le
+## joueur en jeu.
+var _finished: Array[int] = []
+## Vrai entre l'annonce du rang d'un joueur qui vient de terminer (partie qui
+## continue) et sa fermeture, qui enchaine sur "Remove your darts".
+var _awaiting_rank_close := false
 
 ## Nombre de fleches par tour "normal" (avant application d'une dette de
 ## fleches donnees ou d'un bonus). Capture la valeur de darts_per_turn au
@@ -87,6 +101,7 @@ var _turn_start_scores: Array[int] = []
 var _turn_start_entered: Array[bool] = []
 var _turn_start_dart_debt: Array[int] = []
 var _turn_start_darts_per_turn := 3
+var _turn_start_finished: Array[int] = []
 ## Tours termines, dans l'ordre (parallele a GameScreen._history) : permet a
 ## Cancel hit de revenir au tour precedent avec son instantane de depart
 ## exact. Les tours entierement sautes (dette de fleches) n'y figurent pas,
@@ -99,6 +114,7 @@ func _ready() -> void:
 	next_player_requested.connect(_on_next_player_requested)
 	previous_player_requested.connect(_on_previous_player_requested)
 	throw_cancelled.connect(_on_throw_cancelled)
+	rank_announcement_closed.connect(_on_rank_announcement_closed)
 	_create_bust_image()
 
 func setup(players: Array[String], options: Dictionary) -> void:
@@ -106,11 +122,15 @@ func setup(players: Array[String], options: Dictionary) -> void:
 	_in_condition = _condition_type(options.get("in_condition", "Open In"))
 	_out_condition = _condition_type(options.get("out_condition", "Double Out"))
 	_same_score_hit = options.get("same_score_hit", "Nothing")
+	_end_at_first_finish = options.get("end_at_first_finish", true)
+	max_rounds = int(options.get("max_rounds", str(max_rounds)))
 	var start_value := int(options.get("start_value", "501"))
 
 	_scores.clear()
 	_entered.clear()
 	_dart_debt.clear()
+	_finished.clear()
+	_awaiting_rank_close = false
 	for _player in _players:
 		_scores.append(start_value)
 		_entered.append(_in_condition == "None")
@@ -137,7 +157,8 @@ func setup(players: Array[String], options: Dictionary) -> void:
 func _on_dart_hit(hit: DartHit) -> void:
 	if _game_over or confirm_overlay.visible or remove_darts_screen.visible or _bust_image.visible:
 		return
-	if get_remaining_darts() <= 0:
+	# Joueur qui vient de terminer : ses fleches restantes ne comptent plus.
+	if get_remaining_darts() <= 0 or _finished.has(_current_player):
 		return
 
 	_turn_hits.append(hit)
@@ -147,12 +168,22 @@ func _on_dart_hit(hit: DartHit) -> void:
 	add_throw(hit, true)
 
 	if result.finished:
-		var winner: Array[String] = [_players[_current_player]]
-		announce_rank(winner, 1)
-		finish_game(_standings(_current_player))
+		var finisher: Array[String] = [_players[_current_player]]
+		announce_rank(finisher, _finished.size())
+		if _end_at_first_finish or _players.size() - _finished.size() <= 1:
+			finish_game(_standings())
+		else:
+			_awaiting_rank_close = true
 	elif result.busted:
 		_show_bust()
 		start_remove_darts_after_throw(BUST_DISPLAY_DURATION)
+
+## Annonce du rang d'un joueur qui vient de terminer fermee, la partie
+## continue : son tour se termine.
+func _on_rank_announcement_closed() -> void:
+	if _awaiting_rank_close:
+		_awaiting_rank_close = false
+		_start_remove_darts()
 
 func _on_next_player_requested() -> void:
 	_hide_bust()
@@ -170,13 +201,19 @@ func _on_next_player_requested() -> void:
 ## Note : darts_per_turn (GameScreen) est borne a 1 minimum par son setter,
 ## donc on ne le met jamais a jour a une valeur <= 0 ; un tour entierement
 ## saute court-circuite avant de le toucher.
+## Les joueurs ayant termine (_finished) sont sautes de la meme facon ; il
+## en reste toujours au moins deux en jeu ici (sinon la partie est finie).
 func _advance_and_start_turn() -> void:
 	_current_player = (_current_player + 1) % _players.size()
 	if _current_player == 0:
 		set_round(round_number + 1)
 		if round_number > max_rounds:
-			finish_game(_standings(-1))
+			finish_game(_standings())
 			return
+
+	if _finished.has(_current_player):
+		_advance_and_start_turn()
+		return
 
 	var debt := _dart_debt[_current_player]
 	if debt >= _base_darts_per_turn:
@@ -204,14 +241,16 @@ func _on_previous_player_requested() -> void:
 	if _players.is_empty() or _turn_history.is_empty():
 		return
 	var entry: Dictionary = _turn_history.pop_back()
-	if _current_player == 0:
-		set_round(round_number - 1)
+	# Round du tour restaure tel qu'enregistre : des tours saute (dette,
+	# joueurs ayant termine) empechent de le deduire du joueur courant.
+	set_round(entry.round)
 
 	_current_player = entry.player
 	_turn_start_scores = entry.start_scores.duplicate()
 	_turn_start_entered = entry.start_entered.duplicate()
 	_turn_start_dart_debt = entry.start_dart_debt.duplicate()
 	_turn_start_darts_per_turn = entry.start_darts_per_turn
+	_turn_start_finished = entry.start_finished.duplicate()
 	_turn_hits = entry.hits.duplicate()
 	_apply_turn_state()
 	score_panel.set_current_player(_current_player)
@@ -235,15 +274,18 @@ func _start_turn_snapshot() -> void:
 	_turn_start_entered = _entered.duplicate()
 	_turn_start_dart_debt = _dart_debt.duplicate()
 	_turn_start_darts_per_turn = darts_per_turn
+	_turn_start_finished = _finished.duplicate()
 
 func _capture_turn_history_entry() -> Dictionary:
 	return {
 		"player": _current_player,
+		"round": round_number,
 		"hits": _turn_hits.duplicate(),
 		"start_scores": _turn_start_scores.duplicate(),
 		"start_entered": _turn_start_entered.duplicate(),
 		"start_dart_debt": _turn_start_dart_debt.duplicate(),
 		"start_darts_per_turn": _turn_start_darts_per_turn,
+		"start_finished": _turn_start_finished.duplicate(),
 	}
 
 ## Recalcule integralement l'etat courant (scores et entree de tous les
@@ -267,6 +309,9 @@ func _apply_turn_state() -> Dictionary:
 		_entered = result.entered
 		_dart_debt = result.dart_debt
 		darts_per_turn = result.darts_per_turn
+	_finished = _turn_start_finished.duplicate()
+	if result.finished:
+		_finished.append(_current_player)
 
 	for i in _players.size():
 		_refresh_row(i)
@@ -304,7 +349,8 @@ func _replay_turn(hits: Array[DartHit]) -> Dictionary:
 
 		if _same_score_hit != "Nothing" and not hit.is_miss():
 			for i in _players.size():
-				if i != player and scores[i] == new_score:
+				# Les joueurs ayant termine ne sont plus concernes.
+				if i != player and scores[i] == new_score and not _turn_start_finished.has(i):
 					turn_darts = _apply_same_score_hit(i, hit, scores, dart_debt, turn_darts)
 
 	return {
@@ -402,25 +448,31 @@ func _hide_bust() -> void:
 		_bust_tween = null
 	_bust_image.visible = false
 
-## Classement final : le gagnant (winner, -1 si la partie s'arrete sans
-## vainqueur, voir max_rounds) en tete, puis les autres joueurs par points
-## restants croissants (ex aequo a points egaux).
-func _standings(winner: int) -> Array[Dictionary]:
+## Classement final : les joueurs ayant termine dans leur ordre d'arrivee
+## (voir _finished), puis ceux encore en jeu par points restants croissants
+## (ex aequo a points egaux).
+func _standings() -> Array[Dictionary]:
 	var entries: Array[Dictionary] = []
 	for i in _players.size():
-		entries.append({"name": _players[i], "score": _scores[i], "index": i})
+		entries.append({"name": _players[i], "score": _scores[i], "arrival": _finished.find(i)})
 	return rank_standings(entries, func(a: Dictionary, b: Dictionary) -> bool:
-		if (a.index == winner) != (b.index == winner):
-			return a.index == winner
+		if a.arrival >= 0 and b.arrival >= 0:
+			return a.arrival < b.arrival
+		if (a.arrival >= 0) != (b.arrival >= 0):
+			return a.arrival >= 0
 		return a.score < b.score)
 
 func _refresh_row(index: int) -> void:
 	score_panel.set_row(index, _scores[index], _hint_for(index))
 	score_panel.set_debt(index, _dart_debt[index])
 
-## Texte d'aide du joueur : condition d'entree tant qu'il n'est pas entre dans
-## la partie, puis condition de sortie quand son score devient terminable.
+## Texte d'aide du joueur : son rang s'il a termine, sinon condition
+## d'entree tant qu'il n'est pas entre dans la partie, puis condition de
+## sortie quand son score devient terminable.
 func _hint_for(index: int) -> String:
+	var arrival := _finished.find(index)
+	if arrival >= 0:
+		return "Rank #%d" % (arrival + 1)
 	if not _entered[index]:
 		return "Need a %s to enter" % _in_condition.to_lower()
 	if _scores[index] > MAX_FINISH[_out_condition]:

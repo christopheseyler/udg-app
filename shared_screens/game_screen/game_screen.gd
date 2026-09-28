@@ -36,6 +36,9 @@ signal back_confirmed
 signal throw_cancelled
 signal next_player_requested
 signal previous_player_requested
+## Emis quand l'annonce d'un rang (announce_rank) est fermee et que la
+## partie continue (jeux qui ne s'arretent pas au premier gagnant).
+signal rank_announcement_closed
 
 const DART_TEXTURE := preload("res://assets/dart.png")
 const THROW_BADGE := preload("res://shared_screens/target_value_badge/target_value_badge.tscn")
@@ -236,6 +239,7 @@ func _on_winner_continue() -> void:
 		ranking_screen.show_standings(_final_standings)
 	else:
 		DartInputManager.set_active(true)
+		rank_announcement_closed.emit()
 
 ## Place le panneau de score du jeu dans la zone dediee (il en remplit tout
 ## l'espace). Remplace le panneau precedent s'il y en avait un.
@@ -289,7 +293,10 @@ func start_remove_darts_after_throw(delay: float = REMOVE_DARTS_DELAY) -> void:
 		_on_remove_darts_delay_elapsed.bind(_remove_darts_request, _throws_serial))
 
 func _on_remove_darts_delay_elapsed(request: int, serial: int) -> void:
-	if request == _remove_darts_request and serial == _throws_serial and not _game_over:
+	# Pas pendant l'annonce d'un rang : le jeu enchaine lui-meme a sa
+	# fermeture (voir rank_announcement_closed).
+	if request == _remove_darts_request and serial == _throws_serial and not _game_over \
+			and not winner_screen.visible:
 		_start_remove_darts()
 
 ## Annule le dernier jet (bouton Cancel hit). Si le tour en cours est vide,

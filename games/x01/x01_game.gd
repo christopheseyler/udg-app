@@ -23,6 +23,17 @@ func _init() -> void:
 			"items": ["Open Out", "Double Out", "Triple Out", "Master Out"], "default": "Double Out",
 			"info": "Condition to finish the game: the last dart must reach exactly zero with a double (Double Out), a triple (Triple Out) or either of them (Master Out). Open Out: any dart finishes.",
 		},
+		{"type": "group", "name": "End of game"},
+		{
+			"id": "max_rounds", "type": "enum", "name": "Max Rounds",
+			"items": ["10", "15", "20", "25", "30", "50"], "default": "50",
+			"info": "Maximum number of rounds. When it is reached, the game ends and players still in the game are ranked by their remaining score (lowest first).",
+		},
+		{
+			"id": "end_at_first_finish", "type": "bool", "name": "End at First Finish",
+			"default": true,
+			"info": "On: the game ends as soon as a player reaches zero, who wins. Off: players who reach zero leave the game with their rank (1st, 2nd...) and the others keep playing, until only one player is left or the maximum number of rounds is reached.",
+		},
 		{"type": "group", "name": "Special / Fun"},
 		{
 			"id": "same_score_hit", "type": "enum", "name": "Same Score Hit",
