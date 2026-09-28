@@ -18,8 +18,9 @@ extends Control
 ## - set_round() met a jour le numero de round affiche ;
 ## - quand les fleches du tour sont toutes lancees, ou par Next player,
 ##   l'ecran "Remove your darts" (RemoveDartsScreen) s'affiche pendant
-##   remove_darts_duration secondes ; ensuite next_player_requested est emis
-##   et le tour est remis a zero ;
+##   remove_darts_duration secondes (Next, qui reste accessible, passe le
+##   decompte) ; ensuite next_player_requested est emis et le tour est remis
+##   a zero ;
 ## - back_confirmed est emis quand le joueur confirme la sortie du jeu ;
 ## - announce_winner() termine la partie sur une victoire et affiche l'ecran
 ##   partage PlayerWinsScreen ; end_game() la termine sans vainqueur (ex :
@@ -37,6 +38,12 @@ const THROW_BADGE := preload("res://shared_screens/target_value_badge/target_val
 ## taille fixe par defaut, voir target_value_badge.tscn ; agrandie ici pour
 ## rester lisible dans le panneau lateral).
 const THROW_BADGE_SIZE := Vector2(195, 163)
+## Espace vertical entre deux badges quand il y a de la place (voir
+## _fit_throw_badges). Quand ils ne tiennent plus, ils sont d'abord resserres
+## jusqu'a ne garder que THROW_BADGE_MIN_GAP entre leurs contenus ; la liste
+## ne defile qu'au-dela.
+const THROW_BADGE_SPACING := 16.0
+const THROW_BADGE_MIN_GAP := 8.0
 const DART_ICON_SIZE := Vector2(170, 255)
 ## RemoveDartsScreen et PlayerWinsScreen ne sont pas des enfants fixes de la
 ## scene (voir _ready()) : instancies au runtime, pas de dependance dans le
@@ -51,6 +58,11 @@ const DART_FAN_SPREAD_DEGREES := 44.0
 ## tasse legerement et s'assombrit pendant l'appui.
 const NEXT_BUTTON_PRESS_SCALE := 0.9
 const NEXT_BUTTON_PRESS_DURATION := 0.08
+## Pulsation lumineuse du bouton Next pendant "Remove your darts", pour
+## montrer qu'il permet de passer le decompte (self_modulate : independante
+## de l'effet "pushed", qui joue sur modulate).
+const NEXT_BUTTON_PULSE_COLOR := Color(1.6, 1.4, 1.2)
+const NEXT_BUTTON_PULSE_DURATION := 0.5
 ## Animation d'un jet (voir _animate_dart_out / _animate_dart_in) : la
 ## fleche lancee s'envole dans l'axe de l'eventail en s'effacant, puis la
 ## medaille du jet apparait (TargetValueBadge.play_appear). Une fleche
@@ -121,10 +133,14 @@ var _badges_shown := 0
 ## differe (voir start_remove_darts_after_throw) est abandonne si un jet a ete
 ## ajoute ou annule entre-temps.
 var _throws_serial := 0
+var _next_pulse_tween: Tween
 
 func _ready() -> void:
 	remove_darts_screen = REMOVE_DARTS_SCREEN.instantiate()
 	add_child(remove_darts_screen)
+	# Sous le bouton Next : il reste visible et cliquable pendant "Remove your
+	# darts" et sert alors a passer le decompte (voir _on_next_pressed).
+	move_child(remove_darts_screen, next_player_button.get_index())
 	winner_screen = PLAYER_WINS_SCREEN.instantiate()
 	add_child(winner_screen)
 
@@ -132,10 +148,11 @@ func _ready() -> void:
 	stay_button.pressed.connect(func(): confirm_overlay.visible = false)
 	leave_button.pressed.connect(_on_leave_pressed)
 	cancel_hit_button.pressed.connect(cancel_last_throw)
-	next_player_button.pressed.connect(_start_remove_darts)
+	next_player_button.pressed.connect(_on_next_pressed)
 	next_player_button.button_down.connect(_on_next_button_down)
 	next_player_button.button_up.connect(_on_next_button_up)
 	remove_darts_screen.finished.connect(_finish_turn)
+	throws_scroll.resized.connect(_fit_throw_badges)
 	winner_screen.continue_pressed.connect(func(): back_confirmed.emit())
 	_build_slots()
 	DartInputManager.set_active(true)
@@ -263,6 +280,28 @@ func _start_remove_darts() -> void:
 	if remove_darts_screen.visible:
 		return
 	remove_darts_screen.start(remove_darts_duration)
+	_set_next_button_pulse(true)
+
+func _set_next_button_pulse(active: bool) -> void:
+	if _next_pulse_tween:
+		_next_pulse_tween.kill()
+		_next_pulse_tween = null
+	next_player_button.self_modulate = Color.WHITE
+	if not active:
+		return
+	_next_pulse_tween = create_tween().set_loops()
+	_next_pulse_tween.tween_property(next_player_button, "self_modulate", NEXT_BUTTON_PULSE_COLOR, NEXT_BUTTON_PULSE_DURATION) \
+		.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+	_next_pulse_tween.tween_property(next_player_button, "self_modulate", Color.WHITE, NEXT_BUTTON_PULSE_DURATION) \
+		.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+
+## Bouton Next : termine le tour ("Remove your darts") ou, si cet ecran est
+## deja affiche, passe son decompte.
+func _on_next_pressed() -> void:
+	if remove_darts_screen.visible:
+		remove_darts_screen.skip()
+	else:
+		_start_remove_darts()
 
 func _on_next_button_down() -> void:
 	var tween := create_tween()
@@ -277,6 +316,7 @@ func _on_next_button_up() -> void:
 	tween.parallel().tween_property(next_player_button, "modulate", Color.WHITE, NEXT_BUTTON_PRESS_DURATION)
 
 func _finish_turn() -> void:
+	_set_next_button_pulse(false)
 	_history.append(_throws.duplicate())
 	next_player_requested.emit()
 	reset_turn()
@@ -403,11 +443,38 @@ func _refresh() -> void:
 			else:
 				_animate_dart_out(i)
 	_badges_shown = _throws.size()
+	_fit_throw_badges()
 	cancel_hit_button.disabled = _throws.is_empty() and _history.is_empty()
 	# Differe au prochain "idle" : le ScrollContainer ne connait la position
 	# reelle du badge qu'une fois la mise en page (queue_sort) retraitee, ce
 	# qui n'a pas encore eu lieu juste apres avoir change son contenu.
 	_scroll_to_latest_throw.call_deferred()
+
+## Hauteur de chaque badge de la liste des jets (la liste n'a pas d'espacement
+## propre, voir game_screen.tscn : l'ecart est inclus dans la hauteur des
+## badges, leur contenu y est centre). Tant que tout tient, chaque badge
+## garde sa hauteur normale plus THROW_BADGE_SPACING ; sinon l'espace
+## disponible est reparti a parts egales autour des contenus (plaque ou
+## "MISSED", voir TargetValueBadge.get_content_height), sans descendre sous
+## THROW_BADGE_MIN_GAP : ce n'est qu'alors que la liste deborde et defile.
+func _fit_throw_badges() -> void:
+	var available := throws_scroll.size.y
+	if available <= 0.0 or _throw_badges.is_empty():
+		return
+	var width := THROW_BADGE_SIZE.x
+	var slot_height := THROW_BADGE_SIZE.y + THROW_BADGE_SPACING
+	var contents: Array[float] = []
+	var total_content := 0.0
+	for badge in _throw_badges:
+		var content_height := badge.get_content_height(width)
+		contents.append(content_height)
+		total_content += content_height
+	# Arrondi vers le bas : un debordement d'une fraction de pixel suffirait a
+	# faire apparaitre la barre de defilement.
+	var gap := maxf(floorf((available - total_content) / _throw_badges.size()) - 1.0, THROW_BADGE_MIN_GAP)
+	for i in _throw_badges.size():
+		var height := minf(floorf(contents[i]) + gap, maxf(slot_height, ceilf(contents[i]) + THROW_BADGE_MIN_GAP))
+		_throw_badges[i].custom_minimum_size = Vector2(width, height)
 
 ## Fait defiler la liste des jets pour garder le dernier jet visible (le
 ## defilement se fait vers le haut ou le bas selon ce qui est deja visible).

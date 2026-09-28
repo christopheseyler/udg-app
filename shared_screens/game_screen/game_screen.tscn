@@ -95,7 +95,7 @@ horizontal_scroll_mode = 0
 [node name="ThrowsList" type="VBoxContainer" parent="SidePanel/Margin/Content/ThrowsScroll" unique_id=669599968]
 layout_mode = 2
 size_flags_horizontal = 3
-theme_override_constants/separation = 16
+theme_override_constants/separation = 0
 
 [node name="DartsFan" type="Control" parent="SidePanel/Margin/Content" unique_id=1293271075]
 custom_minimum_size = Vector2(0, 290)

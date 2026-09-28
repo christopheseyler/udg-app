@@ -110,6 +110,18 @@ func clear() -> void:
 	_stop_appear()
 	_hide_all()
 
+## Hauteur reellement occupee par le contenu affiche (plaque ou "MISSED")
+## pour une largeur de badge donnee, sans le vide autour : sert a resserrer
+## une liste de badges sans les faire se chevaucher. Un badge vide compte
+## comme une plaque (emplacement d'une fleche pas encore lancee).
+func get_content_height(width: float) -> float:
+	var content_size: Vector2 = PLATE_REGIONS[0][Badge.SINGLE].size
+	if missed.visible:
+		content_size = MISSED_TEXTURE.get_size()
+	elif background.visible and background.texture:
+		content_size = background.texture.get_size()
+	return width * content_size.y / content_size.x
+
 ## Anime l'apparition du contenu affiche (medaille ou "MISSED"), apres delay
 ## secondes : a appeler juste apres show_hit/show_missed pour un nouveau jet.
 ## Anime content plutot que le badge lui-meme : le conteneur parent (liste
