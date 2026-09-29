@@ -6,9 +6,9 @@ extends Control
 ## demarre sur ce fond assombri). Un tap/clic saute directement a la suite.
 
 @export var next_scene_path: String = "res://main_screens/game_selection/game_select.tscn"
-@export var start_delay: float = 2.0
+@export var start_delay: float = 1.0
 @export var fade_in_duration: float = 1.5
-@export var hold_duration: float = 5.0
+@export var hold_duration: float = 2.0
 @export var fade_out_duration: float = 1.0
 @export var zoom_out_scale: float = 20.0
 @export var background_dark_color: Color = Color(0.55, 0.55, 0.55, 1.0)
