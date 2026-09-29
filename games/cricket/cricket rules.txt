@@ -1,0 +1,158 @@
+Cricket
+
+2 à 8 players
+player order screen requis
+
+Définitions
+
+	tour  : le tour d'un joueur (ses 3 fléchettes)
+	round : l'ensemble des tours de tous les joueurs
+
+
+option
+
+Game
+
+	Mode : straight ou cut-throat (défaut) (expliqué dans les règles plus bas)
+	
+	target Selection (défaut : Classic)
+		Classic (15 -> 20 + bull) : définit les 7 targets classiques
+		Wild    (12 -> 20 + bull) : en début de partie, les 6 targets sont attribué random entre 12 et 20 (jamais deux target identique) . la bull est toujours présente comme 7ieme target
+		Ultra-Wild (1 -> 20 + bull) : les 6 targets sont attribué random entre 1 et 20 (jamais deux target identique) . la bull est toujours présente comme 7ieme target
+		Wild & Crazy
+		Ultra-Wild & Crazy
+		
+		les variantes "crazy" (wild et ultra-wild) font varier la valeur des 6 premieres targets à chaque début de tour, selon l'état de la target :
+			- aucune marque (aucun joueur n'a encore marqué dessus) : la target conserve sa valeur random de début de partie
+			- au moins une marque (par n'importe quel joueur) mais fermée par aucun joueur : la target change de valeur à chaque début de tour
+			- fermée par au moins un joueur : la target conserve sa valeur jusqu'à la fin de la partie
+		lors d'un changement, la nouvelle valeur est tirée dans la plage du mode (wild ou ultra-wild) et ne peut pas être identique à une autre target en cours.
+		lors d'un changement, les marques des joueurs sur la target sont conservées (2 marques sur le 14 qui devient 17 -> 2 marques sur le 17).
+		si une target fermée se réouvre (penalité) et n'est plus fermée par aucun joueur, elle recommence à changer de valeur à chaque début de tour.
+		
+	Locked BullEye : enable or disable (défaut). activée, la bull est bloquée (le joueur ne peut pas faire de marques) tant que le joueur n'a pas fermé les 6 autres target.
+		l'état verrouillé de la bull est évalué par joueur.
+		un hit dans la bull verrouillée n'est pas pris en compte : ni marque, ni score, ni pénalité.
+		si la bull verrouillée possède des marques (elle se reverrouille suite à une réouverture), les règles Elite s'appliquent sur ces marques.
+		en cut-throat, un joueur ayant déverrouillé et fermé sa bull peut scorer les joueurs dont la bull est toujours verrouillée.
+	
+	
+	Max round : 8 à 20 (défaut : 10)
+	
+	Stop on first winner : activé (defaut) / désactivée : si désactivée, la partie ne s'arrete pas lorsqu'un joueur a gagné mais continue jusqu'à ce que tous les joueurs-1 ont terminé ou que le max round est atteint
+	
+	Ending Rank Computation : score (default), score & mark
+
+
+Scoring variant (uniquement disponible en mode cut-throat)
+
+	Score Maniac : enable ou disable (défaut)
+	
+	Protect the weaks : enable or disable (défaut) : lorsque l'option est activé, le joueur ne peut scorer que les joueurs qui ont un score plus petit ou égal à lui. Lorsqu'il y a scoring, on applique le score avec la valeur en cours (le joueur A (score 100) peut scorer le joueur B (99) avec un hit à 180points, le joueur B passe à 279 et ne peut plus être scoré après)
+	
+Scoring variant (disponible en mode straight et cut-throat)
+
+	Only in closing turn : enable ou disable (défaut) : le joueur n'a la possibilité de scorer uniquement dans le tour où il a fermé la valeur. les marques en trop de la fléchette qui ferme la target scorent.
+
+Penalities 
+
+	Elite : none (défaut), Mark, Mega Mark
+	
+		en mode Mark ou mega mark, la pénalité est évaluée à la fin du tour du joueur, dans cet ordre :
+			1. si le joueur a des targets ouvertes : il perd une marque sur chacune de ses targets ouvertes sur laquelle il n'a pas fait de marque pendant son tour (une target ouverte sans aucune marque reste à 0). ses targets fermées restent fermées.
+			2. si le joueur n'a que des targets fermées et n'a fait aucun hit valide pendant son tour (hit valide = une marque ou un hit qui score, hors pénalité) : en mode Mark, une de ses targets fermées au hasard se réouvre d'une marque. En mode mega mark, toutes ses targets fermées se réouvrent d'une marque.
+			   une target fermée par tous les joueurs peut aussi être réouverte.
+		la bull verrouillée (Locked BullEye) est une target ouverte comme les autres : si elle a des marques, le joueur en perd une à chaque tour. pour conserver ses marques, il doit refermer ses targets réouvertes pour déverrouiller la bull, puis refaire une marque dans la bull.
+		un hit de pénalité (All Closed Hit Penality) ne compte pas comme une marque ni comme un hit valide.
+		avec l'option Only in closing turn, un hit sur une target fermée lors d'un tour précédent n'est plus un hit qui score mais une pénalité : il ne protège donc pas de la réouverture.
+		avec All Closed Hit Penality à None, un hit sur une target fermée par tout le monde (ou fermée lors d'un tour précédent avec Only in closing turn) ne produit ni marque, ni score, ni pénalité : il n'est pas un hit valide et ne protège pas de la réouverture.
+		
+	All Closed Hit Penality : None (défaut), Score, Mark
+	
+		Lorsqu'un joueur touche une valeur déjà fermée par tout le monde ou totalement fermée pour lui (option Only in closing turn activée), le joueur prend une pénalité:
+		 en mode Score : il se score lui-même de la valeur de la target x multiplier (score diminué en game mode straight, ou score augmenté en game mode cut-throat). le score ne peut pas descendre sous 0.
+		 
+		 en mode Mark : il réouvre sa target fermée de 1, 2 ou 3 marques en fonction de sa touche est en simple, double ou triple
+	
+Special and Fun
+
+	Score or Die : enable ou disable (défaut)
+
+		tous les 4 rounds, le round est un round "score or die" (rounds 4, 8, 12, ...).
+		à la fin de ce round, le joueur ayant le score le plus désavantageux (le plus faible en straight, le plus haut en cut-throat) est éliminé.
+		en cas d'égalité, tous les joueurs à égalité sont éliminés.
+		les éliminations continuent jusqu'à ce qu'il ne reste que 2 joueurs.
+		si une élimination (cas d'égalité) ne laisserait qu'un seul joueur ou aucun, l'élimination est annulée.
+		le score pris en compte est le score total du joueur.
+		les joueurs ayant terminé (Stop on first winner désactivé) ont "disparu virtuellement" : ils ne sont ni éliminables, ni comptés dans les joueurs restants.
+		les joueurs éliminés "disparaissent virtuellement" comme les joueurs ayant terminé (leurs targets ne comptent plus, ils ne peuvent plus être scorés).
+		rank des éliminés : ils sont classés derniers, dans l'ordre inverse d'élimination (le premier éliminé est dernier). les joueurs éliminés ensemble ont le même rank.
+		affichage :
+			- un round "score or die" est annoncé par une tête de mort avec deux fléchettes croisées, affichée au-dessus du mot "round"
+			- à l'élimination, un stamp "ELIMINATED" vient frapper le nom du (ou des) joueur(s) éliminé(s) et y reste jusqu'à la fin de la partie
+
+		
+
+
+Rules 
+
+Le jeu consiste a fermer plusieurs target par 3 hits (1 simple, 1 simple et un double ou un triple). des hits supplémentaires provoque un scoring.
+
+La bull vaut 25 en simple (1 marque) et 50 en double (2 marques). Il n'y a pas de triple bull.
+
+le joueur arrivant à tout ferme et avec un score adéquat gagne la partie.
+
+Il y a principalement deux modes de jeu
+
+Straight : le joueur touchant une valeur qu'il a déja fermé alors de d'autres joueurs l'ont toujours ouverte augmente son propre score.
+           Son score augmente augmente de la valeur en tenant compte du multiplicateur
+           Pour gagner, le joueur doit avoir tout fermé et avoir le score le plus haut
+		   
+Cut-throat : le joueur touchant une valeur qu'il a déja fermé augmente le score de tous les joueurs n'ayant pas fermé la valeur.
+            Le score des joueurs pénalisé augmentent de la valeur target en tenant compte du multiplicateur.
+			Une variante (Score Maniac) : une fois activé, ça applique un facteur multiplicatif en fonction de l'état de la target chez le joueurs : si le joueur scoré n'a aucune marque -> x3, s'il a 1 marque -> x2 et s'il a 2 marques -> x1. ce facteur se cumule avec le multiplicateur du hit (triple 20 sur un joueur sans marque -> 20 x 3 x 3 = 180)
+			Pour gagner, le joueur doit avoir tout fermé et avoir le score le plus bas.
+
+Pour gagner, le score doit être strictement meilleur que celui de tous les joueurs restants (pas d'égalité possible pour la victoire).
+
+Joueurs ayant terminé (Stop on first winner désactivé) : ils "disparaissent virtuellement" et ne sont plus pris en compte :
+	- leurs targets ne comptent plus pour déterminer si une target est fermée par tout le monde
+	- ils ne peuvent plus être scorés (cut-throat)
+	- leur score n'est plus pris en compte : le score à battre est déterminé uniquement parmi les joueurs restants
+
+En fin de jeu, le rank des personnes qui n'ont pas terminé est déterminé par l'option Ending Rank Computation 
+ en mode score, le score détermine la position 
+ en mode score et mark, le score est d'abord adapté avec les marques manquantes : pour chaque target non fermée, (3 - marques) x valeur de la target, retiré du score en straight, ajouté au score en cut-throat.
+ le score adapté peut être négatif (pas de plancher à 0 pour le calcul du rank).
+ des égalités sont possibles dans le rank (deux joueurs avec le même score ont le même rank).
+
+
+
+
+
+Points d'attention lors de l'implémentation
+
+En mode Elite Mark ou en mode Penalities Mark, des targets fermées peuvent se réouvrir. cela signifie qu'en mode crazy, une target normalement figée (car fermée par un joueur) pourrait se réouvrir et donc changer à nouveau en début de tour.
+
+en mode Elite Mark ou en mode Penalities Mark,  des targets fermées peuvent se réouvrir. Si l'option locked bulleye est activé, la bulleye peut se lock à nouveau
+
+All Closed Hit Penality : lorsque le joueur tente de fermer une target et qu'il est le dernier à la fermer, il doit la fermer avec juste le bon nombre de marque. si sa target a déjà 2 marks et qu'il fait un triple, il ferme sa target et reçoit 2 pénalités (2x score, ou 2 mark de réouverture)
+	en mode Mark, c'est le comportement attendu que la target se réouvre aussitôt : dans l'exemple, sa target retombe à 1 marque. elle n'est donc plus fermée par tout le monde : les autres joueurs peuvent à nouveau scorer dessus (en straight, les joueurs l'ayant fermée augmentent leur score; en cut-throat, leurs hits scorent ce joueur).
+
+
+Panneau de jeu
+
+le panneau représente une grille 
+
+player;score; target value#1; target value#2; target value#3; target value#4; target value#5; target value#6; BullEye
+
+sous les target value et BullEye, la zone est initialement vide. ensuite, une marque est indiqué par un trait oblique, deux marques: une croix (deux traits oblique) closed: la croix et un cercle. All closed la croix et un cercle mais grisé
+
+En mode "Protect the weaks", un petit logo bouclier est affiché a gauche du nom des joueurs qui sont protégés
+
+En Mode "Stop on first winner"  disabled, les joueurs ayant terminé, leur nom est grisé et un logo représentant une coupe avec un texte  #'rank" par dessus la coupe est affiché à gauche du nom (comme pour le bouclier)
+
+en mode wild, ultra-wild et leur variante crazy, il y a une petite animation au niveau des target value pour montrer qu'elle changent (en début de partie, et en début de tour pour les variantes crazy) 
+
+le panneau doit pouvoir afficher les 8 players (max) sans scroll
+
