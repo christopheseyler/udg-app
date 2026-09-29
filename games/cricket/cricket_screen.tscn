@@ -1,0 +1,11 @@
+[gd_scene load_steps=4 format=3]
+
+[ext_resource type="PackedScene" path="res://shared_screens/game_screen/game_screen.tscn" id="1_base"]
+[ext_resource type="Script" path="res://games/cricket/cricket_screen.gd" id="2_script"]
+[ext_resource type="PackedScene" path="res://games/cricket/cricket_score_panel.tscn" id="3_panel"]
+
+[node name="CricketScreen" instance=ExtResource("1_base")]
+script = ExtResource("2_script")
+
+[node name="ScorePanel" parent="ScoreArea" index="0" instance=ExtResource("3_panel")]
+layout_mode = 1
