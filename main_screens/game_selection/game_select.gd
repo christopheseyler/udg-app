@@ -308,12 +308,14 @@ func _on_selection_cancelled() -> void:
 
 func _on_start_pressed() -> void:
 	var player_names := players_panel.get_player_names()
-	if player_names.is_empty():
+	var game := games[current_index]
+	# Pas assez de joueurs pour ce jeu : ouvre le panneau des joueurs.
+	if player_names.is_empty() or player_names.size() < game.min_players:
 		if not players_panel.is_open:
 			_toggle_sub_panel(players_panel)
 		return
 
-	if games[current_index].uses_players_order and player_names.size() > 1:
+	if game.uses_players_order and player_names.size() > 1:
 		_show_players_order(player_names)
 	else:
 		_start_game(player_names)
@@ -325,6 +327,7 @@ func _show_players_order(player_names: Array[String]) -> void:
 	order_screen.z_index = 300
 	add_child(order_screen)
 	order_screen.set_players(player_names)
+	order_screen.set_reverse_order(games[current_index].reverse_players_order)
 	order_screen.back_pressed.connect(order_screen.queue_free)
 	order_screen.order_confirmed.connect(func(ordered: Array[String]):
 		order_screen.queue_free()
