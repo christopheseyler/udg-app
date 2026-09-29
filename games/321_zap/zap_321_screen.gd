@@ -49,6 +49,30 @@ const AUTO_ENTER_BADGE_OFFSET := Vector2(0, 250)
 const AUTO_ENTER_BADGE_DELAY := 0.45
 const AUTO_ENTER_DISPLAY_DURATION := 2.2
 
+## Animation de zap (voir _show_zap) : le nom du ou des joueurs zappes
+## apparait au centre de la zone de score et tremble de plus en plus fort,
+## puis "Zap!" tombe du haut et vient le frapper (flash blanc, le nom
+## s'ecrase et rebondit). Jets ignores pendant l'animation ; "Remove your
+## darts" attend sa fin si la fleche termine le tour.
+const ZAP_TEXTURE := preload("res://assets/games/321_zap/zap.png")
+const ZAP_SIZE := Vector2(1000, 500)
+## Centre de "Zap!" une fois pose, par rapport au centre de la zone de
+## score : juste au-dessus du nom, la pointe de l'eclair touchant le nom.
+const ZAP_OFFSET := Vector2(0, -60)
+const ZAP_NAME_OFFSET := Vector2(0, 180)
+const ZAP_NAME_SIZE := Vector2(1400, 170)
+const ZAP_NAME_FONT_SIZE := 120
+const ZAP_NAME_APPEAR_DURATION := 0.25
+const ZAP_NAME_SHAKE_DURATION := 0.7
+const ZAP_NAME_SHAKE_AMPLITUDE := 18.0
+const ZAP_FALL_DURATION := 0.18
+const ZAP_FLASH_ALPHA := 0.7
+const ZAP_FLASH_DURATION := 0.3
+const ZAP_SQUASH_SCALE := Vector2(1.25, 0.6)
+const ZAP_SQUASH_DURATION := 0.5
+const ZAP_HOLD_DURATION := 1.5
+const ZAP_DISPLAY_DURATION := ZAP_NAME_APPEAR_DURATION + ZAP_NAME_SHAKE_DURATION + ZAP_FALL_DURATION + ZAP_HOLD_DURATION
+
 @export var max_rounds: int = 10
 
 @onready var score_panel: Zap321ScorePanel = $ScoreArea/ScorePanel
@@ -98,6 +122,15 @@ var _auto_dart: TextureRect
 var _auto_badge: TargetValueBadge
 var _auto_dart_tween: Tween
 
+var _zap_overlay: Control
+var _zap_name: Label
+var _zap_image: TextureRect
+var _zap_flash: ColorRect
+var _zap_tween: Tween
+## Incremente a chaque affichage ou masquage de l'animation de zap : un
+## affichage ou un masquage differe (timer) devenu obsolete est abandonne.
+var _zap_token := 0
+
 static func _build_all_darts() -> Array[DartHit]:
 	var darts: Array[DartHit] = []
 	for segment in range(1, 21):
@@ -114,6 +147,7 @@ func _ready() -> void:
 	throw_cancelled.connect(_on_throw_cancelled)
 	rank_announcement_closed.connect(_on_rank_announcement_closed)
 	_create_auto_entry_overlay()
+	_create_zap_overlay()
 
 func setup(players: Array[String], options: Dictionary) -> void:
 	_players = players.duplicate()
@@ -155,7 +189,8 @@ func setup(players: Array[String], options: Dictionary) -> void:
 ## _apply_turn_state) et l'affiche. Un rebond (sauf option), un zop ou une
 ## arrivee terminent le tour.
 func _on_dart_hit(hit: DartHit) -> void:
-	if _game_over or confirm_overlay.visible or remove_darts_screen.visible or _auto_overlay.visible:
+	if _game_over or confirm_overlay.visible or remove_darts_screen.visible \
+			or _auto_overlay.visible or _zap_overlay.visible:
 		return
 	if get_remaining_darts() <= 0 or _turn_over:
 		return
@@ -166,6 +201,7 @@ func _on_dart_hit(hit: DartHit) -> void:
 
 	match result.event:
 		"finish":
+			# L'annonce du rang recouvre tout : pas d'animation de zap.
 			var finisher: Array[String] = [_players[_current_player]]
 			announce_rank(finisher, _finished.size())
 			if _end_at_first_finish or _players.size() - _finished.size() <= 1:
@@ -173,11 +209,18 @@ func _on_dart_hit(hit: DartHit) -> void:
 			else:
 				_awaiting_rank_close = true
 		_:
-			if _turn_over:
+			if not result.zapped.is_empty():
+				_show_zap(result.zapped)
+				# "Remove your darts" (fin de tour ou 3e fleche) attend la fin
+				# de l'animation.
+				if _turn_over or get_remaining_darts() == 0:
+					start_remove_darts_after_throw(ZAP_DISPLAY_DURATION)
+			elif _turn_over:
 				start_remove_darts_after_throw()
 
 ## Fin du tour ("Remove your darts") : un joueur toujours pas entre entre
-## d'abord automatiquement (option Auto Entering), avec son animation.
+## d'abord automatiquement (option Auto Entering), avec son animation, suivie
+## de celle du zap si le jet fictif zappe quelqu'un.
 func _start_remove_darts() -> void:
 	if remove_darts_screen.visible:
 		return
@@ -185,9 +228,13 @@ func _start_remove_darts() -> void:
 		if _turn_auto_dart == null:
 			_turn_auto_dart = _random_entry_dart()
 		_turn_auto_applied = true
-		_apply_turn_state()
+		var result := _apply_turn_state()
 		_show_auto_entry(_turn_auto_dart)
-		start_remove_darts_after_throw(AUTO_ENTER_DISPLAY_DURATION)
+		var delay := AUTO_ENTER_DISPLAY_DURATION
+		if not result.zapped.is_empty():
+			_show_zap_later(result.zapped, AUTO_ENTER_DISPLAY_DURATION)
+			delay += ZAP_DISPLAY_DURATION
+		start_remove_darts_after_throw(delay)
 		return
 	super._start_remove_darts()
 
@@ -207,6 +254,7 @@ func _on_rank_announcement_closed() -> void:
 
 func _on_next_player_requested() -> void:
 	_hide_auto_entry()
+	_hide_zap()
 	if _players.is_empty():
 		return
 	_turn_history.append(_capture_turn_history_entry())
@@ -249,6 +297,7 @@ func _on_previous_player_requested() -> void:
 ## automatique qu'elle avait declenchee (le jet fictif est garde).
 func _on_throw_cancelled() -> void:
 	_hide_auto_entry()
+	_hide_zap()
 	_turn_auto_applied = false
 	if not _turn_hits.is_empty():
 		_turn_hits.pop_back()
@@ -285,13 +334,14 @@ func _apply_turn_state() -> Dictionary:
 	return state
 
 ## Rejoue les fleches du tour (plus le jet fictif s'il est applique) depuis
-## l'instantane de debut de tour. Renvoie le nouvel etat, avec "event" et
-## "counted" pour la derniere fleche (voir _play_dart).
+## l'instantane de debut de tour. Renvoie le nouvel etat, avec "event",
+## "counted" et "zapped" pour la derniere fleche (voir _play_dart).
 func _replay_turn() -> Dictionary:
 	var state := _turn_start.duplicate(true)
 	state.turn_over = false
 	state.event = ""
 	state.counted = false
+	state.zapped = []
 	var hits := _turn_hits.duplicate()
 	if _turn_auto_applied and _turn_auto_dart != null:
 		hits.append(_turn_auto_dart)
@@ -303,12 +353,14 @@ func _replay_turn() -> Dictionary:
 
 ## Applique une fleche du joueur courant a state. Renseigne state.event
 ## ("", "zap", "bounce", "autozap", "zop" ou "finish"), state.counted (la
-## fleche a compte : medaille doree) et state.turn_over.
+## fleche a compte : medaille doree), state.zapped (joueurs zappes par cette
+## fleche, le joueur lui-meme pour un auto-zap) et state.turn_over.
 func _play_dart(state: Dictionary, hit: DartHit) -> void:
 	var player := _current_player
 	var before := state.duplicate(true)
 	state.event = ""
 	state.counted = false
+	state.zapped = []
 	if hit.is_miss():
 		return
 
@@ -338,6 +390,7 @@ func _play_dart(state: Dictionary, hit: DartHit) -> void:
 	if bounced and _auto_zap and score == previous:
 		state.entered[player] = false
 		state.zaps[player] += 1
+		state.zapped = [player]
 		state.event = "autozap"
 		state.turn_over = true
 		return
@@ -349,6 +402,7 @@ func _play_dart(state: Dictionary, hit: DartHit) -> void:
 				and state.scores[other] == score:
 			state.entered[other] = false
 			state.zaps[player] += 1
+			state.zapped.append(other)
 			state.event = "zap"
 
 	if score == target:
@@ -364,9 +418,12 @@ func _play_dart(state: Dictionary, hit: DartHit) -> void:
 				for key in ["scores", "entered", "directions", "zaps", "finished"]:
 					state[key] = before[key]
 				state.counted = false
+				state.zapped = []
 			"Auto-Zap":
+				# Le joueur s'auto-zappe (en plus d'eventuels zaps de la fleche).
 				state.entered[player] = false
 				state.zaps[player] += 1
+				state.zapped.append(player)
 		return
 
 	if bounced:
@@ -511,6 +568,126 @@ func _show_auto_entry(hit: DartHit) -> void:
 	_auto_dart_tween = create_tween()
 	_auto_dart_tween.tween_property(_auto_dart, "position:x", area.x + AUTO_ENTER_DART_SIZE.x * 0.5, AUTO_ENTER_DART_DURATION) \
 		.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+
+## Overlay de zap sur la zone de score : nom du ou des joueurs zappes,
+## image "Zap!" (au-dessus du nom) et flash blanc. Masque par defaut.
+func _create_zap_overlay() -> void:
+	_zap_overlay = Control.new()
+	_zap_overlay.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_zap_overlay.set_anchors_preset(Control.PRESET_FULL_RECT)
+	_zap_overlay.visible = false
+	score_area.add_child(_zap_overlay)
+
+	_zap_name = Label.new()
+	_zap_name.add_theme_font_size_override("font_size", ZAP_NAME_FONT_SIZE)
+	_zap_name.add_theme_color_override("font_outline_color", Color.BLACK)
+	_zap_name.add_theme_constant_override("outline_size", 24)
+	_zap_name.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_zap_name.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	_zap_name.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_zap_name.size = ZAP_NAME_SIZE
+	_zap_name.pivot_offset = ZAP_NAME_SIZE / 2.0
+	_zap_overlay.add_child(_zap_name)
+
+	_zap_image = TextureRect.new()
+	_zap_image.texture = ZAP_TEXTURE
+	_zap_image.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	_zap_image.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	_zap_image.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_zap_image.size = ZAP_SIZE
+	_zap_image.pivot_offset = ZAP_SIZE / 2.0
+	_zap_overlay.add_child(_zap_image)
+
+	_zap_flash = ColorRect.new()
+	_zap_flash.color = Color(1, 1, 1, 0)
+	_zap_flash.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_zap_flash.set_anchors_preset(Control.PRESET_FULL_RECT)
+	_zap_overlay.add_child(_zap_flash)
+
+## Anime le zap des joueurs zapped (indices) : le nom apparait et tremble de
+## plus en plus fort, "Zap!" tombe du haut et le frappe (flash, le nom
+## s'ecrase puis rebondit), puis le tout disparait apres ZAP_HOLD_DURATION.
+func _show_zap(zapped: Array) -> void:
+	_hide_zap()
+	var names := PackedStringArray()
+	for index in zapped:
+		names.append(_players[index])
+	_zap_name.text = " & ".join(names)
+	_zap_name.add_theme_font_size_override("font_size", _fit_zap_name_font_size(_zap_name.text))
+	_zap_overlay.visible = true
+
+	var center := _zap_overlay.size / 2.0
+	var name_position := center + ZAP_NAME_OFFSET - ZAP_NAME_SIZE / 2.0
+	var zap_position := center + ZAP_OFFSET - ZAP_SIZE / 2.0
+	_zap_name.position = name_position
+	_zap_name.scale = Vector2.ONE * 0.3
+	_zap_name.modulate.a = 0.0
+	_zap_image.position = Vector2(zap_position.x, -ZAP_SIZE.y - _zap_overlay.global_position.y)
+	_zap_image.scale = Vector2.ONE * 1.3
+	_zap_image.visible = false
+	_zap_flash.color.a = 0.0
+
+	_zap_tween = create_tween()
+	# 1. Le nom apparait...
+	_zap_tween.tween_property(_zap_name, "modulate:a", 1.0, ZAP_NAME_APPEAR_DURATION)
+	_zap_tween.parallel().tween_property(_zap_name, "scale", Vector2.ONE, ZAP_NAME_APPEAR_DURATION) \
+		.set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+	# 2. ... et tremble de plus en plus fort.
+	_zap_tween.tween_method(func(strength: float):
+		_zap_name.position = name_position + Vector2(randf_range(-1.0, 1.0), randf_range(-1.0, 1.0)) \
+			* ZAP_NAME_SHAKE_AMPLITUDE * strength, 0.0, 1.0, ZAP_NAME_SHAKE_DURATION)
+	# 3. "Zap!" tombe du haut...
+	_zap_tween.tween_callback(func(): _zap_image.visible = true)
+	_zap_tween.tween_property(_zap_image, "position:y", zap_position.y, ZAP_FALL_DURATION) \
+		.set_trans(Tween.TRANS_EXPO).set_ease(Tween.EASE_IN)
+	_zap_tween.parallel().tween_method(func(strength: float):
+		_zap_name.position = name_position + Vector2(randf_range(-1.0, 1.0), randf_range(-1.0, 1.0)) \
+			* ZAP_NAME_SHAKE_AMPLITUDE * strength, 1.0, 1.0, ZAP_FALL_DURATION)
+	# 4. ... et frappe le nom : flash, le nom s'ecrase puis rebondit.
+	_zap_tween.tween_callback(func():
+		_zap_name.position = name_position
+		_zap_name.scale = ZAP_SQUASH_SCALE
+		_zap_flash.color.a = ZAP_FLASH_ALPHA)
+	_zap_tween.tween_property(_zap_name, "scale", Vector2.ONE, ZAP_SQUASH_DURATION) \
+		.set_trans(Tween.TRANS_ELASTIC).set_ease(Tween.EASE_OUT)
+	_zap_tween.parallel().tween_property(_zap_image, "scale", Vector2.ONE, ZAP_SQUASH_DURATION) \
+		.set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+	_zap_tween.parallel().tween_property(_zap_flash, "color:a", 0.0, ZAP_FLASH_DURATION) \
+		.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+	# 5. Le tout reste affiche puis disparait. (Methodes plutot que lambdas
+	# pour les timers : deconnectees automatiquement si l'ecran est libere.)
+	get_tree().create_timer(ZAP_DISPLAY_DURATION).timeout.connect(_on_zap_display_elapsed.bind(_zap_token))
+
+func _on_zap_display_elapsed(token: int) -> void:
+	if token == _zap_token:
+		_hide_zap()
+
+## Lance l'animation de zap apres delay secondes (ex. apres "Auto Enter!"),
+## sauf si entre-temps elle a ete masquee (Cancel hit, joueur suivant).
+func _show_zap_later(zapped: Array, delay: float) -> void:
+	get_tree().create_timer(delay).timeout.connect(_on_zap_delay_elapsed.bind(zapped, _zap_token))
+
+func _on_zap_delay_elapsed(zapped: Array, token: int) -> void:
+	if token == _zap_token and _turn_auto_applied:
+		_hide_auto_entry()
+		_show_zap(zapped)
+
+func _hide_zap() -> void:
+	_zap_token += 1
+	if _zap_tween:
+		_zap_tween.kill()
+		_zap_tween = null
+	_zap_overlay.visible = false
+
+## Taille de police du ou des noms zappes : ZAP_NAME_FONT_SIZE, reduite pour
+## que le texte tienne dans ZAP_NAME_SIZE.
+func _fit_zap_name_font_size(text: String) -> int:
+	var font := _zap_name.get_theme_font("font")
+	var width := font.get_string_size(text, HORIZONTAL_ALIGNMENT_LEFT, -1, ZAP_NAME_FONT_SIZE).x \
+		+ _zap_name.get_theme_constant("outline_size")
+	if width <= ZAP_NAME_SIZE.x:
+		return ZAP_NAME_FONT_SIZE
+	return maxi(floori(ZAP_NAME_FONT_SIZE * ZAP_NAME_SIZE.x / width), 1)
 
 func _hide_auto_entry() -> void:
 	if _auto_dart_tween:

@@ -93,6 +93,10 @@ zap
 	une fleche zappe tous les joueurs qui ont exactement le même score, y compris quand ce score est atteint par un rebond.
 	un raté ne change pas le score : il ne zappe personne et ne déclenche pas d'auto-zap.
 	auto-zap : le score de référence est celui juste avant la fleche (pas celui du début du tour).
+	animation de zap (asset assets/games/321_zap/zap.png : gros éclair avec le mot "Zap!") :
+		- le nom du joueur zappé (tous les noms si une fleche en zappe plusieurs, le joueur lui-même pour un auto-zap) apparait au centre de la zone de score et se met à trembler de plus en plus fort ;
+		- "Zap!" tombe très vite du haut et vient frapper le nom : flash blanc bref, le nom encaisse le choc (écrasement puis rebond) et arrête de trembler ;
+		- l'ensemble reste affiché environ 1,5 s puis disparait ; les jets sont ignorés pendant l'animation.
 
 zop
 	bust (défaut) : seule la fleche qui place le joueur en zop est annulée ; les fleches précédentes du tour (et leurs zaps) restent acquises. le tour est terminé.
