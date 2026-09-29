@@ -1,4 +1,4 @@
-321 Zap
+321 Zap 
 
 2 to 8 players
 players ordering screen required with reverse order
@@ -54,5 +54,54 @@ sur un auto-entering et both ways, le jet fictif respecte le sens d'entrée du m
 en mode zop behavior nothing
 	si le joueur est zop sur un 321, il reste à 321. il devra, lors de son prochain tour, faire un premier jet pour rebondir.
 	un cas particulier. un joueur est zop sur 321 et un autre joueur atteind les 321 , il zap le joueur. ce zap est comptabilisé pour le master zap avant d'évaluer si le joueur a gagné (si il n'avait pas de zap et master zap actif, il joueur obtient son zap et termine)
+
+
+Précisions (validées le 2026-09-29)
+
+ordre des joueurs
+	l'écran d'ordre classe les joueurs selon un lancer (le plus proche du centre en premier) ; dans ce jeu l'ordre est inversé : le joueur le plus proche du centre joue en dernier.
+
+entrée
+	la fleche d'entrée compte pour le score.
+	un raté (0 point) ne fait jamais entrer, même sans in condition.
+	un joueur pas encore entré (ou zappé, voir plus bas) est "Out" : c'est ce qui est affiché à la place de son score.
+	auto-entering : si le joueur n'est pas entré au bout de ses 3 fleches, il entre sur un jet fictif tiré au hasard (uniformément) parmi les jets qui satisfont la in condition. une petite animation avertit le joueur qu'il entre automatiquement.
+	le jet fictif compte comme un vrai jet : il détermine le sens en both ways (parité) et peut zapper.
+	l'auto-entering s'applique aussi quand le joueur termine son tour (Next) avant d'avoir lancé ses 3 fleches.
+	animation d'auto-entering (asset assets/games/321_zap/auto_enter.png) :
+		- le texte "Auto Enter!" apparait comme le "Bust!" du X01 (tourbillonne et zoome rapidement, rebond à la fin) ;
+		- une fleche (la même image que les fleches restantes) traverse l'écran horizontalement, derrière le texte ;
+		- la médaille du jet fictif (sa valeur) apparait sous le texte, uniquement sur cet écran : elle n'est pas ajoutée à la liste des jets du tour.
+		pas de marqueur spécifique sur la médaille.
+	cancel hit : annule la dernière vraie fleche (la 3e), et avec elle l'entrée automatique qu'elle avait déclenchée.
+	si le joueur relance ensuite sans entrer, l'entrée automatique reprend le même jet fictif (pas de nouveau tirage).
+
+both ways
+	le sens est déterminé par la parité du numéro du segment de la fleche d'entrée, sans tenir compte du multiplicateur (double 7 = impair). bull = 25, impair.
+	pair : chemin classique 0 -> 321. impair : chemin inversé 321 -> 0.
+	le rebond, le zop et l'auto-zap s'appliquent symétriquement sur 0 pour le chemin inversé.
+
+rebond
+	par défaut, un rebond termine le tour du joueur.
+	option "continue after bounce" : le joueur continue son tour avec ses fleches restantes après un rebond.
+
+zap
+	les scores comparés sont les scores bruts, quel que soit le sens du chemin des joueurs.
+	le joueur zappé devient "Out" (en mode classique comme en both ways) : il doit entrer à nouveau (in condition, auto-entering), et sa nouvelle fleche d'entrée détermine à nouveau son sens en both ways.
+	les zaps obtenus restent acquis jusqu'à la fin de la partie (master zap), même si le joueur est zappé ensuite.
+	un joueur "Out" ou qui a terminé ne peut pas être zappé.
+	une fleche zappe tous les joueurs qui ont exactement le même score, y compris quand ce score est atteint par un rebond.
+	un raté ne change pas le score : il ne zappe personne et ne déclenche pas d'auto-zap.
+	auto-zap : le score de référence est celui juste avant la fleche (pas celui du début du tour).
+
+zop
+	bust (défaut) : seule la fleche qui place le joueur en zop est annulée ; les fleches précédentes du tour (et leurs zaps) restent acquises. le tour est terminé.
+	nothing : un joueur zop sur 321 y reste. un raté le laisse sur 321 ; il doit marquer des points pour rebondir. tant qu'il reste sur 321, il ne peut obtenir aucun zap (stratégie possible : attendre sur 321 pour zapper un autre joueur par rebond).
+	auto-zap : le joueur zop s'auto-zappe : il gagne un zap (master zap) mais devient "Out" et doit refaire tout le chemin.
+
+fin de partie
+	max round : 8, 10, 12, 15 ou 20 (10 par défaut).
+	stop on the first winner désactivé : la partie continue jusqu'au max round ou jusqu'à ce qu'il ne reste qu'un joueur en jeu.
+	rang des joueurs qui n'ont pas terminé : plus petit delta par rapport à leur cible (321, ou 0 en chemin inversé) ; delta égal = même rang ; un joueur "Out" a un delta de 321.
 	
 	
