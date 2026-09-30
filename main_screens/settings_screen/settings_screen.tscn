@@ -93,19 +93,25 @@ layout_mode = 2
 theme_override_constants/separation = 24
 
 [node name="CheckUpdateButton" type="Button" parent="Panel/Layout/Margin/Content"]
-custom_minimum_size = Vector2(0, 120)
+custom_minimum_size = Vector2(0, 100)
 layout_mode = 2
 theme_override_font_sizes/font_size = 40
 text = "Check for update from USB"
 
+[node name="CheckOnlineUpdateButton" type="Button" parent="Panel/Layout/Margin/Content"]
+custom_minimum_size = Vector2(0, 100)
+layout_mode = 2
+theme_override_font_sizes/font_size = 40
+text = "Check for update online"
+
 [node name="DartboardUpdateButton" type="Button" parent="Panel/Layout/Margin/Content"]
-custom_minimum_size = Vector2(0, 120)
+custom_minimum_size = Vector2(0, 100)
 layout_mode = 2
 theme_override_font_sizes/font_size = 40
 text = "DartBoard Interface Update"
 
 [node name="DartboardTestButton" type="Button" parent="Panel/Layout/Margin/Content"]
-custom_minimum_size = Vector2(0, 120)
+custom_minimum_size = Vector2(0, 100)
 layout_mode = 2
 theme_override_font_sizes/font_size = 40
 text = "DartBoard Interface Test"
@@ -129,7 +135,7 @@ size_flags_horizontal = 3
 theme_override_constants/separation = 16
 
 [node name="BackButton" type="Button" parent="Panel/Layout/Margin/Content"]
-custom_minimum_size = Vector2(0, 120)
+custom_minimum_size = Vector2(0, 100)
 layout_mode = 2
 theme_override_font_sizes/font_size = 44
 text = "Back"

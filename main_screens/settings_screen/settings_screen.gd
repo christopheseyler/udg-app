@@ -38,6 +38,17 @@ extends Control
 ## rien a fermer avant le flash. Aucune politique sur les retrogradations
 ## (l'outil ne les interdit pas) : le choix est laisse a l'utilisateur.
 ##
+## 1bis. "Check for update online" (application) : meme installation que
+## ci-dessus, mais le bundle vient de la derniere release GitHub du depot
+## (GITHUB_LATEST_RELEASE_URL). Le `tag_name` (avec ou sans "v") est compare
+## a application/config/version ; si la release est plus recente et porte un
+## fichier .raucb, on demande confirmation, on telecharge le bundle dans
+## DOWNLOAD_DIR (avec progression), puis on lance la meme installation que
+## pour l'USB (udg-app-selector.sh verifie la signature RAUC : un bundle non
+## signe par notre cle est refuse, quelle que soit sa provenance). Le fichier
+## telecharge est supprime a la fin de l'installation. Sans reseau, affiche
+## simplement que GitHub est injoignable.
+##
 ## Suppose que quelque chose (udev/systemd, hors scope de ce script) monte
 ## deja la cle USB sur ce chemin fixe : ce script ne monte rien lui-meme.
 ## Suppose aussi que le processus a le droit d'executer ces outils (le jeu
@@ -63,6 +74,12 @@ signal back_pressed
 const UPDATE_DIR := "/media/udg-update"
 const BUNDLE_EXTENSION := ".raucb"
 
+const GITHUB_LATEST_RELEASE_URL := "https://api.github.com/repos/christopheseyler/udg-test/releases/latest"
+## Dossier (persistant, hors tmpfs) ou est telecharge le bundle avant installation.
+const DOWNLOAD_DIR := "user://update"
+const RELEASE_CHECK_TIMEOUT_S := 15.0
+const BUNDLE_DOWNLOAD_TIMEOUT_S := 900.0
+
 const DARTBOARD_FILE_PREFIX := "udg_dartboard_if_"
 const DARTBOARD_FILE_EXTENSION := ".dpkg"
 const DARTBOARD_FLASH_TOOL := "/usr/bin/udg-dartboard-flash"
@@ -81,12 +98,13 @@ const DARTBOARD_TEST_SCAN_INTERVAL_S := 0.3
 ## Ce que "Yes" declenche dans le dialogue de confirmation, partage entre
 ## la confirmation d'upgrade et la proposition de redemarrage qui suit une
 ## installation reussie.
-enum ConfirmAction { NONE, UPGRADE, REBOOT }
+enum ConfirmAction { NONE, UPGRADE, DOWNLOAD, REBOOT }
 
 ## Quelle mise a jour est en cours de selection / d'installation.
 enum UpdateKind { APP, DARTBOARD }
 
 @onready var check_update_button: Button = $Panel/Layout/Margin/Content/CheckUpdateButton
+@onready var check_online_button: Button = $Panel/Layout/Margin/Content/CheckOnlineUpdateButton
 @onready var dartboard_update_button: Button = $Panel/Layout/Margin/Content/DartboardUpdateButton
 @onready var dartboard_test_button: Button = $Panel/Layout/Margin/Content/DartboardTestButton
 @onready var status_label: Label = $Panel/Layout/Margin/Content/StatusLabel
@@ -105,12 +123,20 @@ enum UpdateKind { APP, DARTBOARD }
 var _pending_bundle_path := ""
 var _pending_kind := UpdateKind.APP
 var _pending_target_version := ""
+## Vrai si _pending_bundle_path est un fichier telecharge (a supprimer apres
+## l'installation) plutot qu'un fichier de la cle USB.
+var _pending_is_download := false
+var _online_version := ""
+var _online_asset_url := ""
+var _online_asset_name := ""
+var _download_request: HTTPRequest
 var _install_thread: Thread
 var _confirm_action := ConfirmAction.NONE
 var _test_running := false
 
 func _ready() -> void:
 	check_update_button.pressed.connect(_on_check_update_pressed)
+	check_online_button.pressed.connect(_on_check_online_pressed)
 	dartboard_update_button.pressed.connect(_on_dartboard_update_pressed)
 	dartboard_test_button.pressed.connect(_on_dartboard_test_pressed)
 	back_button.pressed.connect(func(): back_pressed.emit())
@@ -119,6 +145,7 @@ func _ready() -> void:
 	test_close_button.pressed.connect(_stop_dartboard_test)
 	bundle_scroll.visible = false
 	test_overlay.visible = false
+	set_process(false)
 
 func _exit_tree() -> void:
 	if _install_thread:
@@ -143,6 +170,135 @@ func _on_check_update_pressed() -> void:
 	for path in bundle_paths:
 		_add_list_button(path.get_file(), _on_bundle_selected.bind(path))
 	bundle_scroll.visible = true
+
+func _on_check_online_pressed() -> void:
+	_set_status("Checking for updates online...")
+	_clear_bundle_list()
+	_set_busy(true)
+
+	var request := _new_http_request(RELEASE_CHECK_TIMEOUT_S)
+	request.request_completed.connect(_on_release_info_received.bind(request))
+	var headers := PackedStringArray(["Accept: application/vnd.github+json", "User-Agent: udg-game"])
+	if request.request(GITHUB_LATEST_RELEASE_URL, headers) != OK:
+		request.queue_free()
+		_set_busy(false)
+		_set_status("Could not start the online check.")
+
+func _new_http_request(timeout_s: float) -> HTTPRequest:
+	var request := HTTPRequest.new()
+	request.timeout = timeout_s
+	add_child(request)
+	return request
+
+func _on_release_info_received(result: int, code: int, _headers: PackedStringArray, body: PackedByteArray, request: HTTPRequest) -> void:
+	request.queue_free()
+	_set_busy(false)
+
+	if result != HTTPRequest.RESULT_SUCCESS:
+		_set_status("Could not reach GitHub (no connection?).")
+		return
+	if code == 404:
+		_set_status("No release published yet.")
+		return
+	if code != 200:
+		_set_status("GitHub answered HTTP %d." % code)
+		return
+
+	var data = JSON.parse_string(body.get_string_from_utf8())
+	if not data is Dictionary:
+		_set_status("Unexpected answer from GitHub.")
+		return
+
+	var remote_version := str(data.get("tag_name", "")).trim_prefix("v")
+	var current_version: String = ProjectSettings.get_setting("application/config/version", "0.0.0")
+	if remote_version == "" or not _is_newer_version(remote_version, current_version):
+		_set_status("Application is up to date (v%s)." % current_version)
+		return
+
+	var asset := _find_bundle_asset(data.get("assets", []))
+	if asset.is_empty():
+		_set_status("Release v%s has no update bundle." % remote_version)
+		return
+
+	_online_version = remote_version
+	_online_asset_url = asset.url
+	_online_asset_name = asset.name
+	_confirm_action = ConfirmAction.DOWNLOAD
+	confirm_label.text = "Application v%s available online\n(installed: v%s)\nDownload and upgrade?" % [remote_version, current_version]
+	confirm_overlay.visible = true
+	_set_status("Update v%s available." % remote_version)
+
+## Premier asset .raucb d'une release, sous forme {name, url}, ou {} s'il n'y en a pas.
+func _find_bundle_asset(assets) -> Dictionary:
+	if not assets is Array:
+		return {}
+	for asset in assets:
+		if asset is Dictionary:
+			var asset_name := str(asset.get("name", ""))
+			var url := str(asset.get("browser_download_url", ""))
+			if asset_name.ends_with(BUNDLE_EXTENSION) and url != "":
+				return {"name": asset_name, "url": url}
+	return {}
+
+## Compare deux versions "X.Y.Z" numeriquement (les champs manquants valent 0,
+## les suffixes non numeriques comme "-rc1" sont ignores).
+func _is_newer_version(candidate: String, current: String) -> bool:
+	var a := candidate.split(".")
+	var b := current.split(".")
+	for i in maxi(a.size(), b.size()):
+		var x := a[i].to_int() if i < a.size() else 0
+		var y := b[i].to_int() if i < b.size() else 0
+		if x != y:
+			return x > y
+	return false
+
+func _start_download() -> void:
+	var dir := ProjectSettings.globalize_path(DOWNLOAD_DIR)
+	if DirAccess.make_dir_recursive_absolute(dir) != OK:
+		_set_status("Could not create the download folder.")
+		return
+	var path := dir.path_join(_online_asset_name.get_file())
+
+	_set_busy(true)
+	_set_status("Downloading v%s..." % _online_version)
+	_download_request = _new_http_request(BUNDLE_DOWNLOAD_TIMEOUT_S)
+	_download_request.download_file = path
+	_download_request.request_completed.connect(_on_download_finished.bind(_download_request, path))
+	if _download_request.request(_online_asset_url) != OK:
+		_download_request.queue_free()
+		_download_request = null
+		_set_busy(false)
+		_set_status("Could not start the download.")
+		return
+	set_process(true)
+
+func _process(_delta: float) -> void:
+	if _download_request == null:
+		set_process(false)
+		return
+	var done := _download_request.get_downloaded_bytes()
+	var total := _download_request.get_body_size()
+	var done_mb := done / 1048576.0
+	if total > 0:
+		_set_status("Downloading v%s... %d%% (%.1f / %.1f MB)" % [_online_version, 100 * done / total, done_mb, total / 1048576.0])
+	else:
+		_set_status("Downloading v%s... %.1f MB" % [_online_version, done_mb])
+
+func _on_download_finished(result: int, code: int, _headers: PackedStringArray, _body: PackedByteArray, request: HTTPRequest, path: String) -> void:
+	request.queue_free()
+	_download_request = null
+	set_process(false)
+
+	if result != HTTPRequest.RESULT_SUCCESS or code != 200:
+		DirAccess.remove_absolute(path)
+		_set_busy(false)
+		_set_status("Download failed (result %d, HTTP %d)." % [result, code])
+		return
+
+	_pending_bundle_path = path
+	_pending_kind = UpdateKind.APP
+	_pending_is_download = true
+	_start_install()
 
 func _on_dartboard_update_pressed() -> void:
 	_set_status("Looking for a USB drive...")
@@ -207,6 +363,7 @@ func _on_bundle_selected(path: String) -> void:
 
 	_pending_bundle_path = path
 	_pending_kind = UpdateKind.APP
+	_pending_is_download = false
 	_confirm_action = ConfirmAction.UPGRADE
 	confirm_label.text = "Application v%s\nDo you want to upgrade?" % info.version
 	confirm_overlay.visible = true
@@ -293,11 +450,14 @@ func _on_confirm_yes() -> void:
 				_flash_dartboard()
 			else:
 				_start_install()
+		ConfirmAction.DOWNLOAD:
+			_start_download()
 		ConfirmAction.REBOOT:
 			OS.execute("systemctl", ["reboot"])
 
 func _set_busy(busy: bool) -> void:
 	check_update_button.disabled = busy
+	check_online_button.disabled = busy
 	dartboard_update_button.disabled = busy
 	dartboard_test_button.disabled = busy
 	back_button.disabled = busy
@@ -336,6 +496,10 @@ func _on_install_finished(exit_code: int, log_text: String) -> void:
 	_install_thread.wait_to_finish()
 	_install_thread = null
 	_set_busy(false)
+	if _pending_is_download:
+		# Le bundle telecharge n'est plus utile (installe ou en echec).
+		DirAccess.remove_absolute(_pending_bundle_path)
+		_pending_is_download = false
 
 	if exit_code == 0:
 		_set_status("Update installed. Restart to switch to the new version.")
