@@ -104,6 +104,12 @@ layout_mode = 2
 theme_override_font_sizes/font_size = 40
 text = "DartBoard Interface Update"
 
+[node name="DartboardTestButton" type="Button" parent="Panel/Layout/Margin/Content"]
+custom_minimum_size = Vector2(0, 120)
+layout_mode = 2
+theme_override_font_sizes/font_size = 40
+text = "DartBoard Interface Test"
+
 [node name="StatusLabel" type="Label" parent="Panel/Layout/Margin/Content"]
 modulate = Color(1, 1, 1, 0.8)
 layout_mode = 2
@@ -196,3 +202,75 @@ layout_mode = 2
 size_flags_horizontal = 3
 theme_override_font_sizes/font_size = 44
 text = "Yes"
+
+[node name="DartboardTestOverlay" type="Control" parent="."]
+visible = false
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="Dim" type="ColorRect" parent="DartboardTestOverlay"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0, 0, 0, 0.6)
+
+[node name="Center" type="CenterContainer" parent="DartboardTestOverlay"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+
+[node name="Dialog" type="PanelContainer" parent="DartboardTestOverlay/Center"]
+custom_minimum_size = Vector2(1100, 0)
+layout_mode = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_dialog")
+
+[node name="Margin" type="MarginContainer" parent="DartboardTestOverlay/Center/Dialog"]
+layout_mode = 2
+theme_override_constants/margin_left = 48
+theme_override_constants/margin_top = 48
+theme_override_constants/margin_right = 48
+theme_override_constants/margin_bottom = 48
+
+[node name="Content" type="VBoxContainer" parent="DartboardTestOverlay/Center/Dialog/Margin"]
+layout_mode = 2
+theme_override_constants/separation = 32
+
+[node name="TitleLabel" type="Label" parent="DartboardTestOverlay/Center/Dialog/Margin/Content"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 44
+text = "DartBoard Interface Test"
+horizontal_alignment = 1
+
+[node name="VersionLabel" type="Label" parent="DartboardTestOverlay/Center/Dialog/Margin/Content"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 36
+text = "Connecting..."
+horizontal_alignment = 1
+autowrap_mode = 3
+
+[node name="ScanLabel" type="Label" parent="DartboardTestOverlay/Center/Dialog/Margin/Content"]
+modulate = Color(1, 1, 1, 0.85)
+custom_minimum_size = Vector2(0, 90)
+layout_mode = 2
+theme_override_font_sizes/font_size = 32
+text = "Touch each segment on the target to test it."
+horizontal_alignment = 1
+vertical_alignment = 1
+autowrap_mode = 3
+
+[node name="CloseButton" type="Button" parent="DartboardTestOverlay/Center/Dialog/Margin/Content"]
+custom_minimum_size = Vector2(0, 110)
+layout_mode = 2
+theme_override_font_sizes/font_size = 44
+text = "Close"

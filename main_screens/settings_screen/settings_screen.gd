@@ -44,6 +44,17 @@ extends Control
 ## tourne en root sur l'image actuelle). Sans ces binaires ni ce point de
 ## montage (ex. en test dans l'editeur sous Windows), se degrade proprement
 ## sur "No update found".
+##
+## 3. "DartBoard Interface Test" : diagnostic materiel, sans rapport avec les
+## mises a jour ci-dessus. Se connecte a la carte via DartInputManager.
+## board_input (la meme instance que celle du jeu - voir dart_board_input.gd,
+## libre ici puisqu'aucune partie n'est en cours quand Settings est ouvert) ;
+## si la connexion echoue, affiche simplement que la carte n'est pas branchee.
+## Sinon, envoie `alive` pour afficher la version, puis boucle sur `scan`
+## (icd.md : cellules actuellement en contact) pour laisser tester chaque
+## segment a la main. send_command()/response_received n'imposent aucune
+## politique de tour (a la difference de start_waiting()/stop_waiting()) :
+## chaque commande recoit simplement sa reponse "#...#".
 
 signal back_pressed
 
@@ -64,6 +75,9 @@ const DARTBOARD_FLASH_LOG := "/tmp/udg-dartboard-flash.log"
 const DARTBOARD_FLASH_RC := "/tmp/udg-dartboard-flash.rc"
 const DARTBOARD_ALIVE_LOG := "/tmp/udg-dartboard-alive.out"
 
+## Delai entre deux `scan` pendant le test de l'interface.
+const DARTBOARD_TEST_SCAN_INTERVAL_S := 0.3
+
 ## Ce que "Yes" declenche dans le dialogue de confirmation, partage entre
 ## la confirmation d'upgrade et la proposition de redemarrage qui suit une
 ## installation reussie.
@@ -74,6 +88,7 @@ enum UpdateKind { APP, DARTBOARD }
 
 @onready var check_update_button: Button = $Panel/Layout/Margin/Content/CheckUpdateButton
 @onready var dartboard_update_button: Button = $Panel/Layout/Margin/Content/DartboardUpdateButton
+@onready var dartboard_test_button: Button = $Panel/Layout/Margin/Content/DartboardTestButton
 @onready var status_label: Label = $Panel/Layout/Margin/Content/StatusLabel
 @onready var bundle_scroll: ScrollContainer = $Panel/Layout/Margin/Content/BundleScroll
 @onready var bundle_list: VBoxContainer = $Panel/Layout/Margin/Content/BundleScroll/BundleList
@@ -82,24 +97,38 @@ enum UpdateKind { APP, DARTBOARD }
 @onready var confirm_label: Label = $ConfirmOverlay/Center/Dialog/Margin/Content/ConfirmLabel
 @onready var no_button: Button = $ConfirmOverlay/Center/Dialog/Margin/Content/Buttons/NoButton
 @onready var yes_button: Button = $ConfirmOverlay/Center/Dialog/Margin/Content/Buttons/YesButton
+@onready var test_overlay: Control = $DartboardTestOverlay
+@onready var test_version_label: Label = $DartboardTestOverlay/Center/Dialog/Margin/Content/VersionLabel
+@onready var test_scan_label: Label = $DartboardTestOverlay/Center/Dialog/Margin/Content/ScanLabel
+@onready var test_close_button: Button = $DartboardTestOverlay/Center/Dialog/Margin/Content/CloseButton
 
 var _pending_bundle_path := ""
 var _pending_kind := UpdateKind.APP
 var _pending_target_version := ""
 var _install_thread: Thread
 var _confirm_action := ConfirmAction.NONE
+var _test_running := false
 
 func _ready() -> void:
 	check_update_button.pressed.connect(_on_check_update_pressed)
 	dartboard_update_button.pressed.connect(_on_dartboard_update_pressed)
+	dartboard_test_button.pressed.connect(_on_dartboard_test_pressed)
 	back_button.pressed.connect(func(): back_pressed.emit())
 	no_button.pressed.connect(_on_confirm_no)
 	yes_button.pressed.connect(_on_confirm_yes)
+	test_close_button.pressed.connect(_stop_dartboard_test)
 	bundle_scroll.visible = false
+	test_overlay.visible = false
 
 func _exit_tree() -> void:
 	if _install_thread:
 		_install_thread.wait_to_finish()
+	if _test_running:
+		# Filet de securite si l'ecran est libere pendant un test (ex. sortie
+		# du jeu) : _run_dartboard_test() ferme normalement la carte
+		# lui-meme, mais ne tournera plus une fois ce noeud detruit.
+		_test_running = false
+		DartInputManager.board_input.disconnect_from_board()
 
 func _on_check_update_pressed() -> void:
 	_set_status("Looking for a USB drive...")
@@ -270,6 +299,7 @@ func _on_confirm_yes() -> void:
 func _set_busy(busy: bool) -> void:
 	check_update_button.disabled = busy
 	dartboard_update_button.disabled = busy
+	dartboard_test_button.disabled = busy
 	back_button.disabled = busy
 
 func _start_install() -> void:
@@ -371,3 +401,59 @@ func _finish_dartboard_update(success: bool, message: String) -> void:
 
 func _set_status(text: String) -> void:
 	status_label.text = text
+
+## Se connecte a la carte (DartInputManager.board_input, libre puisqu'aucune
+## partie n'est en cours) ; en cas d'echec (carte non branchee - voir
+## dart_board_input.gd), le signale simplement au lieu d'ouvrir le dialogue.
+func _on_dartboard_test_pressed() -> void:
+	var board := DartInputManager.board_input
+	board.connect_to_board()
+	if not board.is_connected_to_board():
+		_set_status("DartBoard Interface not connected.")
+		return
+
+	_test_running = true
+	test_version_label.text = "Connecting..."
+	test_scan_label.text = "Touch each segment on the target to test it."
+	test_overlay.visible = true
+	_run_dartboard_test()
+
+func _stop_dartboard_test() -> void:
+	_test_running = false
+	test_overlay.visible = false
+	# _run_dartboard_test() constate l'arret et ferme la carte lui-meme des
+	# la prochaine reponse (voir plus bas) : le faire ici couperait une
+	# reponse deja en vol.
+
+## Boucle du test, lancee par _on_dartboard_test_pressed() : verifie la
+## version (`alive`) puis scanne en continu (`scan`, icd.md : cellules
+## actuellement en contact) jusqu'a la fermeture (bouton Close). Chaque
+## commande recoit exactement une reponse "#...#" (send_command()/
+## response_received, sans le protocole de tour de start_waiting()).
+func _run_dartboard_test() -> void:
+	var board := DartInputManager.board_input
+	board.send_command("alive")
+	var alive_reply: String = await board.response_received
+	if not _test_running:
+		board.disconnect_from_board()
+		return
+
+	var version := _regex_group(alive_reply, "#alive-v(\\d\\d\\.\\d\\d\\.\\d{4})#")
+	test_version_label.text = "DartBoard Interface v%s" % version if version != "" \
+		else "Unexpected reply to alive: %s" % alive_reply
+
+	while _test_running:
+		board.send_command("scan")
+		var scan_reply: String = await board.response_received
+		if not _test_running:
+			break
+		_display_scan_result(scan_reply)
+		await get_tree().create_timer(DARTBOARD_TEST_SCAN_INTERVAL_S).timeout
+
+	board.disconnect_from_board()
+
+## Reponse a `scan` : "#r,c r,c ...#" (cellules en contact, ligne 0-7, colonne
+## 0-10) ou "##" si rien n'est touche.
+func _display_scan_result(reply: String) -> void:
+	var cells := reply.trim_prefix("#").trim_suffix("#")
+	test_scan_label.text = ("Contact: %s" % cells) if cells != "" else "No contact."
