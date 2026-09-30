@@ -104,7 +104,7 @@ git clone -b scarthgap https://git.yoctoproject.org/meta-rockchip
 git clone -b scarthgap https://github.com/rauc/meta-rauc
 
 # Dépôt du jeu (contient meta-udg/)
-git clone <URL du repo udg-test> udg-test
+git clone <URL du repo udg-app> udg-app
 ```
 
 ## 5. Configurer et lancer le build
@@ -116,9 +116,9 @@ bitbake-layers add-layer ../meta-openembedded/meta-oe
 bitbake-layers add-layer ../meta-arm
 bitbake-layers add-layer ../meta-rockchip
 bitbake-layers add-layer ../meta-rauc
-bitbake-layers add-layer ../udg-test/meta-udg
+bitbake-layers add-layer ../udg-app/meta-udg
 
-cat ../udg-test/meta-udg/conf/local.conf.sample >> conf/local.conf
+cat ../udg-app/meta-udg/conf/local.conf.sample >> conf/local.conf
 ```
 
 Si la machine a peu de RAM (< 20 Go), ajouter à `conf/local.conf` pour
@@ -146,10 +146,10 @@ Le plus confortable : VS Code + extension **WSL**, ouvert depuis le
 terminal Ubuntu (fichiers servis nativement par WSL, pas de souci de fin
 de ligne CRLF/LF) :
 ```bash
-cd ~/udg-yocto/udg-test && code .
+cd ~/udg-yocto/udg-app && code .
 ```
 Sinon, accès direct depuis l'Explorateur Windows :
-`\\wsl.localhost\Ubuntu-24.04\home\<toi>\udg-yocto\udg-test`
+`\\wsl.localhost\Ubuntu-24.04\home\<toi>\udg-yocto\udg-app`
 
 ## Pièges connus
 
