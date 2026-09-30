@@ -384,10 +384,14 @@ func _on_dartboard_file_selected(path: String, target_version: String) -> void:
 func _read_bundle_info(path: String) -> Dictionary:
 	var output := []
 	var exit_code := OS.execute("rauc", ["info", path], output, true)
-	if exit_code != 0:
-		return {"ok": false, "error": "rauc info exited with code %d" % exit_code}
-
 	var text: String = output[0] if output.size() > 0 else ""
+	if exit_code != 0:
+		# Derniere ligne de la sortie de rauc (le motif de l'echec y figure).
+		var lines := text.strip_edges().split("
+")
+		var reason: String = lines[lines.size() - 1].strip_edges() if not lines.is_empty() else ""
+		return {"ok": false, "error": "rauc info exited with code %d: %s" % [exit_code, reason]}
+
 	var version := _extract_field(text, "Version")
 	if version == "":
 		return {"ok": false, "error": "no version field in bundle manifest"}
