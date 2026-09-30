@@ -74,7 +74,7 @@ signal back_pressed
 const UPDATE_DIR := "/media/udg-update"
 const BUNDLE_EXTENSION := ".raucb"
 
-const GITHUB_LATEST_RELEASE_URL := "https://api.github.com/repos/christopheseyler/udg-test/releases/latest"
+const GITHUB_LATEST_RELEASE_URL := "https://api.github.com/repos/christopheseyler/udg-app/releases/latest"
 ## Dossier (persistant, hors tmpfs) ou est telecharge le bundle avant installation.
 const DOWNLOAD_DIR := "user://update"
 const RELEASE_CHECK_TIMEOUT_S := 15.0
