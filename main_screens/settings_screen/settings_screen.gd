@@ -103,14 +103,14 @@ enum ConfirmAction { NONE, UPGRADE, DOWNLOAD, REBOOT }
 ## Quelle mise a jour est en cours de selection / d'installation.
 enum UpdateKind { APP, DARTBOARD }
 
-@onready var check_update_button: Button = $Panel/Layout/Margin/Content/CheckUpdateButton
-@onready var check_online_button: Button = $Panel/Layout/Margin/Content/CheckOnlineUpdateButton
-@onready var dartboard_update_button: Button = $Panel/Layout/Margin/Content/DartboardUpdateButton
-@onready var dartboard_test_button: Button = $Panel/Layout/Margin/Content/DartboardTestButton
-@onready var status_label: Label = $Panel/Layout/Margin/Content/StatusLabel
-@onready var bundle_scroll: ScrollContainer = $Panel/Layout/Margin/Content/BundleScroll
-@onready var bundle_list: VBoxContainer = $Panel/Layout/Margin/Content/BundleScroll/BundleList
-@onready var back_button: Button = $Panel/Layout/Margin/Content/BackButton
+@onready var check_update_button: Button = $Panel/Layout/Margin/Content/Buttons/CheckUpdateButton
+@onready var check_online_button: Button = $Panel/Layout/Margin/Content/Buttons/CheckOnlineUpdateButton
+@onready var dartboard_update_button: Button = $Panel/Layout/Margin/Content/Buttons/DartboardUpdateButton
+@onready var dartboard_test_button: Button = $Panel/Layout/Margin/Content/Buttons/DartboardTestButton
+@onready var back_button: Button = $Panel/Layout/Margin/Content/Buttons/BackButton
+@onready var status_label: Label = $Panel/Layout/Margin/Content/Selection/StatusLabel
+@onready var bundle_scroll: ScrollContainer = $Panel/Layout/Margin/Content/Selection/BundleScroll
+@onready var bundle_list: VBoxContainer = $Panel/Layout/Margin/Content/Selection/BundleScroll/BundleList
 @onready var confirm_overlay: Control = $ConfirmOverlay
 @onready var confirm_label: Label = $ConfirmOverlay/Center/Dialog/Margin/Content/ConfirmLabel
 @onready var no_button: Button = $ConfirmOverlay/Center/Dialog/Margin/Content/Buttons/NoButton
@@ -195,7 +195,7 @@ func _on_release_info_received(result: int, code: int, _headers: PackedStringArr
 	_set_busy(false)
 
 	if result != HTTPRequest.RESULT_SUCCESS:
-		_set_status("Could not reach GitHub (no connection?).")
+		_set_status("Could not reach GitHub (no connection?). HTTPRequest result: %d" % result)
 		return
 	if code == 404:
 		_set_status("No release published yet.")
