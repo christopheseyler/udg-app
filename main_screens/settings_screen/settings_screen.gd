@@ -108,6 +108,9 @@ enum UpdateKind { APP, DARTBOARD }
 @onready var dartboard_update_button: Button = $Panel/Layout/Margin/Content/Buttons/DartboardUpdateButton
 @onready var dartboard_test_button: Button = $Panel/Layout/Margin/Content/Buttons/DartboardTestButton
 @onready var back_button: Button = $Panel/Layout/Margin/Content/Buttons/BackButton
+@onready var app_version_label: Label = $Panel/Layout/Margin/Content/Buttons/InfoBox/AppVersionLabel
+@onready var dartboard_version_label: Label = $Panel/Layout/Margin/Content/Buttons/InfoBox/DartboardVersionLabel
+@onready var ip_label: Label = $Panel/Layout/Margin/Content/Buttons/InfoBox/IpLabel
 @onready var status_label: Label = $Panel/Layout/Margin/Content/Selection/StatusLabel
 @onready var bundle_scroll: ScrollContainer = $Panel/Layout/Margin/Content/Selection/BundleScroll
 @onready var bundle_list: VBoxContainer = $Panel/Layout/Margin/Content/Selection/BundleScroll/BundleList
@@ -131,6 +134,7 @@ var _online_asset_url := ""
 var _online_asset_name := ""
 var _download_request: HTTPRequest
 var _install_thread: Thread
+var _info_thread: Thread
 var _confirm_action := ConfirmAction.NONE
 var _test_running := false
 
@@ -146,10 +150,13 @@ func _ready() -> void:
 	bundle_scroll.visible = false
 	test_overlay.visible = false
 	set_process(false)
+	_show_system_info()
 
 func _exit_tree() -> void:
 	if _install_thread:
 		_install_thread.wait_to_finish()
+	if _info_thread:
+		_info_thread.wait_to_finish()
 	if _test_running:
 		# Filet de securite si l'ecran est libere pendant un test (ex. sortie
 		# du jeu) : _run_dartboard_test() ferme normalement la carte
@@ -563,7 +570,46 @@ func _flash_dartboard() -> void:
 	else:
 		_finish_dartboard_update(false, "board reports v%s, expected v%s" % [new_version, _pending_target_version])
 
+## Renseigne le bloc d'infos en haut a gauche : version de l'application,
+## adresse IP (tout de suite) et version du firmware de la carte
+## d'interface (`alive`, dans un thread : ca dure ~1,5 s, ce qui gelerait
+## l'ecran a l'ouverture).
+func _show_system_info() -> void:
+	var app_version: String = ProjectSettings.get_setting("application/config/version", "0.0.0")
+	app_version_label.text = "Application: v%s" % app_version
+	var ip := _local_ip()
+	ip_label.text = "IP: %s" % ip if ip != "" else "No network connection"
+
+	dartboard_version_label.text = "DartBoard firmware: ..."
+	_info_thread = Thread.new()
+	_info_thread.start(_info_worker)
+
+func _info_worker() -> void:
+	call_deferred("_on_dartboard_version_read", _read_alive_version())
+
+func _on_dartboard_version_read(version: String) -> void:
+	_info_thread.wait_to_finish()
+	_info_thread = null
+	_set_dartboard_version(version)
+
+func _set_dartboard_version(version: String) -> void:
+	dartboard_version_label.text = "DartBoard firmware: v%s" % version if version != "" \
+			else "DartBoard firmware: not connected"
+
+## Premiere adresse IPv4 utilisable (ni loopback ni link-local), ou "" sans reseau.
+func _local_ip() -> String:
+	for iface in IP.get_local_interfaces():
+		if iface.name == "lo":
+			continue
+		for address: String in iface.addresses:
+			if address.contains(":") or address.begins_with("127.") or address.begins_with("169.254."):
+				continue
+			return address
+	return ""
+
 func _finish_dartboard_update(success: bool, message: String) -> void:
+	if success:
+		_set_dartboard_version(_pending_target_version)
 	_set_busy(false)
 	_set_status(message if success else "DartBoard Interface update failed: %s" % message)
 

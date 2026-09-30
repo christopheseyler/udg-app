@@ -97,6 +97,25 @@ custom_minimum_size = Vector2(640, 0)
 layout_mode = 2
 theme_override_constants/separation = 24
 
+[node name="InfoBox" type="VBoxContainer" parent="Panel/Layout/Margin/Content/Buttons"]
+layout_mode = 2
+theme_override_constants/separation = 4
+
+[node name="AppVersionLabel" type="Label" parent="Panel/Layout/Margin/Content/Buttons/InfoBox"]
+modulate = Color(1, 1, 1, 0.8)
+layout_mode = 2
+theme_override_font_sizes/font_size = 28
+
+[node name="DartboardVersionLabel" type="Label" parent="Panel/Layout/Margin/Content/Buttons/InfoBox"]
+modulate = Color(1, 1, 1, 0.8)
+layout_mode = 2
+theme_override_font_sizes/font_size = 28
+
+[node name="IpLabel" type="Label" parent="Panel/Layout/Margin/Content/Buttons/InfoBox"]
+modulate = Color(1, 1, 1, 0.8)
+layout_mode = 2
+theme_override_font_sizes/font_size = 28
+
 [node name="CheckUpdateButton" type="Button" parent="Panel/Layout/Margin/Content/Buttons"]
 custom_minimum_size = Vector2(0, 100)
 layout_mode = 2
