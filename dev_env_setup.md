@@ -2,9 +2,11 @@
 
 Procédure pour recréer l'environnement de build Yocto sur une nouvelle
 machine Windows, à partir de zéro. Ce document couvre l'installation de
-l'environnement (WSL2, dépendances, sources) ; pour la suite (ajout des
-layers, `local.conf`, build, flash, mise à jour RAUC), voir
-[`meta-udg/README.md`](meta-udg/README.md).
+l'environnement (WSL2, dépendances) ; les layers Yocto du projet
+(`meta-udg-min`, `meta-udg`) et toute la suite (sources, `local.conf`,
+build, flash, mise à jour RAUC) vivent dans le dépôt **udg-yocto** - voir
+`udg-yocto/meta-udg-min/README.md` et `udg-yocto/scripts/WSL-NOTES.md`.
+Ce dépôt-ci (udg-app) ne contient que le jeu Godot.
 
 ## Prérequis machine
 
@@ -86,40 +88,23 @@ sudo apt-get install -y build-essential chrpath cpio debianutils diffstat file \
   python3-pexpect python3-pip python3-subunit socat texinfo unzip wget xz-utils zstd
 ```
 
-## 4. Récupérer les sources
+## 4. Sources, configuration et build
+
+Tout ce qui suit est documenté dans le dépôt **udg-yocto** :
+
+- `meta-udg-min/README.md` : arbre vendor Radxa (`~/rock5c-yocto`, via
+  `repo init` sur `radxa/yocto-manifests`), `local.conf`, build de
+  `udg-app-image`. C'est la configuration effectivement utilisée.
+- `scripts/WSL-NOTES.md` : spécificités WSL (resynchronisation du dépôt
+  Windows vers le filesystem natif, ressources, espace disque).
+- `meta-udg/README.md` : layer « production » (meta-rockchip communautaire
+  + RAUC A/B complet), pas encore compilé.
 
 **Ne jamais faire le build sous `/mnt/c/...`** (ou tout autre `/mnt/<lettre>`) :
 ce montage passe par drvfs/9P, qui n'a pas d'`inotify` fiable, pas de vrais
 liens durs/symboliques, et des I/O bien plus lentes - BitBake/PSEUDO s'en
-accommodent mal. Toujours cloner/construire dans le filesystem natif de
-la distro WSL (sous `$HOME`).
-
-```bash
-mkdir -p ~/udg-yocto && cd ~/udg-yocto
-
-git clone -b scarthgap https://git.yoctoproject.org/poky
-git clone -b scarthgap https://github.com/openembedded/meta-openembedded
-git clone -b scarthgap https://git.yoctoproject.org/meta-arm
-git clone -b scarthgap https://git.yoctoproject.org/meta-rockchip
-git clone -b scarthgap https://github.com/rauc/meta-rauc
-
-# Dépôt du jeu (contient meta-udg/)
-git clone <URL du repo udg-app> udg-app
-```
-
-## 5. Configurer et lancer le build
-
-```bash
-source poky/oe-init-build-env build
-
-bitbake-layers add-layer ../meta-openembedded/meta-oe
-bitbake-layers add-layer ../meta-arm
-bitbake-layers add-layer ../meta-rockchip
-bitbake-layers add-layer ../meta-rauc
-bitbake-layers add-layer ../udg-app/meta-udg
-
-cat ../udg-app/meta-udg/conf/local.conf.sample >> conf/local.conf
-```
+accommodent mal. Toujours construire dans le filesystem natif de la distro
+WSL (sous `$HOME`).
 
 Si la machine a peu de RAM (< 20 Go), ajouter à `conf/local.conf` pour
 éviter les OOM pendant les compilations lourdes (kernel, Mesa, LLVM/clang) :
@@ -128,28 +113,10 @@ BB_NUMBER_THREADS = "8"
 PARALLEL_MAKE = "-j 8"
 ```
 
-```bash
-bitbake udg-image
-```
-
-Premier build : plusieurs heures (fetch + toolchain + kernel + Mesa +
-Weston complets). Les builds suivants réutilisent `sstate-cache` et sont
-bien plus rapides.
-
-Pour la suite (générer le bundle RAUC, flasher l'eMMC, générer les clés de
-signature, exporter le jeu Godot...), voir
-[`meta-udg/README.md`](meta-udg/README.md).
-
-## 6. Éditer les fichiers du projet depuis Windows
-
-Le plus confortable : VS Code + extension **WSL**, ouvert depuis le
-terminal Ubuntu (fichiers servis nativement par WSL, pas de souci de fin
-de ligne CRLF/LF) :
-```bash
-cd ~/udg-yocto/udg-app && code .
-```
-Sinon, accès direct depuis l'Explorateur Windows :
-`\\wsl.localhost\Ubuntu-24.04\home\<toi>\udg-yocto\udg-app`
+Le jeu lui-même n'est pas copié dans l'image depuis ce dépôt : la recette
+`udg-game` de udg-yocto télécharge l'asset `udg-linux-arm64.tar.gz` d'une
+release GitHub de udg-app (`GAME_RELEASE_TAG` + `sha256sum` dans la
+recette).
 
 ## Pièges connus
 
@@ -161,9 +128,6 @@ Sinon, accès direct depuis l'Explorateur Windows :
   sudo locale-gen en_US.UTF-8
   sudo update-locale LANG=en_US.UTF-8
   ```
-- **`meta-arm` est un super-repo** : `git clone` de `meta-arm` seul ne
-  suffit pas, il faut ajouter les deux sous-layers `meta-arm/meta-arm` et
-  `meta-arm/meta-arm-toolchain` (voir `meta-udg/README.md`).
 - **Ne pas construire sous `/mnt/c`** (voir étape 4) - erreurs
   intermittentes, build très lent, parfois échecs silencieux de `pseudo`.
 - **`Get-PSDrive` peut mentir sur l'espace libre réel** d'un disque -
