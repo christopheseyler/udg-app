@@ -41,7 +41,8 @@ enum Slot { EMPTY, ONE, TWO, CLOSED, CLOSED_BY_ALL }
 ## Tailles selon le nombre de joueurs (le premier seuil atteint) : taille
 ## d'une case de marques et polices du nom, du score et des valeurs.
 const ROW_SIZES := [
-	{"players": 7, "slot": 60, "name": 44, "score": 52, "value": 52},
+	{"players": 8, "slot": 56, "name": 40, "score": 44, "value": 46},
+	{"players": 6, "slot": 64, "name": 46, "score": 50, "value": 52},
 	{"players": 5, "slot": 72, "name": 50, "score": 58, "value": 58},
 	{"players": 0, "slot": 80, "name": 54, "score": 64, "value": 62},
 ]

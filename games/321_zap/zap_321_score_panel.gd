@@ -13,18 +13,24 @@ extends PanelContainer
 ## bas).
 const ARROWS_ATLAS := preload("res://assets/games/321_zap/direction_arrows.png")
 
-const NAME_FONT_SIZE := 56
-const SCORE_FONT_SIZE := 64
-const HINT_FONT_SIZE := 36
 const SCORE_COLUMN_WIDTH := 200.0
 const ICON_COLUMN_WIDTH := 96.0
 const ICON_SIZE := Vector2(60, 60)
-const CELL_PADDING := Vector2(24, 20)
+## Tailles selon le nombre de joueurs (le premier seuil atteint), pour
+## afficher jusqu'a 8 joueurs sans defilement : polices du nom, du score et
+## du texte d'aide, et marge verticale des cellules.
+const ROW_SIZES := [
+	{"players": 8, "name": 38, "score": 44, "hint": 26, "pad": 8},
+	{"players": 6, "name": 46, "score": 52, "hint": 30, "pad": 12},
+	{"players": 0, "name": 56, "score": 64, "hint": 36, "pad": 20},
+]
+const CELL_PADDING_X := 24.0
 const HIGHLIGHT_COLOR := Color(0.95, 0.75, 0.2, 0.38)
 const NORMAL_COLOR := Color(1, 1, 1, 0.05)
 
 @onready var grid: GridContainer = $Margin/Scroll/Grid
 
+var _sizes: Dictionary = ROW_SIZES[-1]
 var _row_styles: Array[Array] = []
 var _score_labels: Array[Label] = []
 var _hint_labels: Array[Label] = []
@@ -51,11 +57,15 @@ func set_players(names: Array[String], show_direction: bool) -> void:
 	_hint_labels.clear()
 	_arrows.clear()
 	_bolts.clear()
+	for sizes in ROW_SIZES:
+		if names.size() >= sizes.players:
+			_sizes = sizes
+			break
 	grid.columns = 4 + int(show_direction)
 
 	for player_name in names:
 		var styles: Array[StyleBoxFlat] = []
-		var name_label := _add_label_cell(player_name, NAME_FONT_SIZE, HORIZONTAL_ALIGNMENT_LEFT, styles)
+		var name_label := _add_label_cell(player_name, _sizes.name, HORIZONTAL_ALIGNMENT_LEFT, styles)
 		name_label.clip_text = true
 		name_label.get_parent().size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		name_label.get_parent().size_flags_stretch_ratio = 3.0
@@ -66,14 +76,14 @@ func set_players(names: Array[String], show_direction: bool) -> void:
 			arrow.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 			_add_cell(arrow, ICON_COLUMN_WIDTH, styles)
 			_arrows.append(arrow)
-		var score_label := _add_label_cell("", SCORE_FONT_SIZE, HORIZONTAL_ALIGNMENT_CENTER, styles)
+		var score_label := _add_label_cell("", _sizes.score, HORIZONTAL_ALIGNMENT_CENTER, styles)
 		score_label.get_parent().custom_minimum_size.x = SCORE_COLUMN_WIDTH
 		_score_labels.append(score_label)
 		var bolt := ZapBolt.new()
 		bolt.custom_minimum_size = ICON_SIZE
 		_add_cell(bolt, ICON_COLUMN_WIDTH, styles)
 		_bolts.append(bolt)
-		var hint_label := _add_label_cell("", HINT_FONT_SIZE, HORIZONTAL_ALIGNMENT_LEFT, styles)
+		var hint_label := _add_label_cell("", _sizes.hint, HORIZONTAL_ALIGNMENT_LEFT, styles)
 		hint_label.get_parent().size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		hint_label.get_parent().size_flags_stretch_ratio = 4.0
 		hint_label.modulate.a = 0.85
@@ -110,10 +120,10 @@ func _add_label_cell(text: String, font_size: int, align: HorizontalAlignment, s
 func _add_cell(content: Control, min_width: float, styles: Array[StyleBoxFlat]) -> PanelContainer:
 	var style := StyleBoxFlat.new()
 	style.bg_color = NORMAL_COLOR
-	style.content_margin_left = CELL_PADDING.x
-	style.content_margin_right = CELL_PADDING.x
-	style.content_margin_top = CELL_PADDING.y
-	style.content_margin_bottom = CELL_PADDING.y
+	style.content_margin_left = CELL_PADDING_X
+	style.content_margin_right = CELL_PADDING_X
+	style.content_margin_top = float(_sizes.pad)
+	style.content_margin_bottom = float(_sizes.pad)
 	styles.append(style)
 
 	var cell := PanelContainer.new()

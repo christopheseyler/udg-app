@@ -230,17 +230,18 @@ func _refresh_rows() -> void:
 			_rules.is_bull_locked(_state, player), _state.finished.find(player) + 1,
 			_rules.is_eliminated(_state, player), _rules.is_protected(_state, _current_player, player))
 
-## Tete de mort Score or Die, au-dessus du numero de round dans le panneau
+## Tete de mort Score or Die, superposee a "Round #x" dans le panneau
 ## lateral. L'image est dans un controle simple : le conteneur du panneau
 ## remettrait son echelle a 1 a chaque mise en page.
 func _create_skull() -> void:
 	_skull_holder = Control.new()
-	_skull_holder.custom_minimum_size.y = SKULL_HEIGHT
 	_skull_holder.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_skull_holder.visible = false
-	var content := round_label.get_parent()
-	content.add_child(_skull_holder)
-	content.move_child(_skull_holder, round_label.get_index())
+	# Enfant du label, centre dessus : il ne prend aucune place dans la mise
+	# en page, "Round #x" ne bouge donc pas.
+	round_label.add_child(_skull_holder)
+	_skull_holder.custom_minimum_size = Vector2(SKULL_HEIGHT, SKULL_HEIGHT)
+	_skull_holder.set_anchors_and_offsets_preset(Control.PRESET_CENTER, Control.PRESET_MODE_KEEP_SIZE)
 
 	_skull = TextureRect.new()
 	_skull.texture = SCORE_OR_DIE_TEXTURE
