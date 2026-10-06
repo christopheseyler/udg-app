@@ -10,7 +10,7 @@ config_version=5
 
 [application]
 
-config/name="udg-test"
+config/name="udg-app"
 config/version="0.7.0"
 run/main_scene="uid://bqeofgftf7u1o"
 config/features=PackedStringArray("4.7", "Mobile")
