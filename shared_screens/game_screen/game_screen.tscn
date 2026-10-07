@@ -44,16 +44,17 @@ texture = ExtResource("2_bg")
 expand_mode = 1
 stretch_mode = 6
 
-[node name="ScoreArea" type="Control" parent="." unique_id=1846616834]
+[node name="ScoreArea" type="MarginContainer" parent="." unique_id=1846616834]
 layout_mode = 1
+anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
-offset_left = 24.0
-offset_top = 24.0
-offset_right = -368.0
-offset_bottom = -224.0
 grow_horizontal = 2
 grow_vertical = 2
+theme_override_constants/margin_left = 24
+theme_override_constants/margin_top = 24
+theme_override_constants/margin_right = 368
+theme_override_constants/margin_bottom = 224
 
 [node name="SidePanel" type="PanelContainer" parent="." unique_id=1162380304]
 layout_mode = 1

@@ -8,4 +8,4 @@
 script = ExtResource("2_script")
 
 [node name="ScorePanel" parent="ScoreArea" index="0" instance=ExtResource("3_panel")]
-layout_mode = 1
+layout_mode = 2
