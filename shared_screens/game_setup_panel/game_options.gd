@@ -19,7 +19,7 @@ const BOOL_ROW := preload("res://shared_screens/game_setup_panel/option_bool_row
 const ENUM_ROW := preload("res://shared_screens/game_setup_panel/option_enum_row.tscn")
 
 @onready var options_view: VBoxContainer = $Layout/Margin/OptionsView
-@onready var option_list: VBoxContainer = $Layout/Margin/OptionsView/Scroll/OptionList
+@onready var option_list: VBoxContainer = $Layout/Margin/OptionsView/Scroll/ListMargin/OptionList
 @onready var info_view: VBoxContainer = $Layout/Margin/InfoView
 @onready var info_title: Label = $Layout/Margin/InfoView/InfoTitle
 @onready var info_text: Label = $Layout/Margin/InfoView/InfoText
@@ -30,6 +30,7 @@ var _rows: Array[Control] = []
 
 func _ready() -> void:
 	close_button.pressed.connect(_close_info)
+	PressScale.attach(close_button)
 
 func set_options(options: Array) -> void:
 	_close_info()

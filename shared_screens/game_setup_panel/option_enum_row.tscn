@@ -15,27 +15,29 @@ text = "Option"
 vertical_alignment = 1
 
 [node name="PrevButton" type="Button" parent="."]
-custom_minimum_size = Vector2(80, 80)
+custom_minimum_size = Vector2(88, 88)
 layout_mode = 2
-theme_override_font_sizes/font_size = 40
-text = "<"
+size_flags_vertical = 4
+theme_type_variation = &"RoundLeftButton"
 
 [node name="ValueLabel" type="Label" parent="."]
-custom_minimum_size = Vector2(240, 0)
+custom_minimum_size = Vector2(460, 80)
 layout_mode = 2
-theme_override_font_sizes/font_size = 40
+size_flags_vertical = 4
+theme_type_variation = &"ValueDisplay"
 text = "-"
 horizontal_alignment = 1
 vertical_alignment = 1
+text_overrun_behavior = 3
 
 [node name="NextButton" type="Button" parent="."]
-custom_minimum_size = Vector2(80, 80)
+custom_minimum_size = Vector2(88, 88)
 layout_mode = 2
-theme_override_font_sizes/font_size = 40
-text = ">"
+size_flags_vertical = 4
+theme_type_variation = &"RoundRightButton"
 
 [node name="InfoButton" type="Button" parent="."]
-custom_minimum_size = Vector2(80, 80)
+custom_minimum_size = Vector2(88, 88)
 layout_mode = 2
-theme_override_font_sizes/font_size = 40
-text = "?"
+size_flags_vertical = 4
+theme_type_variation = &"RoundHelpButton"

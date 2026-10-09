@@ -8,14 +8,15 @@ script = ExtResource("1_script")
 
 [node name="TitleLabel" type="Label" parent="."]
 layout_mode = 2
-theme_override_font_sizes/font_size = 56
+theme_type_variation = &"SetupTitle"
 text = "Edit player"
 horizontal_alignment = 1
 vertical_alignment = 1
 
 [node name="NameEdit" type="LineEdit" parent="."]
-custom_minimum_size = Vector2(0, 100)
+custom_minimum_size = Vector2(0, 80)
 layout_mode = 2
+theme_type_variation = &"NameEdit"
 theme_override_font_sizes/font_size = 44
 placeholder_text = "Player name"
 max_length = 24
@@ -26,15 +27,15 @@ layout_mode = 2
 theme_override_constants/separation = 32
 
 [node name="CancelButton" type="Button" parent="Buttons"]
-custom_minimum_size = Vector2(0, 100)
+custom_minimum_size = Vector2(0, 120)
 layout_mode = 2
 size_flags_horizontal = 3
-theme_override_font_sizes/font_size = 44
+theme_type_variation = &"PillButton"
 text = "Cancel"
 
 [node name="OkButton" type="Button" parent="Buttons"]
-custom_minimum_size = Vector2(0, 100)
+custom_minimum_size = Vector2(0, 120)
 layout_mode = 2
 size_flags_horizontal = 3
-theme_override_font_sizes/font_size = 44
+theme_type_variation = &"PillButton"
 text = "OK"

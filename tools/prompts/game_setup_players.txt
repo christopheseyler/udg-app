@@ -1,0 +1,4 @@
+Active panel: PLAYERS (the "Players" bottom button is highlighted). Title plaque reads "PLAYERS".
+Inside the panel:
+- A counter row: a round gold-rimmed metal "-" button on the left, the text "3 / 4" in the center, a round gold-rimmed metal "+" button on the right.
+- A vertical list of 3 player rows. Each row is a slim dark metal plate with a gold edge containing: on the left a circular gold medallion with the player number (1, 2, 3) surrounded by a colored accent ring (red, green, blue), then the player name in bold white ("Player #1", "Player #2", "Player #3"), and a small gold pencil edit icon on the right.

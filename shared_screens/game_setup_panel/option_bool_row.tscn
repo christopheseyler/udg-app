@@ -4,7 +4,7 @@
 
 [node name="OptionBoolRow" type="HBoxContainer"]
 custom_minimum_size = Vector2(0, 90)
-theme_override_constants/separation = 24
+theme_override_constants/separation = 16
 script = ExtResource("1_script")
 
 [node name="NameLabel" type="Label" parent="."]
@@ -14,11 +14,15 @@ theme_override_font_sizes/font_size = 40
 text = "Option"
 vertical_alignment = 1
 
-[node name="Toggle" type="CheckButton" parent="."]
+[node name="ToggleBox" type="CenterContainer" parent="."]
+custom_minimum_size = Vector2(668, 0)
+layout_mode = 2
+
+[node name="Toggle" type="CheckButton" parent="ToggleBox"]
 layout_mode = 2
 
 [node name="InfoButton" type="Button" parent="."]
-custom_minimum_size = Vector2(80, 80)
+custom_minimum_size = Vector2(88, 88)
 layout_mode = 2
-theme_override_font_sizes/font_size = 40
-text = "?"
+size_flags_vertical = 4
+theme_type_variation = &"RoundHelpButton"

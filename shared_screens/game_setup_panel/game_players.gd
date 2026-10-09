@@ -4,6 +4,8 @@ extends SlidePanel
 ## Panneau de gestion des joueurs : bandeau titre "PLAYERS" en haut, puis un
 ## bouton "-" a gauche (retire le dernier joueur) et "+" a droite (ajoute un
 ## joueur), et la liste des joueurs en dessous ("Player #1", "Player #2", ...).
+## Chaque joueur est une plaque (RowButton du theme setup_theme) avec un
+## medaillon numerote a sa couleur, son nom et une icone crayon.
 ## Cliquer un joueur ouvre la vue d'edition de son nom.
 ## La liste demarre avec un joueur (minimum : MIN_PLAYERS).
 ## Le nombre maximum de joueurs depend du jeu selectionne : le definir via
@@ -19,6 +21,24 @@ signal name_edit_closed
 ## joueur et le bouton "-" ne descend pas en dessous.
 const MIN_PLAYERS := 1
 
+## Marge transparente rendue autour de chaque element du kit UI (ombre, halo).
+const KIT_PAD := 24
+const MEDALLION_SIZE := 80
+const PENCIL_SIZE := 56
+const PENCIL := preload("res://assets/ui/setup/icon_pencil.png")
+## Medaillons des joueurs, dans l'ordre des couleurs du kit (rouge, vert,
+## bleu, orange, violet, cyan, rose, blanc).
+const MEDALLIONS: Array[Texture2D] = [
+	preload("res://assets/ui/setup/medallion_1.png"),
+	preload("res://assets/ui/setup/medallion_2.png"),
+	preload("res://assets/ui/setup/medallion_3.png"),
+	preload("res://assets/ui/setup/medallion_4.png"),
+	preload("res://assets/ui/setup/medallion_5.png"),
+	preload("res://assets/ui/setup/medallion_6.png"),
+	preload("res://assets/ui/setup/medallion_7.png"),
+	preload("res://assets/ui/setup/medallion_8.png"),
+]
+
 @export var max_players: int = 4
 
 @onready var players_view: VBoxContainer = $Layout/Margin/PlayersView
@@ -26,12 +46,14 @@ const MIN_PLAYERS := 1
 @onready var minus_button: Button = $Layout/Margin/PlayersView/Header/MinusButton
 @onready var plus_button: Button = $Layout/Margin/PlayersView/Header/PlusButton
 @onready var count_label: Label = $Layout/Margin/PlayersView/Header/CountLabel
-@onready var player_list: VBoxContainer = $Layout/Margin/PlayersView/Scroll/PlayerList
+@onready var player_list: VBoxContainer = $Layout/Margin/PlayersView/Scroll/ListMargin/PlayerList
 
 var _names: Array[String] = []
 var _editing_index := -1
 
 func _ready() -> void:
+	PressScale.attach(minus_button)
+	PressScale.attach(plus_button)
 	minus_button.pressed.connect(remove_last_player)
 	plus_button.pressed.connect(add_player)
 	edit_panel.name_confirmed.connect(_on_name_confirmed)
@@ -75,17 +97,64 @@ func _refresh() -> void:
 		child.queue_free()
 
 	for i in _names.size():
-		var button := Button.new()
-		button.text = _names[i]
-		button.custom_minimum_size = Vector2(0, 90)
-		button.add_theme_font_size_override("font_size", 40)
-		button.pressed.connect(_open_edit.bind(i))
-		player_list.add_child(button)
+		player_list.add_child(_make_row(i))
 
 	count_label.text = "%d / %d" % [_names.size(), max_players]
 	minus_button.disabled = _names.size() <= MIN_PLAYERS
 	plus_button.disabled = _names.size() >= max_players
 	players_changed.emit(get_player_names())
+
+## Ligne d'un joueur : plaque cliquable contenant medaillon, nom et crayon.
+func _make_row(index: int) -> Button:
+	var button := Button.new()
+	button.theme_type_variation = &"RowButton"
+	button.custom_minimum_size = Vector2(0, 90)
+	button.pressed.connect(_open_edit.bind(index))
+	PressScale.attach(button)
+
+	var content := HBoxContainer.new()
+	content.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	content.offset_left = 8
+	content.offset_right = -24
+	content.add_theme_constant_override("separation", 24)
+	content.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	button.add_child(content)
+
+	var medallion := _kit_image(MEDALLIONS[index % MEDALLIONS.size()], MEDALLION_SIZE)
+	var number := Label.new()
+	number.text = str(index + 1)
+	number.add_theme_font_size_override("font_size", 40)
+	number.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	number.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	number.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	medallion.add_child(number)
+	content.add_child(medallion)
+
+	var name_label := Label.new()
+	name_label.text = _names[index]
+	name_label.add_theme_font_size_override("font_size", 44)
+	name_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	name_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	name_label.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+	content.add_child(name_label)
+
+	content.add_child(_kit_image(PENCIL, PENCIL_SIZE))
+	for child in content.get_children():
+		child.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	return button
+
+## Image du kit UI affichee a sa taille visuelle : la texture deborde de
+## KIT_PAD de chaque cote (ombre) sans compter dans la mise en page.
+func _kit_image(texture: Texture2D, visual_size: int) -> Control:
+	var holder := Control.new()
+	holder.custom_minimum_size = Vector2(visual_size, visual_size)
+	holder.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	var image := TextureRect.new()
+	image.texture = texture
+	image.position = -Vector2(KIT_PAD, KIT_PAD)
+	image.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	holder.add_child(image)
+	return holder
 
 func _open_edit(index: int) -> void:
 	_editing_index = index

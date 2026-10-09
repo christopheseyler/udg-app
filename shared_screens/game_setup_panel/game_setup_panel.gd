@@ -19,7 +19,14 @@ func _ready() -> void:
 	players_button.pressed.connect(func(): players_pressed.emit())
 	options_button.pressed.connect(func(): options_pressed.emit())
 	start_button.pressed.connect(func(): start_pressed.emit())
+	for button in [back_button, players_button, options_button, start_button]:
+		PressScale.attach(button)
 
 ## Desactive le bouton Options pour un jeu qui n'a aucune option.
 func set_options_enabled(enabled: bool) -> void:
 	options_button.disabled = not enabled
+
+## Met en surbrillance (halo dore) le bouton du panneau ouvert.
+func set_open_panels(players_open: bool, options_open: bool) -> void:
+	players_button.theme_type_variation = &"PillButtonActive" if players_open else &"PillButton"
+	options_button.theme_type_variation = &"PillButtonActive" if options_open else &"PillButton"

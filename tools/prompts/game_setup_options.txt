@@ -1,0 +1,6 @@
+Active panel: OPTIONS (the "Options" bottom button is highlighted). Title plaque reads "OPTIONS".
+Inside the panel, a list of option rows:
+- Group heading "SCORING" in gold small caps with a thin gold divider line below.
+- Row "Double out": label on the left, on the right a metallic toggle switch (gold track, ON, softly glowing) and a small round gold-rimmed "?" info button.
+- Row "Legs": label on the left, on the right a value selector: small rounded gold-rimmed metal left-arrow button, a recessed dark display showing "3", right-arrow button, then a "?" info button.
+- Group heading "GAME" with divider, then row "Rounds" with the same value selector showing "20" and a "?" button.

@@ -2,27 +2,7 @@
 
 [ext_resource type="Script" uid="uid://cj8dnte2jak4l" path="res://shared_screens/game_setup_panel/game_players.gd" id="1_script"]
 [ext_resource type="PackedScene" path="res://shared_screens/game_setup_panel/player_edit_panel.tscn" id="2_edit"]
-
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_panel"]
-bg_color = Color(0.05, 0.05, 0.08, 0.78)
-border_width_left = 4
-border_width_top = 4
-border_width_right = 4
-border_width_bottom = 4
-border_color = Color(0.95, 0.75, 0.2, 1)
-corner_radius_top_left = 32
-corner_radius_top_right = 32
-corner_radius_bottom_right = 32
-corner_radius_bottom_left = 32
-content_margin_left = 4.0
-content_margin_top = 4.0
-content_margin_right = 4.0
-content_margin_bottom = 4.0
-
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_title_banner"]
-bg_color = Color(0.95, 0.75, 0.2, 1)
-corner_radius_top_left = 28
-corner_radius_top_right = 28
+[ext_resource type="Theme" path="res://assets/ui/setup/setup_theme.tres" id="3_theme"]
 
 [node name="GamePlayers" type="PanelContainer" unique_id=950180914]
 anchors_preset = -1
@@ -31,27 +11,40 @@ anchor_top = 1.0
 anchor_right = 1.0
 anchor_bottom = 1.0
 offset_left = 20.0
-offset_top = -1060.0
+offset_top = -1016.0
 offset_right = -20.0
-offset_bottom = -188.0
+offset_bottom = -204.0
 grow_horizontal = 2
 grow_vertical = 0
-theme_override_styles/panel = SubResource("StyleBoxFlat_panel")
+theme = ExtResource("3_theme")
+theme_type_variation = &"SetupPanel"
 script = ExtResource("1_script")
 
 [node name="Layout" type="VBoxContainer" parent="."]
 layout_mode = 2
-theme_override_constants/separation = 0
+theme_override_constants/separation = 16
 
-[node name="TitleBanner" type="PanelContainer" parent="Layout"]
+[node name="TitleSpace" type="Control" parent="Layout"]
+custom_minimum_size = Vector2(0, 42)
 layout_mode = 2
-theme_override_styles/panel = SubResource("StyleBoxFlat_title_banner")
 
-[node name="TitleLabel" type="Label" parent="Layout/TitleBanner"]
-custom_minimum_size = Vector2(0, 64)
+[node name="TitlePlaque" type="PanelContainer" parent="Layout/TitleSpace"]
+custom_minimum_size = Vector2(640, 120)
+layout_mode = 1
+anchors_preset = 5
+anchor_left = 0.5
+anchor_right = 0.5
+offset_left = -320.0
+offset_top = -78.0
+offset_right = 320.0
+offset_bottom = 42.0
+grow_horizontal = 2
+mouse_filter = 2
+theme_type_variation = &"TitlePlaque"
+
+[node name="TitleLabel" type="Label" parent="Layout/TitleSpace/TitlePlaque"]
 layout_mode = 2
-theme_override_colors/font_color = Color(0.1, 0.08, 0.02, 1)
-theme_override_font_sizes/font_size = 40
+theme_type_variation = &"SetupTitle"
 text = "PLAYERS"
 horizontal_alignment = 1
 vertical_alignment = 1
@@ -59,10 +52,6 @@ vertical_alignment = 1
 [node name="Margin" type="MarginContainer" parent="Layout" unique_id=37774847]
 layout_mode = 2
 size_flags_vertical = 3
-theme_override_constants/margin_left = 48
-theme_override_constants/margin_top = 24
-theme_override_constants/margin_right = 48
-theme_override_constants/margin_bottom = 24
 
 [node name="PlayersView" type="VBoxContainer" parent="Layout/Margin" unique_id=964587120]
 layout_mode = 2
@@ -70,34 +59,41 @@ theme_override_constants/separation = 16
 
 [node name="Header" type="HBoxContainer" parent="Layout/Margin/PlayersView" unique_id=559346986]
 layout_mode = 2
+theme_override_constants/separation = 24
+alignment = 1
 
 [node name="MinusButton" type="Button" parent="Layout/Margin/PlayersView/Header" unique_id=1711545030]
-custom_minimum_size = Vector2(72, 72)
+custom_minimum_size = Vector2(88, 88)
 layout_mode = 2
-theme_override_font_sizes/font_size = 44
-text = "-"
+theme_type_variation = &"RoundMinusButton"
 
 [node name="CountLabel" type="Label" parent="Layout/Margin/PlayersView/Header" unique_id=696179433]
-modulate = Color(1, 1, 1, 0.6)
+custom_minimum_size = Vector2(200, 0)
 layout_mode = 2
-size_flags_horizontal = 3
-theme_override_font_sizes/font_size = 28
+theme_override_font_sizes/font_size = 48
 text = "0 / 4"
 horizontal_alignment = 1
 vertical_alignment = 1
 
 [node name="PlusButton" type="Button" parent="Layout/Margin/PlayersView/Header" unique_id=2124278003]
-custom_minimum_size = Vector2(72, 72)
+custom_minimum_size = Vector2(88, 88)
 layout_mode = 2
-theme_override_font_sizes/font_size = 44
-text = "+"
+theme_type_variation = &"RoundPlusButton"
 
 [node name="Scroll" type="ScrollContainer" parent="Layout/Margin/PlayersView" unique_id=1095272596]
 layout_mode = 2
 size_flags_vertical = 3
 horizontal_scroll_mode = 0
 
-[node name="PlayerList" type="VBoxContainer" parent="Layout/Margin/PlayersView/Scroll" unique_id=914031515]
+[node name="ListMargin" type="MarginContainer" parent="Layout/Margin/PlayersView/Scroll"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/margin_left = 24
+theme_override_constants/margin_top = 24
+theme_override_constants/margin_right = 24
+theme_override_constants/margin_bottom = 24
+
+[node name="PlayerList" type="VBoxContainer" parent="Layout/Margin/PlayersView/Scroll/ListMargin" unique_id=914031515]
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_constants/separation = 16

@@ -3,7 +3,9 @@ extends HBoxContainer
 
 ## Ligne d'une option a choix multiples : nom, valeur courante avec des
 ## fleches gauche/droite pour changer (defilement en boucle) et bouton "?"
-## (info) tout a droite. Appeler setup() une fois la ligne ajoutee a l'arbre :
+## (info) tout a droite. Le cadre de la valeur a une largeur fixe (texte trop
+## long tronque) pour que les fleches ne bougent pas d'une valeur a l'autre.
+## Appeler setup() une fois la ligne ajoutee a l'arbre :
 ## {"id": String, "name": String, "items": Array[String],
 ##  "default": String (un des items, sinon le premier), "info": String}
 
@@ -35,6 +37,8 @@ func setup(option: Dictionary) -> void:
 	next_button.disabled = _items.size() <= 1
 	_update_label()
 
+	for button in [prev_button, next_button, info_button]:
+		PressScale.attach(button)
 	prev_button.pressed.connect(func(): _step(-1))
 	next_button.pressed.connect(func(): _step(1))
 	info_button.pressed.connect(func(): info_requested.emit(_option_name, _info))

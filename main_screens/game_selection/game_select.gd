@@ -293,11 +293,13 @@ func _toggle_sub_panel(panel: SlidePanel) -> void:
 		panel.hide_panel()
 	else:
 		panel.show_panel()
+	setup_panel.set_open_panels(players_panel.is_open, options_panel.is_open)
 
 func _on_back_pressed() -> void:
 	keyboard.hide()
 	players_panel.hide_panel()
 	options_panel.hide_panel()
+	setup_panel.set_open_panels(false, false)
 	setup_panel.hide_panel()
 	_animate_selection(0.0).finished.connect(_on_selection_cancelled)
 

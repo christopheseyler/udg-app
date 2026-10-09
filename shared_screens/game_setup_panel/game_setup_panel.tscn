@@ -1,14 +1,19 @@
 [gd_scene format=3 uid="uid://d32ew8tbge6ju"]
 
 [ext_resource type="Script" uid="uid://hdeo0ej04hk6" path="res://shared_screens/game_setup_panel/game_setup_panel.gd" id="1_script"]
-[ext_resource type="Texture2D" uid="uid://d3wouyqiu7wgq" path="res://assets/button_panel_large.png" id="2_bar_bg"]
+[ext_resource type="Texture2D" path="res://assets/ui/setup/button_bar.png" id="2_bar_bg"]
+[ext_resource type="Theme" path="res://assets/ui/setup/setup_theme.tres" id="3_theme"]
 
 [sub_resource type="StyleBoxTexture" id="StyleBoxTexture_panel"]
 texture = ExtResource("2_bar_bg")
-texture_margin_left = 40.0
-texture_margin_top = 40.0
-texture_margin_right = 40.0
-texture_margin_bottom = 40.0
+texture_margin_left = 64.0
+texture_margin_top = 64.0
+texture_margin_right = 64.0
+texture_margin_bottom = 64.0
+expand_margin_left = 24.0
+expand_margin_top = 24.0
+expand_margin_right = 24.0
+expand_margin_bottom = 24.0
 content_margin_left = 0.0
 content_margin_top = 0.0
 content_margin_right = 0.0
@@ -21,11 +26,12 @@ anchor_top = 1.0
 anchor_right = 1.0
 anchor_bottom = 1.0
 offset_left = 80.0
-offset_top = -168.0
+offset_top = -184.0
 offset_right = -80.0
-offset_bottom = 0.0
+offset_bottom = -16.0
 grow_horizontal = 2
 grow_vertical = 0
+theme = ExtResource("3_theme")
 theme_override_styles/panel = SubResource("StyleBoxTexture_panel")
 script = ExtResource("1_script")
 
@@ -44,26 +50,26 @@ theme_override_constants/separation = 32
 custom_minimum_size = Vector2(0, 120)
 layout_mode = 2
 size_flags_horizontal = 3
-theme_override_font_sizes/font_size = 44
+theme_type_variation = &"PillButton"
 text = "Back"
 
 [node name="PlayersButton" type="Button" parent="Margin/Buttons" unique_id=1850851355]
 custom_minimum_size = Vector2(0, 120)
 layout_mode = 2
 size_flags_horizontal = 3
-theme_override_font_sizes/font_size = 44
+theme_type_variation = &"PillButton"
 text = "Players"
 
 [node name="OptionsButton" type="Button" parent="Margin/Buttons" unique_id=1601949072]
 custom_minimum_size = Vector2(0, 120)
 layout_mode = 2
 size_flags_horizontal = 3
-theme_override_font_sizes/font_size = 44
+theme_type_variation = &"PillButton"
 text = "Options"
 
 [node name="StartButton" type="Button" parent="Margin/Buttons" unique_id=38918722]
 custom_minimum_size = Vector2(0, 120)
 layout_mode = 2
 size_flags_horizontal = 3
-theme_override_font_sizes/font_size = 44
+theme_type_variation = &"PillButtonRed"
 text = "Start"

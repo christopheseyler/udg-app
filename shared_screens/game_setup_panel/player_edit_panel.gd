@@ -17,6 +17,8 @@ func _ready() -> void:
 	name_edit.text_submitted.connect(func(_text: String): _confirm())
 	ok_button.pressed.connect(_confirm)
 	cancel_button.pressed.connect(func(): cancelled.emit())
+	PressScale.attach(ok_button)
+	PressScale.attach(cancel_button)
 
 func open(current_name: String) -> void:
 	name_edit.text = current_name

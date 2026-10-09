@@ -1,0 +1,7 @@
+UI mockup of a landscape 16:9 game screen for a premium electronic darts arcade game, in exactly the same art style as the reference images: glossy polished gold frames, brushed dark gunmetal/black metal surfaces, chrome silver beveled lettering with gold outlines, warm lighting, high-end arcade look, photorealistic 3D rendered UI. Background: blurred close-up of a dartboard in warm orange/amber tones, darkened by a soft vignette.
+
+Layout: one large panel spanning almost the full width of the screen (small margins), occupying the upper 80% of the screen: a brushed dark gunmetal plate with rounded corners, a thin glowing gold border, and a chrome-and-gold title plaque centered on its top edge.
+
+Bottom of the screen: a polished chrome bar with a gold rim (like the reference bar) holding four large equal buttons: "Back", "Players", "Options" (dark gunmetal rounded buttons with chrome lettering) and "Start" (glossy red rounded pill with embossed lettering, like the red Start reference). The button of the active panel glows with a gold outline.
+
+Clean readable typography, generous spacing, all text legible and correctly spelled. No extra elements, no watermark.
