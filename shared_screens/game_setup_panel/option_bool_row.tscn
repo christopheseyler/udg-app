@@ -22,7 +22,7 @@ layout_mode = 2
 layout_mode = 2
 
 [node name="InfoButton" type="Button" parent="."]
-custom_minimum_size = Vector2(88, 88)
+custom_minimum_size = Vector2(80, 80)
 layout_mode = 2
 size_flags_vertical = 4
 theme_type_variation = &"RoundHelpButton"

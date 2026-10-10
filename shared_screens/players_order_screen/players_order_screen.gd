@@ -17,7 +17,7 @@ signal back_pressed
 
 const ROW_HEIGHT := 90
 const ROW_FONT_SIZE := 44
-const MOVE_BUTTON_SIZE := 88
+const MOVE_BUTTON_SIZE := 80
 const INSTRUCTION := "Each player throws one dart as close to the bullseye as possible. The closest goes first: reorder the list below with the arrows."
 const REVERSE_INSTRUCTION := "Each player throws one dart as close to the bullseye as possible. Order the list below from the closest to the farthest with the arrows: the closest goes last."
 

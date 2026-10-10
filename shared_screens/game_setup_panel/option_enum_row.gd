@@ -2,7 +2,7 @@ class_name OptionEnumRow
 extends HBoxContainer
 
 ## Ligne d'une option a choix multiples : nom, valeur courante avec des
-## fleches gauche/droite pour changer (defilement en boucle) et bouton "?"
+## fleches gauche/droite (extremites du cadre) pour changer (defilement en boucle) et bouton "?"
 ## (info) tout a droite. Le cadre de la valeur a une largeur fixe (texte trop
 ## long tronque) pour que les fleches ne bougent pas d'une valeur a l'autre.
 ## Appeler setup() une fois la ligne ajoutee a l'arbre :
@@ -13,9 +13,9 @@ signal value_changed(id: String, value: String)
 signal info_requested(option_name: String, info: String)
 
 @onready var name_label: Label = $NameLabel
-@onready var prev_button: Button = $PrevButton
-@onready var value_label: Label = $ValueLabel
-@onready var next_button: Button = $NextButton
+@onready var prev_button: Button = $Spinner/PrevButton
+@onready var value_label: Label = $Spinner/ValueLabel
+@onready var next_button: Button = $Spinner/NextButton
 @onready var info_button: Button = $InfoButton
 
 var option_id := ""
@@ -37,8 +37,9 @@ func setup(option: Dictionary) -> void:
 	next_button.disabled = _items.size() <= 1
 	_update_label()
 
-	for button in [prev_button, next_button, info_button]:
-		PressScale.attach(button)
+	# The arrows are the ends of the value frame: they show a pressed texture
+	# instead of scaling down.
+	PressScale.attach(info_button)
 	prev_button.pressed.connect(func(): _step(-1))
 	next_button.pressed.connect(func(): _step(1))
 	info_button.pressed.connect(func(): info_requested.emit(_option_name, _info))

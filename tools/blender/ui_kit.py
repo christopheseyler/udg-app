@@ -221,6 +221,45 @@ def mat_enamel(color):
     return mat
 
 
+def mat_metal(color, roughness: float):
+    mat, _ = _principled("Metal", color, 1.0, roughness)
+    return mat
+
+
+def mat_satin(value: float, roughness: float = 0.4):
+    """Neutral lacquer (white or black) with a light clear coat."""
+    mat, bsdf = _principled("Satin", (value, value, value), 0.0, roughness)
+    bsdf.inputs["Coat Weight"].default_value = 0.5
+    return mat
+
+
+# Look of the controls (buttons, option arrows, row plates, toggles). Gold stays
+# reserved for the frames (panels, title plaque, button bar, medallions).
+CONTROL_STYLES = {
+    "gold": dict(rim=mat_gold, glyph=mat_gold, track_on=mat_amber, glow=GOLD_GLOW),
+    # Polished steel rim, white lacquered symbols, red track (like Start).
+    "steel_white": dict(rim=lambda: mat_metal((0.62, 0.63, 0.65), 0.2),
+                        glyph=lambda: mat_satin(0.85, 0.3),
+                        track_on=mat_red, glow=(0.85, 0.9, 1.0)),
+    # Satin black rim, white symbols: the most discreet.
+    "black_white": dict(rim=lambda: mat_satin(0.02, 0.35),
+                        glyph=lambda: mat_satin(0.85, 0.3),
+                        track_on=mat_red, glow=(0.9, 0.92, 1.0)),
+    # All steel: steel rim, dark engraved-looking symbols.
+    "steel_engraved": dict(rim=lambda: mat_metal((0.62, 0.63, 0.65), 0.2),
+                           glyph=lambda: mat_satin(0.015, 0.5),
+                           track_on=mat_red, glow=(0.85, 0.9, 1.0)),
+}
+# Rimless variants: a single solid body whose edge profile catches the light.
+for _shape in ("dome", "chamfer", "pillow"):
+    CONTROL_STYLES[_shape] = dict(CONTROL_STYLES["steel_white"], shape=_shape)
+# Retained look: rimless "pillow" buttons (bar pills, round buttons), polished
+# steel frames for the option widgets (spinner, toggle, value field, rows),
+# white symbols, warm light halo behind the selected pill.
+CONTROL_STYLES["sober"] = dict(CONTROL_STYLES["steel_white"], shape="pillow", glow=(1.0, 0.62, 0.15))
+STYLE = CONTROL_STYLES["gold"]
+
+
 # ------------------------------------------------------------------------- geometry
 
 def rounded_rect(w: float, h: float, r: float, seg: int = 16) -> list[tuple[float, float]]:
@@ -290,15 +329,41 @@ def ring(name: str, outer, inner, z0: float, z1: float, mat, bevel: float):
 
 
 def framed_plate(w: float, h: float, r: float, rim: float, lift: float, face_mat,
-                 rim_height: float = 0.12, face_height: float = 0.07):
-    """Gold rim around a recessed face. Returns the created objects."""
+                 rim_height: float = 0.12, face_height: float = 0.07, rim_mat=None):
+    """Rim (gold by default) around a recessed face. Returns the created objects."""
     outer = rounded_rect(w, h, r)
     inner = rounded_rect(w - 2 * rim, h - 2 * rim, max(r - rim, 0.01))
     face_pts = rounded_rect(w - rim, h - rim, max(r - rim / 2, 0.01))
     return [
-        ring("Rim", outer, inner, lift, lift + rim_height, mat_gold(), min(rim * 0.45, rim_height * 0.45)),
+        ring("Rim", outer, inner, lift, lift + rim_height, rim_mat or mat_gold(), min(rim * 0.45, rim_height * 0.45)),
         prism("Face", face_pts, lift, lift + face_height, face_mat, min(0.015, face_height * 0.4)),
     ]
+
+
+def control_plate(w: float, h: float, r: float, rim: float, lift: float, face_mat,
+                  rim_height: float = 0.12, face_height: float = 0.07, framed: bool = False):
+    """Body of a control in the current style: a framed plate (rim) or, for the
+    rimless shapes, one solid whose edge profile gives the volume:
+    dome (fully rounded), chamfer (machined 45 degree edge), pillow (soft edge).
+    Returns (objects, z of the top face)."""
+    shape = "framed" if framed else STYLE.get("shape", "framed")
+    if shape == "framed":
+        objs = framed_plate(w, h, r, rim, lift, face_mat, rim_height, face_height, rim_mat=STYLE["rim"]())
+        return objs, lift + face_height
+    m = min(w, h)
+    height, bevel, segments = {
+        "dome": (0.05 + 0.24 * m, None, 10),
+        "chamfer": (0.04 + 0.12 * m, None, 1),
+        "pillow": (0.04 + 0.12 * m, None, 6),
+    }[shape]
+    bevel = {"dome": 0.9, "chamfer": 0.75, "pillow": 0.45}[shape] * min(height, r if r > 0.01 else height)
+    obj = prism("Body", rounded_rect(w, h, r), lift, lift + height, face_mat, 0.0)
+    mod = obj.modifiers.new("Bevel", "BEVEL")
+    mod.width = bevel
+    mod.segments = segments
+    mod.limit_method = "ANGLE"
+    mod.harden_normals = False
+    return [obj], lift + height
 
 
 def _rotate(pts, angle: float):
@@ -307,8 +372,9 @@ def _rotate(pts, angle: float):
 
 
 def gold_glyph(kind: str, size: float, z: float):
-    """Gold symbol lying on a face: minus, plus, left, right, up, down, question, pencil."""
-    gold = mat_gold()
+    """Symbol (in the control style) lying on a face: minus, plus, left, right, up,
+    down, question, pencil."""
+    gold = STYLE["glyph"]()
     if kind in ("minus", "plus"):
         t = size * 0.22
         bars = [(size, t)] + ([(t, size)] if kind == "plus" else [])
@@ -396,9 +462,9 @@ def make_active(src: Path, dst: Path) -> None:
     img = _load(src)
     # Glow from the element silhouette (alpha), ignoring the faint shadow.
     mask = np.clip((img[..., 3] - 0.8) / 0.2, 0, 1)
-    glow_a = np.clip(_blur(mask, 7) * 1.6, 0, 1) * 0.9
+    glow_a = np.clip(_blur(mask, 9) * 2.6, 0, 1)
     glow = np.zeros_like(img)
-    glow[..., :3] = GOLD_GLOW
+    glow[..., :3] = STYLE["glow"]
     glow[..., 3] = glow_a
     lit = img.copy()
     lit[..., :3] = np.clip(lit[..., :3] * 1.12 + 0.02, 0, 1)
@@ -434,14 +500,16 @@ def _scene(w_px: int, h_px: int) -> None:
     setup_camera(w_px + 2 * PAD, h_px + 2 * PAD)
 
 
-def round_button(out: Path, glyph: str, size_px: int = 88) -> None:
-    """Round metal button with a gold rim and a gold symbol (+, -, arrows, ?)."""
+def round_button(out: Path, glyph: str, size_px: int = 80) -> None:
+    """Small square button (rounded corners, steel frame like the option spinner)
+    with a symbol (+, -, arrows, ?). Kept the "round_button" file names."""
     name = f"round_button_{glyph}"
     d = size_px / PX
     _scene(size_px, size_px)
-    framed_plate(d, d, d / 2, rim=d * 0.12, lift=0.0, face_mat=mat_face())
-    gold_glyph(glyph, d * 0.42, 0.07)
-    render(out / f"{name}_normal.png")
+    _, top = control_plate(d, d, 0.14, rim=0.05, lift=0.0, face_mat=mat_face(),
+                           rim_height=0.10, face_height=0.09, framed=True)
+    gold_glyph(glyph, d * 0.36, top - 0.02)
+    render(out / f"{name}_normal.png", shadow_offset=3)
     _states(out, name)
 
 
@@ -451,7 +519,7 @@ def pill_button(out: Path, red: bool, w_px: int = 400, h_px: int = 120) -> None:
     name = "pill_button_red" if red else "pill_button"
     w, h = w_px / PX, h_px / PX
     _scene(w_px, h_px)
-    framed_plate(w, h, h / 2, rim=0.09, lift=0.0, face_mat=mat_red() if red else mat_face())
+    control_plate(w, h, h / 2, rim=0.09, lift=0.0, face_mat=mat_red() if red else mat_face())
     render(out / f"{name}_normal.png")
     _states(out, name, active=not red)
 
@@ -489,8 +557,8 @@ def row_plate(out: Path, w_px: int = 256, h_px: int = 90) -> None:
     Patch margins: 24 + PAD left/right, 0 top/bottom stretch is not needed."""
     w, h = w_px / PX, h_px / PX
     _scene(w_px, h_px)
-    framed_plate(w, h, 0.18, rim=0.04, lift=0.0, face_mat=mat_dark_flat(0.012),
-                 rim_height=0.06, face_height=0.04)
+    control_plate(w, h, 0.18, rim=0.04, lift=0.0, face_mat=mat_dark_flat(0.012),
+                  rim_height=0.06, face_height=0.04, framed=True)
     render(out / "row_plate_normal.png", shadow_offset=4)
     _states(out, "row_plate", disabled=False)
 
@@ -499,8 +567,8 @@ def value_display(out: Path, w_px: int = 240, h_px: int = 80) -> None:
     """Recessed dark display for option values (value drawn by Godot)."""
     w, h = w_px / PX, h_px / PX
     _scene(w_px, h_px)
-    framed_plate(w, h, 0.14, rim=0.05, lift=0.0, face_mat=mat_dark_flat(0.002),
-                 rim_height=0.10, face_height=0.02)
+    control_plate(w, h, 0.14, rim=0.05, lift=0.0, face_mat=mat_dark_flat(0.002),
+                  rim_height=0.10, face_height=0.02, framed=True)
     render(out / "value_display.png", shadow_offset=3)
 
 
@@ -511,14 +579,74 @@ def toggle(out: Path, w_px: int = 150, h_px: int = 72) -> None:
     knob = h * 0.78
     for state, on in (("off", False), ("on", True)):
         _scene(w_px, h_px)
-        framed_plate(w, h, h / 2, rim=0.06, lift=0.0, face_mat=mat_amber() if on else mat_dark_flat(0.004),
-                     rim_height=0.08, face_height=0.03)
+        _, top = control_plate(w, h, h / 2, rim=0.06, lift=0.0,
+                               face_mat=STYLE["track_on"]() if on else mat_dark_flat(0.004),
+                               rim_height=0.08, face_height=0.03, framed=True)
         x = (w / 2 - h / 2) * (1 if on else -1)
-        objs = framed_plate(knob, knob, knob / 2, rim=knob * 0.14, lift=0.08, face_mat=mat_face())
+        objs, _ = control_plate(knob, knob, knob / 2, rim=knob * 0.14, lift=max(top, 0.08), face_mat=mat_face(),
+                                framed=True)
         for obj in objs:
             obj.location.x = x
         render(out / f"toggle_{state}.png", shadow_offset=3)
         make_disabled(out / f"toggle_{state}.png", out / f"toggle_{state}_disabled.png")
+
+
+SPIN_CAP, SPIN_MID, SPIN_H = 88, 200, 80  # px: arrow caps, middle (stretched), height
+
+
+def spinner(out: Path) -> None:
+    """Option value selector in one piece: steel frame, dark value window in the
+    middle, the left/right arrow buttons forming the two ends of the frame.
+    Rendered whole (normal, each cap pressed, disabled), then cut into
+    spinner_left_*, spinner_mid (9-slice horizontally) and spinner_right_*, so
+    the joins are seamless in Godot."""
+    w_px = 2 * SPIN_CAP + SPIN_MID
+    w, h = w_px / PX, SPIN_H / PX
+    r, rim, rim_h = 0.14, 0.05, 0.10
+    wi, hi = w - 2 * rim, h - 2 * rim
+    xd = w / 2 - SPIN_CAP / PX  # divider x (right side, mirrored on the left)
+    div = 0.05
+
+    def cap_outline(side: int):
+        inner = rounded_rect(wi, hi, r - rim)
+        # Counter-clockwise outline: its left arcs run from the top edge down to the bottom one.
+        left = [pt for pt in inner if pt[0] < -xd]
+        poly = left + [(-xd + div / 2, -hi / 2), (-xd + div / 2, hi / 2)]
+        if side > 0:
+            poly = [(-x, y) for x, y in reversed(poly)]
+        return poly
+
+    def build(pressed: int):
+        _scene(w_px, SPIN_H)
+        steel = STYLE["rim"]
+        ring("Rim", rounded_rect(w, h, r), rounded_rect(wi, hi, r - rim), 0.0, rim_h, steel(), rim * 0.45)
+        for side in (-1, 1):
+            divider = prism(f"Divider{side}", rounded_rect(div, hi + 0.01, 0.005, 2), 0.0, rim_h, steel(), 0.015)
+            divider.location.x = side * xd
+            top = 0.09 if pressed != side else 0.05
+            cap = prism(f"Cap{side}", cap_outline(side), 0.0, top, mat_face(), 0.025)
+            if pressed == side:
+                cap.data.materials[0].node_tree.nodes["Principled BSDF"].inputs["Roughness"].default_value = 0.8
+            for g in gold_glyph("right" if side > 0 else "left", SPIN_H / PX * 0.34, top - 0.02):
+                g.location.x += side * (w / 2 - SPIN_CAP / PX / 2)
+        prism("Window", rounded_rect(2 * xd - div, hi, 0.01, 2), 0.0, 0.02, mat_dark_flat(0.002), 0.005)
+
+    states = (("normal", 0), ("left_pressed", -1), ("right_pressed", 1))
+    for name, pressed in states:
+        build(pressed)
+        render(out / f"_spinner_{name}.png", shadow_offset=3)
+    make_disabled(out / "_spinner_normal.png", out / "_spinner_disabled.png")
+
+    x_left = PAD + SPIN_CAP  # first column of the middle piece
+    x_right = PAD + SPIN_CAP + SPIN_MID
+    normal = _load(out / "_spinner_normal.png")
+    _save(normal[:, x_left:x_right].copy(), out / "spinner_mid.png")
+    for state in ("normal", "disabled"):
+        img = _load(out / f"_spinner_{state}.png")
+        _save(img[:, :x_left].copy(), out / f"spinner_left_{state}.png")
+        _save(img[:, x_right:].copy(), out / f"spinner_right_{state}.png")
+    _save(_load(out / "_spinner_left_pressed.png")[:, :x_left].copy(), out / "spinner_left_pressed.png")
+    _save(_load(out / "_spinner_right_pressed.png")[:, x_right:].copy(), out / "spinner_right_pressed.png")
 
 
 def medallion(out: Path, index: int, color, size_px: int = 80) -> None:
@@ -571,7 +699,13 @@ def main() -> None:
     argv = sys.argv[sys.argv.index("--") + 1:] if "--" in sys.argv else []
     p = argparse.ArgumentParser()
     p.add_argument("--out", required=True)
+    p.add_argument("--controls", choices=CONTROL_STYLES, default="sober",
+                   help="look of the buttons, option arrows, row plates and toggles")
+    p.add_argument("--only-controls", action="store_true",
+                   help="render only the elements affected by --controls")
     args = p.parse_args(argv)
+    global STYLE
+    STYLE = CONTROL_STYLES[args.controls]
     out = Path(args.out).resolve()
     out.mkdir(parents=True, exist_ok=True)
 
@@ -581,16 +715,25 @@ def main() -> None:
         round_button(out, glyph)
     pill_button(out, red=False)
     pill_button(out, red=True)
+    row_plate(out)
+    value_display(out)
+    spinner(out)
+    toggle(out)
+    icon(out, "pencil")
+    if args.only_controls:
+        contact_sheet(out, [out / f"round_button_{g}_normal.png" for g in glyphs]
+                      + [out / "pill_button_normal.png", out / "pill_button_active.png",
+                         out / "pill_button_red_normal.png", out / "toggle_off.png", out / "toggle_on.png",
+                         out / "value_display.png", out / "icon_pencil.png", out / "_spinner_normal.png",
+                         out / "_spinner_left_pressed.png", out / "_spinner_disabled.png"],
+                      len(glyphs), "controls_" + args.controls)
+        return
     title_plaque(out)
     button_bar(out)
     panel(out)
     panel(out, "dialog_panel", alpha=1.0)
-    row_plate(out)
-    value_display(out)
-    toggle(out)
     for i, color in enumerate(PLAYER_COLORS, 1):
         medallion(out, i, color)
-    icon(out, "pencil")
     gold_rule(out)
 
     contact_sheet(out, [out / f"round_button_{g}_{s}.png" for s in states for g in glyphs], len(glyphs), "round_buttons")

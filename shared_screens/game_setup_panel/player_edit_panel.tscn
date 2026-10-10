@@ -24,18 +24,17 @@ alignment = 1
 
 [node name="Buttons" type="HBoxContainer" parent="."]
 layout_mode = 2
-theme_override_constants/separation = 32
+theme_override_constants/separation = 80
+alignment = 1
 
 [node name="CancelButton" type="Button" parent="Buttons"]
-custom_minimum_size = Vector2(0, 120)
+custom_minimum_size = Vector2(300, 120)
 layout_mode = 2
-size_flags_horizontal = 3
 theme_type_variation = &"PillButton"
 text = "Cancel"
 
 [node name="OkButton" type="Button" parent="Buttons"]
-custom_minimum_size = Vector2(0, 120)
+custom_minimum_size = Vector2(300, 120)
 layout_mode = 2
-size_flags_horizontal = 3
 theme_type_variation = &"PillButton"
 text = "OK"

@@ -14,30 +14,32 @@ theme_override_font_sizes/font_size = 40
 text = "Option"
 vertical_alignment = 1
 
-[node name="PrevButton" type="Button" parent="."]
-custom_minimum_size = Vector2(88, 88)
+[node name="Spinner" type="HBoxContainer" parent="."]
 layout_mode = 2
 size_flags_vertical = 4
-theme_type_variation = &"RoundLeftButton"
+theme_override_constants/separation = 0
 
-[node name="ValueLabel" type="Label" parent="."]
-custom_minimum_size = Vector2(460, 80)
+[node name="PrevButton" type="Button" parent="Spinner"]
+custom_minimum_size = Vector2(88, 80)
 layout_mode = 2
-size_flags_vertical = 4
-theme_type_variation = &"ValueDisplay"
+theme_type_variation = &"SpinLeftButton"
+
+[node name="ValueLabel" type="Label" parent="Spinner"]
+custom_minimum_size = Vector2(492, 80)
+layout_mode = 2
+theme_type_variation = &"SpinValue"
 text = "-"
 horizontal_alignment = 1
 vertical_alignment = 1
 text_overrun_behavior = 3
 
-[node name="NextButton" type="Button" parent="."]
-custom_minimum_size = Vector2(88, 88)
+[node name="NextButton" type="Button" parent="Spinner"]
+custom_minimum_size = Vector2(88, 80)
 layout_mode = 2
-size_flags_vertical = 4
-theme_type_variation = &"RoundRightButton"
+theme_type_variation = &"SpinRightButton"
 
 [node name="InfoButton" type="Button" parent="."]
-custom_minimum_size = Vector2(88, 88)
+custom_minimum_size = Vector2(80, 80)
 layout_mode = 2
 size_flags_vertical = 4
 theme_type_variation = &"RoundHelpButton"

@@ -20,14 +20,18 @@ def tex(name: str) -> str:
     return f'ExtResource("{ext[name]}")'
 
 
-def stylebox(name: str, tm: tuple[int, int], content: tuple[int, int, int, int]) -> str:
+def stylebox(name: str, tm: tuple[int, int], content: tuple[int, int, int, int],
+             expand: tuple[int, int, int, int] = (PAD, PAD, PAD, PAD)) -> str:
     """tm = texture margins (left/right, top/bottom), padding included.
-    content = content margins (left, top, right, bottom) inside the control rect."""
+    content = content margins (left, top, right, bottom) inside the control rect.
+    expand = how far the texture overflows the control (left, top, right, bottom):
+    the PAD margin, except on the sides cut flush (spinner pieces)."""
     sid = f"sb_{name}"
     if any(s.startswith(f'[sub_resource type="StyleBoxTexture" id="{sid}"]') for s in subs):
         return f'SubResource("{sid}")'
     lr, tb = tm
     cl, ct, cr, cb = content
+    el, et, er, eb = expand
     subs.append(f'''[sub_resource type="StyleBoxTexture" id="{sid}"]
 content_margin_left = {cl}.0
 content_margin_top = {ct}.0
@@ -38,10 +42,10 @@ texture_margin_left = {lr}.0
 texture_margin_top = {tb}.0
 texture_margin_right = {lr}.0
 texture_margin_bottom = {tb}.0
-expand_margin_left = {PAD}.0
-expand_margin_top = {PAD}.0
-expand_margin_right = {PAD}.0
-expand_margin_bottom = {PAD}.0
+expand_margin_left = {el}.0
+expand_margin_top = {et}.0
+expand_margin_right = {er}.0
+expand_margin_bottom = {eb}.0
 ''')
     return f'SubResource("{sid}")'
 
@@ -77,12 +81,13 @@ def button(variation: str, normal: str, disabled: str, tm, content, font_size: i
 PILL = ((PAD + 60, PAD + 59), (40, 10, 40, 10))
 button("PillButton", "pill_button_normal", "pill_button_disabled", *PILL)
 button("PillButtonActive", "pill_button_active", "pill_button_disabled", *PILL)
+# The selected pill is shown by its halo: white label like the others.
 for c in ("font_color", "font_hover_color", "font_pressed_color", "font_hover_pressed_color", "font_focus_color"):
-    props.append(f"PillButtonActive/colors/{c} = {GOLD}")
+    props.append(f"PillButtonActive/colors/{c} = {WHITE}")
 button("PillButtonRed", "pill_button_red_normal", "pill_button_red_disabled", *PILL)
 
-# Round buttons (88x88 visual), symbol baked in the texture.
-ROUND = ((PAD + 43, PAD + 43), (0, 0, 0, 0))
+# Small square buttons (80x80 visual, "round_button" files), symbol baked in the texture.
+ROUND = ((PAD + 39, PAD + 39), (0, 0, 0, 0))
 for glyph, variation in (("minus", "RoundMinusButton"), ("plus", "RoundPlusButton"), ("left", "RoundLeftButton"),
                          ("right", "RoundRightButton"), ("up", "RoundUpButton"), ("down", "RoundDownButton"),
                          ("question", "RoundHelpButton")):
@@ -131,6 +136,23 @@ props.append(f"NameEdit/styles/focus = {EMPTY}")
 props.append(f"NameEdit/colors/font_color = {WHITE}")
 props.append(f"NameEdit/colors/caret_color = {GOLD}")
 props.append("NameEdit/colors/selection_color = Color(1, 0.78, 0.25, 0.35)")
+
+# Option spinner: arrow caps (88x80 visual) at both ends of a steel frame whose
+# middle (value) stretches horizontally. Pieces are cut flush where they join.
+SPIN_CAP_TM = (0, 0)
+for side, variation, expand in (("left", "SpinLeftButton", (PAD, PAD, 0, PAD)),
+                                ("right", "SpinRightButton", (0, PAD, PAD, PAD))):
+    props.append(f'{variation}/base_type = &"Button"')
+    n = stylebox(f"spinner_{side}_normal", SPIN_CAP_TM, (0, 0, 0, 0), expand)
+    for state in ("normal", "hover", "focus"):
+        props.append(f"{variation}/styles/{state} = {n if state != 'focus' else EMPTY}")
+    for state in ("pressed", "hover_pressed"):
+        props.append(f"{variation}/styles/{state} = {stylebox(f'spinner_{side}_pressed', SPIN_CAP_TM, (0, 0, 0, 0), expand)}")
+    props.append(f"{variation}/styles/disabled = {stylebox(f'spinner_{side}_disabled', SPIN_CAP_TM, (0, 0, 0, 0), expand)}")
+props.append('SpinValue/base_type = &"Label"')
+props.append(f"SpinValue/styles/normal = {stylebox('spinner_mid', (6, 0), (16, 4, 16, 4), (0, PAD, 0, PAD))}")
+props.append("SpinValue/font_sizes/font_size = 40")
+props.append(f"SpinValue/colors/font_color = {WHITE}")
 
 # Toggle switch for boolean options.
 for icon, name in (("checked", "toggle_on"), ("unchecked", "toggle_off"),
