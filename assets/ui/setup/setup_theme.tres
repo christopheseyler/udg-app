@@ -1,4 +1,4 @@
-[gd_resource type="Theme" load_steps=44 format=3]
+[gd_resource type="Theme" load_steps=54 format=3]
 
 [ext_resource type="Texture2D" path="res://assets/ui/setup/pill_button_normal.png" id="1_pill_button_normal"]
 [ext_resource type="Texture2D" path="res://assets/ui/setup/pill_button_disabled.png" id="2_pill_button_disabled"]
@@ -13,16 +13,21 @@
 [ext_resource type="Texture2D" path="res://assets/ui/setup/round_button_left_disabled.png" id="11_round_button_left_disabled"]
 [ext_resource type="Texture2D" path="res://assets/ui/setup/round_button_right_normal.png" id="12_round_button_right_normal"]
 [ext_resource type="Texture2D" path="res://assets/ui/setup/round_button_right_disabled.png" id="13_round_button_right_disabled"]
-[ext_resource type="Texture2D" path="res://assets/ui/setup/round_button_question_normal.png" id="14_round_button_question_normal"]
-[ext_resource type="Texture2D" path="res://assets/ui/setup/round_button_question_disabled.png" id="15_round_button_question_disabled"]
-[ext_resource type="Texture2D" path="res://assets/ui/setup/row_plate_normal.png" id="16_row_plate_normal"]
-[ext_resource type="Texture2D" path="res://assets/ui/setup/panel.png" id="17_panel"]
-[ext_resource type="Texture2D" path="res://assets/ui/setup/title_plaque.png" id="18_title_plaque"]
-[ext_resource type="Texture2D" path="res://assets/ui/setup/value_display.png" id="19_value_display"]
-[ext_resource type="Texture2D" path="res://assets/ui/setup/toggle_on.png" id="20_toggle_on"]
-[ext_resource type="Texture2D" path="res://assets/ui/setup/toggle_off.png" id="21_toggle_off"]
-[ext_resource type="Texture2D" path="res://assets/ui/setup/toggle_on_disabled.png" id="22_toggle_on_disabled"]
-[ext_resource type="Texture2D" path="res://assets/ui/setup/toggle_off_disabled.png" id="23_toggle_off_disabled"]
+[ext_resource type="Texture2D" path="res://assets/ui/setup/round_button_up_normal.png" id="14_round_button_up_normal"]
+[ext_resource type="Texture2D" path="res://assets/ui/setup/round_button_up_disabled.png" id="15_round_button_up_disabled"]
+[ext_resource type="Texture2D" path="res://assets/ui/setup/round_button_down_normal.png" id="16_round_button_down_normal"]
+[ext_resource type="Texture2D" path="res://assets/ui/setup/round_button_down_disabled.png" id="17_round_button_down_disabled"]
+[ext_resource type="Texture2D" path="res://assets/ui/setup/round_button_question_normal.png" id="18_round_button_question_normal"]
+[ext_resource type="Texture2D" path="res://assets/ui/setup/round_button_question_disabled.png" id="19_round_button_question_disabled"]
+[ext_resource type="Texture2D" path="res://assets/ui/setup/row_plate_normal.png" id="20_row_plate_normal"]
+[ext_resource type="Texture2D" path="res://assets/ui/setup/panel.png" id="21_panel"]
+[ext_resource type="Texture2D" path="res://assets/ui/setup/dialog_panel.png" id="22_dialog_panel"]
+[ext_resource type="Texture2D" path="res://assets/ui/setup/title_plaque.png" id="23_title_plaque"]
+[ext_resource type="Texture2D" path="res://assets/ui/setup/value_display.png" id="24_value_display"]
+[ext_resource type="Texture2D" path="res://assets/ui/setup/toggle_on.png" id="25_toggle_on"]
+[ext_resource type="Texture2D" path="res://assets/ui/setup/toggle_off.png" id="26_toggle_off"]
+[ext_resource type="Texture2D" path="res://assets/ui/setup/toggle_on_disabled.png" id="27_toggle_on_disabled"]
+[ext_resource type="Texture2D" path="res://assets/ui/setup/toggle_off_disabled.png" id="28_toggle_off_disabled"]
 
 [sub_resource type="StyleBoxEmpty" id="sb_empty"]
 
@@ -221,12 +226,72 @@ expand_margin_top = 24.0
 expand_margin_right = 24.0
 expand_margin_bottom = 24.0
 
+[sub_resource type="StyleBoxTexture" id="sb_round_button_up_normal"]
+content_margin_left = 0.0
+content_margin_top = 0.0
+content_margin_right = 0.0
+content_margin_bottom = 0.0
+texture = ExtResource("14_round_button_up_normal")
+texture_margin_left = 67.0
+texture_margin_top = 67.0
+texture_margin_right = 67.0
+texture_margin_bottom = 67.0
+expand_margin_left = 24.0
+expand_margin_top = 24.0
+expand_margin_right = 24.0
+expand_margin_bottom = 24.0
+
+[sub_resource type="StyleBoxTexture" id="sb_round_button_up_disabled"]
+content_margin_left = 0.0
+content_margin_top = 0.0
+content_margin_right = 0.0
+content_margin_bottom = 0.0
+texture = ExtResource("15_round_button_up_disabled")
+texture_margin_left = 67.0
+texture_margin_top = 67.0
+texture_margin_right = 67.0
+texture_margin_bottom = 67.0
+expand_margin_left = 24.0
+expand_margin_top = 24.0
+expand_margin_right = 24.0
+expand_margin_bottom = 24.0
+
+[sub_resource type="StyleBoxTexture" id="sb_round_button_down_normal"]
+content_margin_left = 0.0
+content_margin_top = 0.0
+content_margin_right = 0.0
+content_margin_bottom = 0.0
+texture = ExtResource("16_round_button_down_normal")
+texture_margin_left = 67.0
+texture_margin_top = 67.0
+texture_margin_right = 67.0
+texture_margin_bottom = 67.0
+expand_margin_left = 24.0
+expand_margin_top = 24.0
+expand_margin_right = 24.0
+expand_margin_bottom = 24.0
+
+[sub_resource type="StyleBoxTexture" id="sb_round_button_down_disabled"]
+content_margin_left = 0.0
+content_margin_top = 0.0
+content_margin_right = 0.0
+content_margin_bottom = 0.0
+texture = ExtResource("17_round_button_down_disabled")
+texture_margin_left = 67.0
+texture_margin_top = 67.0
+texture_margin_right = 67.0
+texture_margin_bottom = 67.0
+expand_margin_left = 24.0
+expand_margin_top = 24.0
+expand_margin_right = 24.0
+expand_margin_bottom = 24.0
+
 [sub_resource type="StyleBoxTexture" id="sb_round_button_question_normal"]
 content_margin_left = 0.0
 content_margin_top = 0.0
 content_margin_right = 0.0
 content_margin_bottom = 0.0
-texture = ExtResource("14_round_button_question_normal")
+texture = ExtResource("18_round_button_question_normal")
 texture_margin_left = 67.0
 texture_margin_top = 67.0
 texture_margin_right = 67.0
@@ -241,7 +306,7 @@ content_margin_left = 0.0
 content_margin_top = 0.0
 content_margin_right = 0.0
 content_margin_bottom = 0.0
-texture = ExtResource("15_round_button_question_disabled")
+texture = ExtResource("19_round_button_question_disabled")
 texture_margin_left = 67.0
 texture_margin_top = 67.0
 texture_margin_right = 67.0
@@ -256,7 +321,7 @@ content_margin_left = 24.0
 content_margin_top = 6.0
 content_margin_right = 24.0
 content_margin_bottom = 6.0
-texture = ExtResource("16_row_plate_normal")
+texture = ExtResource("20_row_plate_normal")
 texture_margin_left = 54.0
 texture_margin_top = 68.0
 texture_margin_right = 54.0
@@ -271,7 +336,22 @@ content_margin_left = 48.0
 content_margin_top = 24.0
 content_margin_right = 48.0
 content_margin_bottom = 32.0
-texture = ExtResource("17_panel")
+texture = ExtResource("21_panel")
+texture_margin_left = 80.0
+texture_margin_top = 80.0
+texture_margin_right = 80.0
+texture_margin_bottom = 80.0
+expand_margin_left = 24.0
+expand_margin_top = 24.0
+expand_margin_right = 24.0
+expand_margin_bottom = 24.0
+
+[sub_resource type="StyleBoxTexture" id="sb_dialog_panel"]
+content_margin_left = 48.0
+content_margin_top = 24.0
+content_margin_right = 48.0
+content_margin_bottom = 32.0
+texture = ExtResource("22_dialog_panel")
 texture_margin_left = 80.0
 texture_margin_top = 80.0
 texture_margin_right = 80.0
@@ -286,7 +366,7 @@ content_margin_left = 40.0
 content_margin_top = 8.0
 content_margin_right = 40.0
 content_margin_bottom = 8.0
-texture = ExtResource("18_title_plaque")
+texture = ExtResource("23_title_plaque")
 texture_margin_left = 74.0
 texture_margin_top = 83.0
 texture_margin_right = 74.0
@@ -301,7 +381,7 @@ content_margin_left = 16.0
 content_margin_top = 4.0
 content_margin_right = 16.0
 content_margin_bottom = 4.0
-texture = ExtResource("19_value_display")
+texture = ExtResource("24_value_display")
 texture_margin_left = 48.0
 texture_margin_top = 63.0
 texture_margin_right = 48.0
@@ -312,16 +392,18 @@ expand_margin_right = 24.0
 expand_margin_bottom = 24.0
 
 [resource]
-CheckButton/icons/checked = ExtResource("20_toggle_on")
-CheckButton/icons/checked_disabled = ExtResource("22_toggle_on_disabled")
-CheckButton/icons/unchecked = ExtResource("21_toggle_off")
-CheckButton/icons/unchecked_disabled = ExtResource("23_toggle_off_disabled")
+CheckButton/icons/checked = ExtResource("25_toggle_on")
+CheckButton/icons/checked_disabled = ExtResource("27_toggle_on_disabled")
+CheckButton/icons/unchecked = ExtResource("26_toggle_off")
+CheckButton/icons/unchecked_disabled = ExtResource("28_toggle_off_disabled")
 CheckButton/styles/disabled = SubResource("sb_empty")
 CheckButton/styles/focus = SubResource("sb_empty")
 CheckButton/styles/hover = SubResource("sb_empty")
 CheckButton/styles/hover_pressed = SubResource("sb_empty")
 CheckButton/styles/normal = SubResource("sb_empty")
 CheckButton/styles/pressed = SubResource("sb_empty")
+DialogPanel/base_type = &"PanelContainer"
+DialogPanel/styles/panel = SubResource("sb_dialog_panel")
 GroupTitle/base_type = &"Label"
 GroupTitle/colors/font_color = Color(1, 0.78, 0.25, 1)
 GroupTitle/font_sizes/font_size = 42
@@ -380,6 +462,13 @@ PillButtonRed/styles/hover = SubResource("sb_pill_button_red_normal")
 PillButtonRed/styles/hover_pressed = SubResource("sb_pill_button_red_normal")
 PillButtonRed/styles/normal = SubResource("sb_pill_button_red_normal")
 PillButtonRed/styles/pressed = SubResource("sb_pill_button_red_normal")
+RoundDownButton/base_type = &"Button"
+RoundDownButton/styles/disabled = SubResource("sb_round_button_down_disabled")
+RoundDownButton/styles/focus = SubResource("sb_empty")
+RoundDownButton/styles/hover = SubResource("sb_round_button_down_normal")
+RoundDownButton/styles/hover_pressed = SubResource("sb_round_button_down_normal")
+RoundDownButton/styles/normal = SubResource("sb_round_button_down_normal")
+RoundDownButton/styles/pressed = SubResource("sb_round_button_down_normal")
 RoundHelpButton/base_type = &"Button"
 RoundHelpButton/styles/disabled = SubResource("sb_round_button_question_disabled")
 RoundHelpButton/styles/focus = SubResource("sb_empty")
@@ -415,6 +504,13 @@ RoundRightButton/styles/hover = SubResource("sb_round_button_right_normal")
 RoundRightButton/styles/hover_pressed = SubResource("sb_round_button_right_normal")
 RoundRightButton/styles/normal = SubResource("sb_round_button_right_normal")
 RoundRightButton/styles/pressed = SubResource("sb_round_button_right_normal")
+RoundUpButton/base_type = &"Button"
+RoundUpButton/styles/disabled = SubResource("sb_round_button_up_disabled")
+RoundUpButton/styles/focus = SubResource("sb_empty")
+RoundUpButton/styles/hover = SubResource("sb_round_button_up_normal")
+RoundUpButton/styles/hover_pressed = SubResource("sb_round_button_up_normal")
+RoundUpButton/styles/normal = SubResource("sb_round_button_up_normal")
+RoundUpButton/styles/pressed = SubResource("sb_round_button_up_normal")
 RowButton/base_type = &"Button"
 RowButton/colors/font_color = Color(1, 1, 1, 1)
 RowButton/colors/font_disabled_color = Color(0.6, 0.6, 0.6, 0.6)
@@ -431,6 +527,8 @@ RowButton/styles/hover = SubResource("sb_row_plate_normal")
 RowButton/styles/hover_pressed = SubResource("sb_row_plate_normal")
 RowButton/styles/normal = SubResource("sb_row_plate_normal")
 RowButton/styles/pressed = SubResource("sb_row_plate_normal")
+RowPlate/base_type = &"PanelContainer"
+RowPlate/styles/panel = SubResource("sb_row_plate_normal")
 SetupPanel/base_type = &"PanelContainer"
 SetupPanel/styles/panel = SubResource("sb_panel")
 SetupTitle/base_type = &"Label"

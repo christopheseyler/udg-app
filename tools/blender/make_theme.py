@@ -84,15 +84,22 @@ button("PillButtonRed", "pill_button_red_normal", "pill_button_red_disabled", *P
 # Round buttons (88x88 visual), symbol baked in the texture.
 ROUND = ((PAD + 43, PAD + 43), (0, 0, 0, 0))
 for glyph, variation in (("minus", "RoundMinusButton"), ("plus", "RoundPlusButton"), ("left", "RoundLeftButton"),
-                         ("right", "RoundRightButton"), ("question", "RoundHelpButton")):
+                         ("right", "RoundRightButton"), ("up", "RoundUpButton"), ("down", "RoundDownButton"),
+                         ("question", "RoundHelpButton")):
     button(variation, f"round_button_{glyph}_normal", f"round_button_{glyph}_disabled", *ROUND, font_size=None)
 
 # List rows (256x90 source, 9-slice horizontally).
 button("RowButton", "row_plate_normal", "row_plate_normal", (PAD + 30, PAD + 44), (24, 6, 24, 6), font_size=40)
+# Same plate, not clickable (e.g. ranked player rows).
+props.append('RowPlate/base_type = &"PanelContainer"')
+props.append(f"RowPlate/styles/panel = {stylebox('row_plate_normal', (PAD + 30, PAD + 44), (24, 6, 24, 6))}")
 
 # Big panels (256x256 source, 9-slice).
 props.append('SetupPanel/base_type = &"PanelContainer"')
 props.append(f"SetupPanel/styles/panel = {stylebox('panel', (PAD + 56, PAD + 56), (48, 24, 48, 32))}")
+# Opaque variant for dialogs shown over other content.
+props.append('DialogPanel/base_type = &"PanelContainer"')
+props.append(f"DialogPanel/styles/panel = {stylebox('dialog_panel', (PAD + 56, PAD + 56), (48, 24, 48, 32))}")
 
 # Title plaque (640x120 visual), title drawn by a Label child.
 props.append('TitlePlaque/base_type = &"PanelContainer"')

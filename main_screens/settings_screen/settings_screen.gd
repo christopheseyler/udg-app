@@ -113,7 +113,7 @@ enum UpdateKind { APP, DARTBOARD }
 @onready var ip_label: Label = $Panel/Layout/Margin/Content/Buttons/InfoBox/IpLabel
 @onready var status_label: Label = $Panel/Layout/Margin/Content/Selection/StatusLabel
 @onready var bundle_scroll: ScrollContainer = $Panel/Layout/Margin/Content/Selection/BundleScroll
-@onready var bundle_list: VBoxContainer = $Panel/Layout/Margin/Content/Selection/BundleScroll/BundleList
+@onready var bundle_list: VBoxContainer = $Panel/Layout/Margin/Content/Selection/BundleScroll/ListMargin/BundleList
 @onready var confirm_overlay: Control = $ConfirmOverlay
 @onready var confirm_label: Label = $ConfirmOverlay/Center/Dialog/Margin/Content/ConfirmLabel
 @onready var no_button: Button = $ConfirmOverlay/Center/Dialog/Margin/Content/Buttons/NoButton
@@ -147,6 +147,9 @@ func _ready() -> void:
 	no_button.pressed.connect(_on_confirm_no)
 	yes_button.pressed.connect(_on_confirm_yes)
 	test_close_button.pressed.connect(_stop_dartboard_test)
+	for button in [check_update_button, check_online_button, dartboard_update_button,
+			dartboard_test_button, back_button, no_button, yes_button, test_close_button]:
+		PressScale.attach(button)
 	bundle_scroll.visible = false
 	test_overlay.visible = false
 	set_process(false)
@@ -329,10 +332,12 @@ func _on_dartboard_update_pressed() -> void:
 
 func _add_list_button(text: String, on_pressed: Callable) -> void:
 	var button := Button.new()
+	button.theme_type_variation = &"RowButton"
 	button.text = text
 	button.custom_minimum_size = Vector2(0, 90)
 	button.add_theme_font_size_override("font_size", 32)
 	button.pressed.connect(on_pressed)
+	PressScale.attach(button)
 	bundle_list.add_child(button)
 
 func _clear_bundle_list() -> void:

@@ -1,28 +1,8 @@
-[gd_scene load_steps=5 format=3]
+[gd_scene load_steps=4 format=3]
 
 [ext_resource type="Script" path="res://shared_screens/players_order_screen/players_order_screen.gd" id="1_script"]
 [ext_resource type="Texture2D" uid="uid://nw2qty11nas1" path="res://assets/title_background.png" id="2_bg"]
-
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_panel"]
-bg_color = Color(0.05, 0.05, 0.08, 0.78)
-border_width_left = 4
-border_width_top = 4
-border_width_right = 4
-border_width_bottom = 4
-border_color = Color(0.95, 0.75, 0.2, 1)
-corner_radius_top_left = 32
-corner_radius_top_right = 32
-corner_radius_bottom_right = 32
-corner_radius_bottom_left = 32
-content_margin_left = 4.0
-content_margin_top = 4.0
-content_margin_right = 4.0
-content_margin_bottom = 4.0
-
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_title_banner"]
-bg_color = Color(0.95, 0.75, 0.2, 1)
-corner_radius_top_left = 28
-corner_radius_top_right = 28
+[ext_resource type="Theme" path="res://assets/ui/setup/setup_theme.tres" id="3_theme"]
 
 [node name="PlayersOrderScreen" type="Control"]
 layout_mode = 3
@@ -31,6 +11,7 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
+theme = ExtResource("3_theme")
 script = ExtResource("1_script")
 
 [node name="Background" type="TextureRect" parent="."]
@@ -49,43 +30,48 @@ stretch_mode = 6
 layout_mode = 1
 anchors_preset = -1
 anchor_left = 0.2
-anchor_top = 0.06
+anchor_top = 0.08
 anchor_right = 0.8
-anchor_bottom = 0.94
+anchor_bottom = 0.96
 grow_horizontal = 2
 grow_vertical = 2
-theme_override_styles/panel = SubResource("StyleBoxFlat_panel")
+theme_type_variation = &"SetupPanel"
 
 [node name="Layout" type="VBoxContainer" parent="Panel"]
 layout_mode = 2
-theme_override_constants/separation = 0
+theme_override_constants/separation = 16
 
-[node name="TitleBanner" type="PanelContainer" parent="Panel/Layout"]
+[node name="TitleSpace" type="Control" parent="Panel/Layout"]
+custom_minimum_size = Vector2(0, 42)
 layout_mode = 2
-theme_override_styles/panel = SubResource("StyleBoxFlat_title_banner")
 
-[node name="TitleLabel" type="Label" parent="Panel/Layout/TitleBanner"]
-custom_minimum_size = Vector2(0, 64)
+[node name="TitlePlaque" type="PanelContainer" parent="Panel/Layout/TitleSpace"]
+custom_minimum_size = Vector2(640, 120)
+layout_mode = 1
+anchors_preset = 5
+anchor_left = 0.5
+anchor_right = 0.5
+offset_left = -320.0
+offset_top = -78.0
+offset_right = 320.0
+offset_bottom = 42.0
+grow_horizontal = 2
+mouse_filter = 2
+theme_type_variation = &"TitlePlaque"
+
+[node name="TitleLabel" type="Label" parent="Panel/Layout/TitleSpace/TitlePlaque"]
 layout_mode = 2
-theme_override_colors/font_color = Color(0.1, 0.08, 0.02, 1)
-theme_override_font_sizes/font_size = 40
+theme_type_variation = &"SetupTitle"
 text = "THROWING ORDER"
 horizontal_alignment = 1
 vertical_alignment = 1
 
-[node name="Margin" type="MarginContainer" parent="Panel/Layout"]
+[node name="Content" type="VBoxContainer" parent="Panel/Layout"]
 layout_mode = 2
 size_flags_vertical = 3
-theme_override_constants/margin_left = 48
-theme_override_constants/margin_top = 32
-theme_override_constants/margin_right = 48
-theme_override_constants/margin_bottom = 32
-
-[node name="Content" type="VBoxContainer" parent="Panel/Layout/Margin"]
-layout_mode = 2
 theme_override_constants/separation = 24
 
-[node name="InstructionLabel" type="Label" parent="Panel/Layout/Margin/Content"]
+[node name="InstructionLabel" type="Label" parent="Panel/Layout/Content"]
 modulate = Color(1, 1, 1, 0.8)
 layout_mode = 2
 theme_override_font_sizes/font_size = 32
@@ -93,30 +79,38 @@ text = "Each player throws one dart as close to the bullseye as possible. The cl
 horizontal_alignment = 1
 autowrap_mode = 3
 
-[node name="Scroll" type="ScrollContainer" parent="Panel/Layout/Margin/Content"]
+[node name="Scroll" type="ScrollContainer" parent="Panel/Layout/Content"]
 layout_mode = 2
 size_flags_vertical = 3
 horizontal_scroll_mode = 0
 
-[node name="PlayerList" type="VBoxContainer" parent="Panel/Layout/Margin/Content/Scroll"]
+[node name="ListMargin" type="MarginContainer" parent="Panel/Layout/Content/Scroll"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/margin_left = 24
+theme_override_constants/margin_top = 24
+theme_override_constants/margin_right = 24
+theme_override_constants/margin_bottom = 24
+
+[node name="PlayerList" type="VBoxContainer" parent="Panel/Layout/Content/Scroll/ListMargin"]
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_constants/separation = 16
 
-[node name="Buttons" type="HBoxContainer" parent="Panel/Layout/Margin/Content"]
+[node name="Buttons" type="HBoxContainer" parent="Panel/Layout/Content"]
 layout_mode = 2
 theme_override_constants/separation = 32
 
-[node name="BackButton" type="Button" parent="Panel/Layout/Margin/Content/Buttons"]
+[node name="BackButton" type="Button" parent="Panel/Layout/Content/Buttons"]
 custom_minimum_size = Vector2(0, 120)
 layout_mode = 2
 size_flags_horizontal = 3
-theme_override_font_sizes/font_size = 44
+theme_type_variation = &"PillButton"
 text = "Back"
 
-[node name="ConfirmButton" type="Button" parent="Panel/Layout/Margin/Content/Buttons"]
+[node name="ConfirmButton" type="Button" parent="Panel/Layout/Content/Buttons"]
 custom_minimum_size = Vector2(0, 120)
 layout_mode = 2
 size_flags_horizontal = 3
-theme_override_font_sizes/font_size = 44
+theme_type_variation = &"PillButtonRed"
 text = "Continue"

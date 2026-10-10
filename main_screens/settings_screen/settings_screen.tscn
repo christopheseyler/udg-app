@@ -1,35 +1,8 @@
-[gd_scene load_steps=6 format=3]
+[gd_scene load_steps=4 format=3]
 
 [ext_resource type="Script" path="res://main_screens/settings_screen/settings_screen.gd" id="1_script"]
 [ext_resource type="Texture2D" uid="uid://nw2qty11nas1" path="res://assets/title_background.png" id="2_bg"]
-
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_panel"]
-bg_color = Color(0.05, 0.05, 0.08, 0.78)
-border_width_left = 4
-border_width_top = 4
-border_width_right = 4
-border_width_bottom = 4
-border_color = Color(0.95, 0.75, 0.2, 1)
-corner_radius_top_left = 32
-corner_radius_top_right = 32
-corner_radius_bottom_right = 32
-corner_radius_bottom_left = 32
-content_margin_left = 4.0
-content_margin_top = 4.0
-content_margin_right = 4.0
-content_margin_bottom = 4.0
-
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_title_banner"]
-bg_color = Color(0.95, 0.75, 0.2, 1)
-corner_radius_top_left = 28
-corner_radius_top_right = 28
-
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_dialog"]
-bg_color = Color(0.09, 0.09, 0.13, 1)
-corner_radius_top_left = 32
-corner_radius_top_right = 32
-corner_radius_bottom_right = 32
-corner_radius_bottom_left = 32
+[ext_resource type="Theme" path="res://assets/ui/setup/setup_theme.tres" id="3_theme"]
 
 [node name="SettingsScreen" type="Control"]
 layout_mode = 3
@@ -38,6 +11,7 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
+theme = ExtResource("3_theme")
 script = ExtResource("1_script")
 
 [node name="Background" type="TextureRect" parent="."]
@@ -58,24 +32,36 @@ anchors_preset = -1
 anchor_left = 0.08
 anchor_top = 0.08
 anchor_right = 0.92
-anchor_bottom = 0.92
+anchor_bottom = 0.96
 grow_horizontal = 2
 grow_vertical = 2
-theme_override_styles/panel = SubResource("StyleBoxFlat_panel")
+theme_type_variation = &"SetupPanel"
 
 [node name="Layout" type="VBoxContainer" parent="Panel"]
 layout_mode = 2
-theme_override_constants/separation = 0
+theme_override_constants/separation = 16
 
-[node name="TitleBanner" type="PanelContainer" parent="Panel/Layout"]
+[node name="TitleSpace" type="Control" parent="Panel/Layout"]
+custom_minimum_size = Vector2(0, 42)
 layout_mode = 2
-theme_override_styles/panel = SubResource("StyleBoxFlat_title_banner")
 
-[node name="TitleLabel" type="Label" parent="Panel/Layout/TitleBanner"]
-custom_minimum_size = Vector2(0, 64)
+[node name="TitlePlaque" type="PanelContainer" parent="Panel/Layout/TitleSpace"]
+custom_minimum_size = Vector2(640, 120)
+layout_mode = 1
+anchors_preset = 5
+anchor_left = 0.5
+anchor_right = 0.5
+offset_left = -320.0
+offset_top = -78.0
+offset_right = 320.0
+offset_bottom = 42.0
+grow_horizontal = 2
+mouse_filter = 2
+theme_type_variation = &"TitlePlaque"
+
+[node name="TitleLabel" type="Label" parent="Panel/Layout/TitleSpace/TitlePlaque"]
 layout_mode = 2
-theme_override_colors/font_color = Color(0.1, 0.08, 0.02, 1)
-theme_override_font_sizes/font_size = 40
+theme_type_variation = &"SetupTitle"
 text = "SETTINGS"
 horizontal_alignment = 1
 vertical_alignment = 1
@@ -83,10 +69,6 @@ vertical_alignment = 1
 [node name="Margin" type="MarginContainer" parent="Panel/Layout"]
 layout_mode = 2
 size_flags_vertical = 3
-theme_override_constants/margin_left = 48
-theme_override_constants/margin_top = 32
-theme_override_constants/margin_right = 48
-theme_override_constants/margin_bottom = 32
 
 [node name="Content" type="HBoxContainer" parent="Panel/Layout/Margin"]
 layout_mode = 2
@@ -95,7 +77,7 @@ theme_override_constants/separation = 48
 [node name="Buttons" type="VBoxContainer" parent="Panel/Layout/Margin/Content"]
 custom_minimum_size = Vector2(640, 0)
 layout_mode = 2
-theme_override_constants/separation = 24
+theme_override_constants/separation = 16
 
 [node name="InfoBox" type="VBoxContainer" parent="Panel/Layout/Margin/Content/Buttons"]
 layout_mode = 2
@@ -117,27 +99,31 @@ layout_mode = 2
 theme_override_font_sizes/font_size = 28
 
 [node name="CheckUpdateButton" type="Button" parent="Panel/Layout/Margin/Content/Buttons"]
-custom_minimum_size = Vector2(0, 100)
+custom_minimum_size = Vector2(0, 120)
 layout_mode = 2
-theme_override_font_sizes/font_size = 40
+theme_type_variation = &"PillButton"
+theme_override_font_sizes/font_size = 36
 text = "Check for update from USB"
 
 [node name="CheckOnlineUpdateButton" type="Button" parent="Panel/Layout/Margin/Content/Buttons"]
-custom_minimum_size = Vector2(0, 100)
+custom_minimum_size = Vector2(0, 120)
 layout_mode = 2
-theme_override_font_sizes/font_size = 40
+theme_type_variation = &"PillButton"
+theme_override_font_sizes/font_size = 36
 text = "Check for update online"
 
 [node name="DartboardUpdateButton" type="Button" parent="Panel/Layout/Margin/Content/Buttons"]
-custom_minimum_size = Vector2(0, 100)
+custom_minimum_size = Vector2(0, 120)
 layout_mode = 2
-theme_override_font_sizes/font_size = 40
+theme_type_variation = &"PillButton"
+theme_override_font_sizes/font_size = 36
 text = "DartBoard Interface Update"
 
 [node name="DartboardTestButton" type="Button" parent="Panel/Layout/Margin/Content/Buttons"]
-custom_minimum_size = Vector2(0, 100)
+custom_minimum_size = Vector2(0, 120)
 layout_mode = 2
-theme_override_font_sizes/font_size = 40
+theme_type_variation = &"PillButton"
+theme_override_font_sizes/font_size = 36
 text = "DartBoard Interface Test"
 
 [node name="Spacer" type="Control" parent="Panel/Layout/Margin/Content/Buttons"]
@@ -145,9 +131,9 @@ layout_mode = 2
 size_flags_vertical = 3
 
 [node name="BackButton" type="Button" parent="Panel/Layout/Margin/Content/Buttons"]
-custom_minimum_size = Vector2(0, 100)
+custom_minimum_size = Vector2(0, 120)
 layout_mode = 2
-theme_override_font_sizes/font_size = 44
+theme_type_variation = &"PillButton"
 text = "Back"
 
 [node name="Selection" type="VBoxContainer" parent="Panel/Layout/Margin/Content"]
@@ -167,7 +153,15 @@ layout_mode = 2
 size_flags_vertical = 3
 horizontal_scroll_mode = 0
 
-[node name="BundleList" type="VBoxContainer" parent="Panel/Layout/Margin/Content/Selection/BundleScroll"]
+[node name="ListMargin" type="MarginContainer" parent="Panel/Layout/Margin/Content/Selection/BundleScroll"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/margin_left = 24
+theme_override_constants/margin_top = 24
+theme_override_constants/margin_right = 24
+theme_override_constants/margin_bottom = 24
+
+[node name="BundleList" type="VBoxContainer" parent="Panel/Layout/Margin/Content/Selection/BundleScroll/ListMargin"]
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_constants/separation = 16
@@ -202,7 +196,7 @@ mouse_filter = 2
 [node name="Dialog" type="PanelContainer" parent="ConfirmOverlay/Center"]
 custom_minimum_size = Vector2(900, 0)
 layout_mode = 2
-theme_override_styles/panel = SubResource("StyleBoxFlat_dialog")
+theme_type_variation = &"DialogPanel"
 
 [node name="Margin" type="MarginContainer" parent="ConfirmOverlay/Center/Dialog"]
 layout_mode = 2
@@ -228,17 +222,17 @@ layout_mode = 2
 theme_override_constants/separation = 32
 
 [node name="NoButton" type="Button" parent="ConfirmOverlay/Center/Dialog/Margin/Content/Buttons"]
-custom_minimum_size = Vector2(0, 110)
+custom_minimum_size = Vector2(0, 120)
 layout_mode = 2
 size_flags_horizontal = 3
-theme_override_font_sizes/font_size = 44
+theme_type_variation = &"PillButton"
 text = "No"
 
 [node name="YesButton" type="Button" parent="ConfirmOverlay/Center/Dialog/Margin/Content/Buttons"]
-custom_minimum_size = Vector2(0, 110)
+custom_minimum_size = Vector2(0, 120)
 layout_mode = 2
 size_flags_horizontal = 3
-theme_override_font_sizes/font_size = 44
+theme_type_variation = &"PillButtonRed"
 text = "Yes"
 
 [node name="DartboardTestOverlay" type="Control" parent="."]
@@ -271,7 +265,7 @@ mouse_filter = 2
 [node name="Dialog" type="PanelContainer" parent="DartboardTestOverlay/Center"]
 custom_minimum_size = Vector2(1100, 0)
 layout_mode = 2
-theme_override_styles/panel = SubResource("StyleBoxFlat_dialog")
+theme_type_variation = &"DialogPanel"
 
 [node name="Margin" type="MarginContainer" parent="DartboardTestOverlay/Center/Dialog"]
 layout_mode = 2
@@ -286,7 +280,8 @@ theme_override_constants/separation = 32
 
 [node name="TitleLabel" type="Label" parent="DartboardTestOverlay/Center/Dialog/Margin/Content"]
 layout_mode = 2
-theme_override_font_sizes/font_size = 44
+theme_type_variation = &"GroupTitle"
+theme_override_font_sizes/font_size = 48
 text = "DartBoard Interface Test"
 horizontal_alignment = 1
 
@@ -308,7 +303,8 @@ vertical_alignment = 1
 autowrap_mode = 3
 
 [node name="CloseButton" type="Button" parent="DartboardTestOverlay/Center/Dialog/Margin/Content"]
-custom_minimum_size = Vector2(0, 110)
+custom_minimum_size = Vector2(400, 120)
 layout_mode = 2
-theme_override_font_sizes/font_size = 44
+size_flags_horizontal = 4
+theme_type_variation = &"PillButton"
 text = "Close"

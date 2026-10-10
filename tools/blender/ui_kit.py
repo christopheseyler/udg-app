@@ -307,19 +307,18 @@ def _rotate(pts, angle: float):
 
 
 def gold_glyph(kind: str, size: float, z: float):
-    """Gold symbol lying on a face: minus, plus, left, right, question, pencil."""
+    """Gold symbol lying on a face: minus, plus, left, right, up, down, question, pencil."""
     gold = mat_gold()
     if kind in ("minus", "plus"):
         t = size * 0.22
         bars = [(size, t)] + ([(t, size)] if kind == "plus" else [])
         return [prism(f"Glyph{i}", rounded_rect(bw, bh, t / 2, 8), z, z + 0.06, gold, 0.02)
                 for i, (bw, bh) in enumerate(bars)]
-    if kind in ("left", "right"):
+    if kind in ("left", "right", "up", "down"):
         s = size / 2
-        tri = [(s * 0.85, 0.0), (-s * 0.6, s * 0.9), (-s * 0.6, -s * 0.9)]
-        if kind == "left":
-            tri = [(-x, y) for x, y in reversed(tri)]
-        return [prism("Glyph", tri, z, z + 0.06, gold, 0.03)]
+        tri = [(s * 0.85, 0.0), (-s * 0.6, s * 0.9), (-s * 0.6, -s * 0.9)]  # pointing right
+        angle = {"right": 0.0, "up": 90.0, "left": 180.0, "down": 270.0}[kind]
+        return [prism("Glyph", _rotate(tri, math.radians(angle)), z, z + 0.06, gold, 0.03)]
     if kind == "pencil":
         L, t = size, size * 0.32
         body = [(L / 2 - t * 0.9, t / 2), (-L / 2, t / 2), (-L / 2, -t / 2), (L / 2 - t * 0.9, -t / 2), (L / 2, 0.0)]
@@ -474,14 +473,15 @@ def button_bar(out: Path, w_px: int = 1760, h_px: int = 168) -> None:
     render(out / "button_bar.png", shadow_offset=6)
 
 
-def panel(out: Path, size_px: int = 256, radius_px: int = 40) -> None:
-    """9-slice source for the big setup panels: gold rim (as thick as the title
-    plaque's), uniform dark slightly see-through face.
+def panel(out: Path, name: str = "panel", alpha: float = 0.85, size_px: int = 256, radius_px: int = 40) -> None:
+    """9-slice source for the big panels: gold rim (as thick as the title
+    plaque's), uniform dark face, slightly see-through by default (opaque
+    variant for dialogs drawn over other content).
     Patch margins: radius_px + rim + PAD on every side."""
     s = size_px / PX
     _scene(size_px, size_px)
-    framed_plate(s, s, radius_px / PX, rim=0.13, lift=0.0, face_mat=mat_dark_flat(0.006, alpha=0.85))
-    render(out / "panel.png", shadow_offset=8)
+    framed_plate(s, s, radius_px / PX, rim=0.13, lift=0.0, face_mat=mat_dark_flat(0.006, alpha=alpha))
+    render(out / f"{name}.png", shadow_offset=8)
 
 
 def row_plate(out: Path, w_px: int = 256, h_px: int = 90) -> None:
@@ -575,7 +575,7 @@ def main() -> None:
     out = Path(args.out).resolve()
     out.mkdir(parents=True, exist_ok=True)
 
-    glyphs = ("minus", "plus", "left", "right", "question")
+    glyphs = ("minus", "plus", "left", "right", "up", "down", "question")
     states = ("normal", "active", "disabled")
     for glyph in glyphs:
         round_button(out, glyph)
@@ -584,6 +584,7 @@ def main() -> None:
     title_plaque(out)
     button_bar(out)
     panel(out)
+    panel(out, "dialog_panel", alpha=1.0)
     row_plate(out)
     value_display(out)
     toggle(out)

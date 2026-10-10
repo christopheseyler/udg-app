@@ -21,23 +21,8 @@ signal name_edit_closed
 ## joueur et le bouton "-" ne descend pas en dessous.
 const MIN_PLAYERS := 1
 
-## Marge transparente rendue autour de chaque element du kit UI (ombre, halo).
-const KIT_PAD := 24
-const MEDALLION_SIZE := 80
 const PENCIL_SIZE := 56
 const PENCIL := preload("res://assets/ui/setup/icon_pencil.png")
-## Medaillons des joueurs, dans l'ordre des couleurs du kit (rouge, vert,
-## bleu, orange, violet, cyan, rose, blanc).
-const MEDALLIONS: Array[Texture2D] = [
-	preload("res://assets/ui/setup/medallion_1.png"),
-	preload("res://assets/ui/setup/medallion_2.png"),
-	preload("res://assets/ui/setup/medallion_3.png"),
-	preload("res://assets/ui/setup/medallion_4.png"),
-	preload("res://assets/ui/setup/medallion_5.png"),
-	preload("res://assets/ui/setup/medallion_6.png"),
-	preload("res://assets/ui/setup/medallion_7.png"),
-	preload("res://assets/ui/setup/medallion_8.png"),
-]
 
 @export var max_players: int = 4
 
@@ -120,14 +105,7 @@ func _make_row(index: int) -> Button:
 	content.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	button.add_child(content)
 
-	var medallion := _kit_image(MEDALLIONS[index % MEDALLIONS.size()], MEDALLION_SIZE)
-	var number := Label.new()
-	number.text = str(index + 1)
-	number.add_theme_font_size_override("font_size", 40)
-	number.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	number.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	number.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	medallion.add_child(number)
+	var medallion := UiKit.medallion(index, index + 1)
 	content.add_child(medallion)
 
 	var name_label := Label.new()
@@ -138,23 +116,10 @@ func _make_row(index: int) -> Button:
 	name_label.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
 	content.add_child(name_label)
 
-	content.add_child(_kit_image(PENCIL, PENCIL_SIZE))
+	content.add_child(UiKit.image(PENCIL, PENCIL_SIZE))
 	for child in content.get_children():
 		child.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	return button
-
-## Image du kit UI affichee a sa taille visuelle : la texture deborde de
-## KIT_PAD de chaque cote (ombre) sans compter dans la mise en page.
-func _kit_image(texture: Texture2D, visual_size: int) -> Control:
-	var holder := Control.new()
-	holder.custom_minimum_size = Vector2(visual_size, visual_size)
-	holder.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	var image := TextureRect.new()
-	image.texture = texture
-	image.position = -Vector2(KIT_PAD, KIT_PAD)
-	image.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	holder.add_child(image)
-	return holder
 
 func _open_edit(index: int) -> void:
 	_editing_index = index

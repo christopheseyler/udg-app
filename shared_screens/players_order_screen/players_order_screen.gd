@@ -8,30 +8,42 @@ extends Control
 ## set_reverse_order(true) (le plus proche joue alors en dernier). Alimenter
 ## la liste via set_players(), recuperer l'ordre de jeu via le signal
 ## order_confirmed (ou get_player_names()).
+## Chaque ligne est une plaque du kit UI : medaillon a la couleur du joueur
+## (celle de son rang dans la configuration) portant son rang actuel, nom et
+## fleches haut / bas.
 
 signal order_confirmed(names: Array[String])
 signal back_pressed
 
 const ROW_HEIGHT := 90
-const ROW_FONT_SIZE := 40
+const ROW_FONT_SIZE := 44
+const MOVE_BUTTON_SIZE := 88
 const INSTRUCTION := "Each player throws one dart as close to the bullseye as possible. The closest goes first: reorder the list below with the arrows."
 const REVERSE_INSTRUCTION := "Each player throws one dart as close to the bullseye as possible. Order the list below from the closest to the farthest with the arrows: the closest goes last."
 
-@onready var instruction_label: Label = $Panel/Layout/Margin/Content/InstructionLabel
-@onready var player_list: VBoxContainer = $Panel/Layout/Margin/Content/Scroll/PlayerList
-@onready var back_button: Button = $Panel/Layout/Margin/Content/Buttons/BackButton
-@onready var confirm_button: Button = $Panel/Layout/Margin/Content/Buttons/ConfirmButton
+@onready var instruction_label: Label = $Panel/Layout/Content/InstructionLabel
+@onready var player_list: VBoxContainer = $Panel/Layout/Content/Scroll/ListMargin/PlayerList
+@onready var back_button: Button = $Panel/Layout/Content/Buttons/BackButton
+@onready var confirm_button: Button = $Panel/Layout/Content/Buttons/ConfirmButton
 
 var _names: Array[String] = []
+## Rang de chaque joueur dans la configuration (couleur de son medaillon),
+## deplace avec son nom.
+var _player_indexes: Array[int] = []
 var _reverse_order := false
 
 func _ready() -> void:
+	PressScale.attach(back_button)
+	PressScale.attach(confirm_button)
 	back_button.pressed.connect(func(): back_pressed.emit())
 	confirm_button.pressed.connect(func(): order_confirmed.emit(get_player_names()))
 	_refresh()
 
 func set_players(names: Array[String]) -> void:
 	_names = names.duplicate()
+	_player_indexes.clear()
+	for i in _names.size():
+		_player_indexes.append(i)
 	_refresh()
 
 ## Ordre inverse (jeux ou le plus proche du centre joue en dernier) : la
@@ -57,6 +69,9 @@ func move_player(index: int, direction: int) -> void:
 	var moved := _names[index]
 	_names[index] = _names[target]
 	_names[target] = moved
+	var moved_index := _player_indexes[index]
+	_player_indexes[index] = _player_indexes[target]
+	_player_indexes[target] = moved_index
 	_refresh()
 
 func _refresh() -> void:
@@ -69,40 +84,41 @@ func _refresh() -> void:
 
 	confirm_button.disabled = _names.is_empty()
 
-func _build_row(index: int) -> HBoxContainer:
-	var row := HBoxContainer.new()
-	row.add_theme_constant_override("separation", 16)
+func _build_row(index: int) -> PanelContainer:
+	var plate := PanelContainer.new()
+	plate.theme_type_variation = &"RowPlate"
+	plate.custom_minimum_size = Vector2(0, ROW_HEIGHT)
 
-	var rank := Label.new()
-	rank.text = "%d." % (index + 1)
-	rank.custom_minimum_size = Vector2(90, ROW_HEIGHT)
-	rank.add_theme_font_size_override("font_size", ROW_FONT_SIZE)
-	rank.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	rank.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	row.add_child(rank)
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 24)
+	plate.add_child(row)
+
+	var player_index := _player_indexes[index] if index < _player_indexes.size() else index
+	row.add_child(UiKit.medallion(player_index, index + 1))
 
 	var name_label := Label.new()
 	name_label.text = _names[index]
 	name_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	name_label.add_theme_font_size_override("font_size", ROW_FONT_SIZE)
 	name_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	name_label.clip_text = true
+	name_label.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
 	row.add_child(name_label)
 
-	var up := _build_move_button("▲", index == 0)
+	var up := _build_move_button(&"RoundUpButton", index == 0)
 	up.pressed.connect(move_player.bind(index, -1))
 	row.add_child(up)
 
-	var down := _build_move_button("▼", index == _names.size() - 1)
+	var down := _build_move_button(&"RoundDownButton", index == _names.size() - 1)
 	down.pressed.connect(move_player.bind(index, 1))
 	row.add_child(down)
 
-	return row
+	return plate
 
-func _build_move_button(text: String, disabled: bool) -> Button:
+func _build_move_button(variation: StringName, disabled: bool) -> Button:
 	var button := Button.new()
-	button.text = text
+	button.theme_type_variation = variation
 	button.disabled = disabled
-	button.custom_minimum_size = Vector2(ROW_HEIGHT, ROW_HEIGHT)
-	button.add_theme_font_size_override("font_size", ROW_FONT_SIZE)
+	button.custom_minimum_size = Vector2(MOVE_BUTTON_SIZE, MOVE_BUTTON_SIZE)
+	button.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	PressScale.attach(button)
 	return button
