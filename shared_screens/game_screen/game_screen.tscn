@@ -3,25 +3,7 @@
 [ext_resource type="Script" uid="uid://botfrrx2enkqa" path="res://shared_screens/game_screen/game_screen.gd" id="1_script"]
 [ext_resource type="Texture2D" uid="uid://nw2qty11nas1" path="res://assets/title_background.png" id="2_bg"]
 [ext_resource type="Texture2D" path="res://assets/game_screen/button_next.png" id="3_next_btn"]
-
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_side"]
-bg_color = Color(0.05, 0.05, 0.08, 0.78)
-corner_radius_top_left = 32
-corner_radius_top_right = 32
-corner_radius_bottom_right = 32
-corner_radius_bottom_left = 32
-
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_bar"]
-bg_color = Color(0.05, 0.05, 0.08, 0.78)
-corner_radius_top_left = 32
-corner_radius_top_right = 32
-
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_dialog"]
-bg_color = Color(0.09, 0.09, 0.13, 1)
-corner_radius_top_left = 32
-corner_radius_top_right = 32
-corner_radius_bottom_right = 32
-corner_radius_bottom_left = 32
+[ext_resource type="Theme" path="res://assets/ui/setup/setup_theme.tres" id="4_theme"]
 
 [node name="GameScreen" type="Control" unique_id=1109840664]
 layout_mode = 3
@@ -30,6 +12,7 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
+theme = ExtResource("4_theme")
 script = ExtResource("1_script")
 
 [node name="Background" type="TextureRect" parent="." unique_id=282533826]
@@ -53,8 +36,8 @@ grow_horizontal = 2
 grow_vertical = 2
 theme_override_constants/margin_left = 24
 theme_override_constants/margin_top = 24
-theme_override_constants/margin_right = 368
-theme_override_constants/margin_bottom = 224
+theme_override_constants/margin_right = 360
+theme_override_constants/margin_bottom = 208
 
 [node name="SidePanel" type="PanelContainer" parent="." unique_id=1162380304]
 layout_mode = 1
@@ -62,13 +45,13 @@ anchors_preset = -1
 anchor_left = 1.0
 anchor_right = 1.0
 anchor_bottom = 1.0
-offset_left = -344.0
-offset_top = 24.0
-offset_right = -24.0
-offset_bottom = -60.0
+offset_left = -336.0
+offset_top = 16.0
+offset_right = -16.0
+offset_bottom = -16.0
 grow_horizontal = 0
 grow_vertical = 2
-theme_override_styles/panel = SubResource("StyleBoxFlat_side")
+theme_type_variation = &"GameSidePanel"
 
 [node name="Margin" type="MarginContainer" parent="SidePanel" unique_id=1180502646]
 layout_mode = 2
@@ -82,8 +65,10 @@ layout_mode = 2
 theme_override_constants/separation = 24
 
 [node name="RoundLabel" type="Label" parent="SidePanel/Margin/Content" unique_id=1312519182]
+custom_minimum_size = Vector2(0, 80)
 layout_mode = 2
-theme_override_font_sizes/font_size = 48
+theme_type_variation = &"ValueDisplay"
+theme_override_font_sizes/font_size = 44
 text = "Round #1"
 horizontal_alignment = 1
 vertical_alignment = 1
@@ -108,11 +93,13 @@ anchors_preset = 12
 anchor_top = 1.0
 anchor_right = 1.0
 anchor_bottom = 1.0
-offset_top = -200.0
-offset_right = -372.0
+offset_left = 16.0
+offset_top = -184.0
+offset_right = -352.0
+offset_bottom = -16.0
 grow_horizontal = 2
 grow_vertical = 0
-theme_override_styles/panel = SubResource("StyleBoxFlat_bar")
+theme_type_variation = &"GameBar"
 
 [node name="Margin" type="MarginContainer" parent="BottomBar" unique_id=1542031066]
 layout_mode = 2
@@ -123,27 +110,31 @@ theme_override_constants/margin_bottom = 24
 
 [node name="Buttons" type="HBoxContainer" parent="BottomBar/Margin" unique_id=1640309207]
 layout_mode = 2
-theme_override_constants/separation = 32
+theme_override_constants/separation = 48
 
 [node name="BackButton" type="Button" parent="BottomBar/Margin/Buttons" unique_id=1974761495]
-custom_minimum_size = Vector2(320, 120)
+custom_minimum_size = Vector2(300, 120)
 layout_mode = 2
-theme_override_font_sizes/font_size = 44
+theme_type_variation = &"PillButton"
 text = "Back"
 
 [node name="CancelHitButton" type="Button" parent="BottomBar/Margin/Buttons" unique_id=164312371]
-custom_minimum_size = Vector2(280, 120)
+custom_minimum_size = Vector2(300, 120)
 layout_mode = 2
-theme_override_font_sizes/font_size = 44
+theme_type_variation = &"PillButton"
 text = "Cancel"
 
 [node name="GameNameLabel" type="Label" parent="BottomBar/Margin/Buttons" unique_id=948003211]
+custom_minimum_size = Vector2(0, 80)
 layout_mode = 2
 size_flags_horizontal = 3
-size_flags_vertical = 1
+size_flags_vertical = 4
+theme_type_variation = &"ValueDisplay"
 theme_override_font_sizes/font_size = 44
 text = "Game Name"
+horizontal_alignment = 1
 vertical_alignment = 1
+text_overrun_behavior = 3
 
 [node name="ConfirmOverlay" type="Control" parent="." unique_id=832388185]
 visible = false
@@ -175,7 +166,7 @@ mouse_filter = 2
 [node name="Dialog" type="PanelContainer" parent="ConfirmOverlay/Center" unique_id=2121655434]
 custom_minimum_size = Vector2(900, 0)
 layout_mode = 2
-theme_override_styles/panel = SubResource("StyleBoxFlat_dialog")
+theme_type_variation = &"DialogPanel"
 
 [node name="Margin" type="MarginContainer" parent="ConfirmOverlay/Center/Dialog" unique_id=1620216318]
 layout_mode = 2
@@ -197,20 +188,19 @@ vertical_alignment = 1
 
 [node name="Buttons" type="HBoxContainer" parent="ConfirmOverlay/Center/Dialog/Margin/Content" unique_id=1208320011]
 layout_mode = 2
-theme_override_constants/separation = 32
+theme_override_constants/separation = 80
+alignment = 1
 
 [node name="StayButton" type="Button" parent="ConfirmOverlay/Center/Dialog/Margin/Content/Buttons" unique_id=55752056]
-custom_minimum_size = Vector2(0, 110)
+custom_minimum_size = Vector2(300, 120)
 layout_mode = 2
-size_flags_horizontal = 3
-theme_override_font_sizes/font_size = 44
+theme_type_variation = &"PillButton"
 text = "Cancel"
 
 [node name="LeaveButton" type="Button" parent="ConfirmOverlay/Center/Dialog/Margin/Content/Buttons" unique_id=1309154873]
-custom_minimum_size = Vector2(0, 110)
+custom_minimum_size = Vector2(300, 120)
 layout_mode = 2
-size_flags_horizontal = 3
-theme_override_font_sizes/font_size = 44
+theme_type_variation = &"PillButtonRed"
 text = "Leave"
 
 [node name="NextButton" type="TextureButton" parent="." unique_id=2119518528]
@@ -220,10 +210,10 @@ anchor_left = 1.0
 anchor_top = 1.0
 anchor_right = 1.0
 anchor_bottom = 1.0
-offset_left = -299.0
-offset_top = -248.0
-offset_right = -69.0
-offset_bottom = -18.0
+offset_left = -291.0
+offset_top = -270.0
+offset_right = -61.0
+offset_bottom = -40.0
 grow_horizontal = 0
 grow_vertical = 0
 pivot_offset = Vector2(115, 115)

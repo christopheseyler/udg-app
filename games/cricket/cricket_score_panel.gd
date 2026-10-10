@@ -49,9 +49,6 @@ const ROW_SIZES := [
 const SCORE_COLUMN_WIDTH := 170.0
 const CELL_PADDING := Vector2(16, 8)
 const SLOT_PADDING := Vector2(12, 8)
-const HIGHLIGHT_COLOR := Color(0.95, 0.75, 0.2, 0.38)
-const NORMAL_COLOR := Color(1, 1, 1, 0.05)
-const HEADER_COLOR := Color(1, 1, 1, 0.0)
 const VALUE_COLOR := Color(1.0, 0.82, 0.25)
 ## Joueur sorti du jeu (gagne ou elimine) : nom, score et marques grises.
 const OUT_MODULATE := Color(0.55, 0.55, 0.55, 0.6)
@@ -84,7 +81,8 @@ var _value_labels: Array[Label] = []
 var _value_texts: Array[String] = []
 var _value_tweens: Array[Tween] = []
 var _value_pool: Array = []
-var _row_styles: Array[Array] = []
+## Plaques des lignes (creees au premier set_players).
+var _row_plates: ScoreRowPlates
 var _name_labels: Array[Label] = []
 var _score_labels: Array[Label] = []
 var _slots: Array[Array] = []
@@ -113,7 +111,8 @@ func set_players(names: Array[String], value_pool: Array) -> void:
 	_value_labels.clear()
 	_value_texts.clear()
 	_value_tweens.clear()
-	_row_styles.clear()
+	if _row_plates == null:
+		_row_plates = ScoreRowPlates.new(grid, 1)
 	_name_labels.clear()
 	_score_labels.clear()
 	_slots.clear()
@@ -131,29 +130,25 @@ func set_players(names: Array[String], value_pool: Array) -> void:
 	grid.columns = 3 + CricketRules.TARGET_COUNT
 
 	# En-tete : colonnes d'etat, de nom et de score vides, puis les valeurs.
-	var header_styles: Array[StyleBoxFlat] = []
-	_add_cell(Control.new(), slot_size.x, CELL_PADDING, header_styles)
-	_add_cell(Control.new(), 0.0, CELL_PADDING, header_styles).size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	_add_cell(Control.new(), SCORE_COLUMN_WIDTH, CELL_PADDING, header_styles)
+	_add_cell(Control.new(), slot_size.x, CELL_PADDING)
+	_add_cell(Control.new(), 0.0, CELL_PADDING).size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_add_cell(Control.new(), SCORE_COLUMN_WIDTH, CELL_PADDING)
 	for i in CricketRules.TARGET_COUNT:
 		var label := _make_label("", _sizes.value, HORIZONTAL_ALIGNMENT_CENTER)
 		label.add_theme_color_override("font_color", VALUE_COLOR)
 		label.add_theme_color_override("font_outline_color", Color.BLACK)
 		label.add_theme_constant_override("outline_size", 10)
-		var holder := _add_animated(label, slot_size.x, SLOT_PADDING, header_styles)
+		var holder := _add_animated(label, slot_size.x, SLOT_PADDING)
 		holder.custom_minimum_size.y = _sizes.value * 1.2
 		_value_labels.append(label)
 		_value_texts.append("")
 		_value_tweens.append(null)
-	for style in header_styles:
-		style.bg_color = HEADER_COLOR
 
 	for player_name in names:
-		var styles: Array[StyleBoxFlat] = []
-		_add_status_cell(slot_size, styles)
-		_add_name_cell(player_name, styles)
+		_add_status_cell(slot_size)
+		_add_name_cell(player_name)
 		var score_label := _make_label("0", _sizes.score, HORIZONTAL_ALIGNMENT_CENTER)
-		_add_cell(score_label, SCORE_COLUMN_WIDTH, CELL_PADDING, styles)
+		_add_cell(score_label, SCORE_COLUMN_WIDTH, CELL_PADDING)
 		_score_labels.append(score_label)
 		var slots: Array[TextureRect] = []
 		for i in CricketRules.TARGET_COUNT:
@@ -162,14 +157,13 @@ func set_players(names: Array[String], value_pool: Array) -> void:
 			slot.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 			slot.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 			slot.texture = _slot_textures[Slot.EMPTY]
-			_add_cell(slot, slot_size.x, SLOT_PADDING, styles)
+			_add_cell(slot, slot_size.x, SLOT_PADDING)
 			slots.append(slot)
 		_slots.append(slots)
-		_row_styles.append(styles)
 
 ## Colonne d'etat : coupe du rang (icone pour les 3 premiers, "#x" sinon) ou
 ## bouclier, superposes dans la meme case.
-func _add_status_cell(slot_size: Vector2, styles: Array[StyleBoxFlat]) -> void:
+func _add_status_cell(slot_size: Vector2) -> void:
 	var holder := Control.new()
 	holder.custom_minimum_size = slot_size
 	var icon := TextureRect.new()
@@ -188,14 +182,14 @@ func _add_status_cell(slot_size: Vector2, styles: Array[StyleBoxFlat]) -> void:
 	shield.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	shield.set_anchors_preset(Control.PRESET_FULL_RECT)
 	holder.add_child(shield)
-	_add_cell(holder, slot_size.x, CELL_PADDING, styles)
+	_add_cell(holder, slot_size.x, CELL_PADDING)
 	_rank_icons.append(icon)
 	_rank_labels.append(rank)
 	_shields.append(shield)
 
 ## Case du nom, avec le tampon "ELIMINATED" par-dessus (masque par defaut),
 ## dessine au-dessus des cases voisines qu'il deborde.
-func _add_name_cell(player_name: String, styles: Array[StyleBoxFlat]) -> void:
+func _add_name_cell(player_name: String) -> void:
 	var holder := Control.new()
 	holder.custom_minimum_size.y = _sizes.slot
 	var label := _make_label(player_name, _sizes.name, HORIZONTAL_ALIGNMENT_LEFT)
@@ -216,7 +210,7 @@ func _add_name_cell(player_name: String, styles: Array[StyleBoxFlat]) -> void:
 	stamp.visible = false
 	stamp.resized.connect(func(): stamp.pivot_offset = stamp.size / 2.0)
 	holder.add_child(stamp)
-	var cell := _add_cell(holder, 0.0, CELL_PADDING, styles)
+	var cell := _add_cell(holder, 0.0, CELL_PADDING)
 	cell.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_name_labels.append(label)
 	_stamps.append(stamp)
@@ -232,7 +226,7 @@ func set_values(values: Array, animated: Array = []) -> void:
 			_roll_value(i, text)
 		elif text != _value_texts[i]:
 			_stop_value_tween(i)
-			_value_labels[i].text = text
+			_set_value_text(_value_labels[i], text)
 		_value_texts[i] = text
 
 func _roll_value(index: int, text: String) -> void:
@@ -240,16 +234,27 @@ func _roll_value(index: int, text: String) -> void:
 	var label := _value_labels[index]
 	var tween := create_tween()
 	for _step in int(VALUE_ROLL_DURATION / VALUE_ROLL_STEP):
-		tween.tween_callback(func(): label.text = str(_value_pool.pick_random()))
+		tween.tween_callback(func(): _set_value_text(label, str(_value_pool.pick_random())))
 		tween.tween_interval(VALUE_ROLL_STEP)
 	tween.tween_callback(func():
-		label.text = text
+		_set_value_text(label, text)
 		label.scale = Vector2.ONE * VALUE_POP_SCALE
 		label.modulate = VALUE_FLASH_COLOR)
 	tween.tween_property(label, "scale", Vector2.ONE, VALUE_POP_DURATION) \
 		.set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
 	tween.parallel().tween_property(label, "modulate", Color.WHITE, VALUE_POP_DURATION)
 	_value_tweens[index] = tween
+
+## Affiche une valeur de cible, en reduisant la police si le texte ("Bull")
+## est plus large que sa colonne : il deborderait sur le cadre du panneau.
+func _set_value_text(label: Label, text: String) -> void:
+	label.text = text
+	var font_size: int = _sizes.value
+	var width := label.get_theme_font("font").get_string_size(text, HORIZONTAL_ALIGNMENT_LEFT, -1, font_size).x
+	var room: float = _sizes.slot + 2.0 * SLOT_PADDING.x
+	if width > room:
+		font_size = int(font_size * room / width)
+	label.add_theme_font_size_override("font_size", font_size)
 
 func _stop_value_tween(index: int) -> void:
 	if _value_tweens[index]:
@@ -285,10 +290,7 @@ func set_row(index: int, score: int, slots: Array, bull_locked: bool, rank: int,
 		_stamps[index].visible = true
 
 func set_current_player(index: int) -> void:
-	for i in _row_styles.size():
-		var color := HIGHLIGHT_COLOR if i == index else NORMAL_COLOR
-		for style: StyleBoxFlat in _row_styles[i]:
-			style.bg_color = color
+	_row_plates.set_current(index)
 
 ## Fait frapper le tampon "ELIMINATED" sur le nom des joueurs indices :
 ## il tombe en retrecissant, la ligne tremble sous le choc, puis il reste.
@@ -331,24 +333,23 @@ func _make_label(text: String, font_size: int, align: HorizontalAlignment) -> La
 
 ## Contenu anime (echelle) : place dans un controle simple plutot que
 ## directement dans la case, dont la mise en page remettrait l'echelle a 1.
-func _add_animated(content: Control, min_width: float, padding: Vector2, styles: Array[StyleBoxFlat]) -> Control:
+func _add_animated(content: Control, min_width: float, padding: Vector2) -> Control:
 	var holder := Control.new()
 	content.set_anchors_preset(Control.PRESET_FULL_RECT)
 	content.resized.connect(func(): content.pivot_offset = content.size / 2.0)
 	holder.add_child(content)
-	_add_cell(holder, min_width, padding, styles)
+	_add_cell(holder, min_width, padding)
 	return holder
 
-## Ajoute une cellule (fond + contenu) a la grille ; min_width > 0 fixe sa
+## Ajoute une cellule (contenu, sans fond : voir ScoreRowPlates) a la grille ; min_width > 0 fixe sa
 ## largeur.
-func _add_cell(content: Control, min_width: float, padding: Vector2, styles: Array[StyleBoxFlat]) -> PanelContainer:
+func _add_cell(content: Control, min_width: float, padding: Vector2) -> PanelContainer:
 	var style := StyleBoxFlat.new()
-	style.bg_color = NORMAL_COLOR
+	style.draw_center = false
 	style.content_margin_left = padding.x
 	style.content_margin_right = padding.x
 	style.content_margin_top = padding.y
 	style.content_margin_bottom = padding.y
-	styles.append(style)
 
 	var cell := PanelContainer.new()
 	cell.add_theme_stylebox_override("panel", style)

@@ -164,6 +164,8 @@ func _ready() -> void:
 	ranking_screen = RANKING_SCREEN.instantiate()
 	add_child(ranking_screen)
 
+	for button in [back_button, cancel_hit_button, stay_button, leave_button]:
+		PressScale.attach(button)
 	back_button.pressed.connect(func(): confirm_overlay.visible = true)
 	stay_button.pressed.connect(func(): confirm_overlay.visible = false)
 	leave_button.pressed.connect(_on_leave_pressed)

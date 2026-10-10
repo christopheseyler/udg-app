@@ -139,13 +139,16 @@ FACE_TEXTURES, FACE_TILE = TEXTURES / "used-stainless-steel2", 8.0  # button fac
 BAR_TEXTURES, BAR_TILE = TEXTURES / "knights-armor", 18.0  # bottom button bar
 
 
-def mat_textured(folder: Path, tile: float):
-    """Principled material from a PBR texture set, projected top-down (object XY)."""
+def mat_textured(folder: Path, tile: float, rotation: float = 0.0):
+    """Principled material from a PBR texture set, projected top-down (object XY),
+    repeated every `tile` units and turned by `rotation` degrees (hides the
+    repetition on tall plates)."""
     mat, bsdf = _principled("Textured", (1, 1, 1), 1.0, 0.5)
     nodes, links = mat.node_tree.nodes, mat.node_tree.links
     coords = nodes.new("ShaderNodeTexCoord")
     mapping = nodes.new("ShaderNodeMapping")
     mapping.inputs["Scale"].default_value = (1 / tile,) * 3
+    mapping.inputs["Rotation"].default_value = (0.0, 0.0, math.radians(rotation))
     links.new(coords.outputs["Object"], mapping.inputs["Vector"])
 
     def find(*suffixes: str) -> Path | None:
@@ -532,13 +535,15 @@ def title_plaque(out: Path, w_px: int = 640, h_px: int = 120) -> None:
     render(out / "title_plaque.png")
 
 
-def button_bar(out: Path, w_px: int = 1760, h_px: int = 168) -> None:
-    """Background of the bottom button bar (knights armor face), rendered at its
-    real on-screen size so the texture is never stretched."""
+def button_bar(out: Path, w_px: int = 1760, h_px: int = 168, name: str = "button_bar",
+               tile: float = BAR_TILE, rotation: float = 0.0) -> None:
+    """Knights armor plate with a gold rim: bottom button bars and the game screen
+    side panel. Rendered at its real on-screen size so the texture is never
+    stretched."""
     w, h = w_px / PX, h_px / PX
     _scene(w_px, h_px)
-    framed_plate(w, h, 0.4, rim=0.10, lift=0.0, face_mat=mat_textured(BAR_TEXTURES, BAR_TILE))
-    render(out / "button_bar.png", shadow_offset=6)
+    framed_plate(w, h, 0.4, rim=0.10, lift=0.0, face_mat=mat_textured(BAR_TEXTURES, tile, rotation))
+    render(out / f"{name}.png", shadow_offset=6)
 
 
 def panel(out: Path, name: str = "panel", alpha: float = 0.85, size_px: int = 256, radius_px: int = 40) -> None:
@@ -552,15 +557,20 @@ def panel(out: Path, name: str = "panel", alpha: float = 0.85, size_px: int = 25
     render(out / f"{name}.png", shadow_offset=8)
 
 
-def row_plate(out: Path, w_px: int = 256, h_px: int = 90) -> None:
-    """9-slice source for list rows (players, options): thin gold edge.
-    Patch margins: 24 + PAD left/right, 0 top/bottom stretch is not needed."""
+def row_plate(out: Path, w_px: int = 256, h_px: int = 90, active: bool = False) -> None:
+    """9-slice source for list rows (players, options, score tables): thin frame
+    in the control style, dark face; active = face lit by a warm light (current
+    player of the score tables)."""
     w, h = w_px / PX, h_px / PX
     _scene(w_px, h_px)
-    control_plate(w, h, 0.18, rim=0.04, lift=0.0, face_mat=mat_dark_flat(0.012),
+    face = mat_dark_flat(0.012)
+    if active:
+        face, bsdf = _principled("WarmFace", (0.05, 0.028, 0.006), 0.0, 0.4)
+        bsdf.inputs["Emission Color"].default_value = (1.0, 0.55, 0.12, 1.0)
+        bsdf.inputs["Emission Strength"].default_value = 0.09
+    control_plate(w, h, 0.18, rim=0.04, lift=0.0, face_mat=face,
                   rim_height=0.06, face_height=0.04, framed=True)
-    render(out / "row_plate_normal.png", shadow_offset=4)
-    _states(out, "row_plate", disabled=False)
+    render(out / f"row_plate_{'active' if active else 'normal'}.png", shadow_offset=4)
 
 
 def value_display(out: Path, w_px: int = 240, h_px: int = 80) -> None:
@@ -695,6 +705,17 @@ def contact_sheet(out: Path, files: list[Path], cols: int, name: str) -> None:
     _save(sheet, out / f"_preview_{name}.png")
 
 
+# Elements that can be rendered alone with --elements.
+SINGLE_ELEMENTS = {
+    "button_bar": button_bar,
+    "game_bar": lambda out: button_bar(out, 1552, 168, "game_bar"),
+    "game_side_panel": lambda out: button_bar(out, 320, 1048, "game_side_panel", tile=12.0, rotation=17.0),
+    "row_plate_active": lambda out: row_plate(out, active=True),
+    "title_plaque": title_plaque,
+    "spinner": spinner,
+}
+
+
 def main() -> None:
     argv = sys.argv[sys.argv.index("--") + 1:] if "--" in sys.argv else []
     p = argparse.ArgumentParser()
@@ -703,11 +724,17 @@ def main() -> None:
                    help="look of the buttons, option arrows, row plates and toggles")
     p.add_argument("--only-controls", action="store_true",
                    help="render only the elements affected by --controls")
+    p.add_argument("--elements", nargs="+", choices=sorted(SINGLE_ELEMENTS),
+                   help="render only these elements")
     args = p.parse_args(argv)
     global STYLE
     STYLE = CONTROL_STYLES[args.controls]
     out = Path(args.out).resolve()
     out.mkdir(parents=True, exist_ok=True)
+    if args.elements:
+        for element in args.elements:
+            SINGLE_ELEMENTS[element](out)
+        return
 
     glyphs = ("minus", "plus", "left", "right", "up", "down", "question")
     states = ("normal", "active", "disabled")
@@ -716,6 +743,7 @@ def main() -> None:
     pill_button(out, red=False)
     pill_button(out, red=True)
     row_plate(out)
+    row_plate(out, active=True)
     value_display(out)
     spinner(out)
     toggle(out)
@@ -730,6 +758,8 @@ def main() -> None:
         return
     title_plaque(out)
     button_bar(out)
+    SINGLE_ELEMENTS["game_bar"](out)
+    SINGLE_ELEMENTS["game_side_panel"](out)
     panel(out)
     panel(out, "dialog_panel", alpha=1.0)
     for i, color in enumerate(PLAYER_COLORS, 1):

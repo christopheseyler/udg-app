@@ -106,6 +106,12 @@ props.append(f"SetupPanel/styles/panel = {stylebox('panel', (PAD + 56, PAD + 56)
 props.append('DialogPanel/base_type = &"PanelContainer"')
 props.append(f"DialogPanel/styles/panel = {stylebox('dialog_panel', (PAD + 56, PAD + 56), (48, 24, 48, 32))}")
 
+# Game screen: bottom bar (1552x168) and side panel (320x1048), knights armor
+# plates rendered at their real size (only a few pixels stretch).
+for variation, name in (("GameBar", "game_bar"), ("GameSidePanel", "game_side_panel")):
+    props.append(f'{variation}/base_type = &"PanelContainer"')
+    props.append(f"{variation}/styles/panel = {stylebox(name, (PAD + 40, PAD + 40), (0, 0, 0, 0))}")
+
 # Title plaque (640x120 visual), title drawn by a Label child.
 props.append('TitlePlaque/base_type = &"PanelContainer"')
 props.append(f"TitlePlaque/styles/panel = {stylebox('title_plaque', (PAD + 50, PAD + 59), (40, 8, 40, 8))}")

@@ -25,13 +25,12 @@ const ROW_SIZES := [
 	{"players": 0, "name": 56, "score": 64, "hint": 36, "pad": 20},
 ]
 const CELL_PADDING_X := 24.0
-const HIGHLIGHT_COLOR := Color(0.95, 0.75, 0.2, 0.38)
-const NORMAL_COLOR := Color(1, 1, 1, 0.05)
 
 @onready var grid: GridContainer = $Margin/Scroll/Grid
 
 var _sizes: Dictionary = ROW_SIZES[-1]
-var _row_styles: Array[Array] = []
+## Plaques des lignes (creees au premier set_players).
+var _row_plates: ScoreRowPlates
 var _score_labels: Array[Label] = []
 var _hint_labels: Array[Label] = []
 var _arrows: Array[TextureRect] = []
@@ -52,7 +51,8 @@ func set_players(names: Array[String], show_direction: bool) -> void:
 	for child in grid.get_children():
 		grid.remove_child(child)
 		child.queue_free()
-	_row_styles.clear()
+	if _row_plates == null:
+		_row_plates = ScoreRowPlates.new(grid)
 	_score_labels.clear()
 	_hint_labels.clear()
 	_arrows.clear()
@@ -64,8 +64,7 @@ func set_players(names: Array[String], show_direction: bool) -> void:
 	grid.columns = 4 + int(show_direction)
 
 	for player_name in names:
-		var styles: Array[StyleBoxFlat] = []
-		var name_label := _add_label_cell(player_name, _sizes.name, HORIZONTAL_ALIGNMENT_LEFT, styles)
+		var name_label := _add_label_cell(player_name, _sizes.name, HORIZONTAL_ALIGNMENT_LEFT)
 		name_label.clip_text = true
 		name_label.get_parent().size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		name_label.get_parent().size_flags_stretch_ratio = 3.0
@@ -74,21 +73,20 @@ func set_players(names: Array[String], show_direction: bool) -> void:
 			arrow.custom_minimum_size = ICON_SIZE
 			arrow.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 			arrow.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-			_add_cell(arrow, ICON_COLUMN_WIDTH, styles)
+			_add_cell(arrow, ICON_COLUMN_WIDTH)
 			_arrows.append(arrow)
-		var score_label := _add_label_cell("", _sizes.score, HORIZONTAL_ALIGNMENT_CENTER, styles)
+		var score_label := _add_label_cell("", _sizes.score, HORIZONTAL_ALIGNMENT_CENTER)
 		score_label.get_parent().custom_minimum_size.x = SCORE_COLUMN_WIDTH
 		_score_labels.append(score_label)
 		var bolt := ZapBolt.new()
 		bolt.custom_minimum_size = ICON_SIZE
-		_add_cell(bolt, ICON_COLUMN_WIDTH, styles)
+		_add_cell(bolt, ICON_COLUMN_WIDTH)
 		_bolts.append(bolt)
-		var hint_label := _add_label_cell("", _sizes.hint, HORIZONTAL_ALIGNMENT_LEFT, styles)
+		var hint_label := _add_label_cell("", _sizes.hint, HORIZONTAL_ALIGNMENT_LEFT)
 		hint_label.get_parent().size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		hint_label.get_parent().size_flags_stretch_ratio = 4.0
 		hint_label.modulate.a = 0.85
 		_hint_labels.append(hint_label)
-		_row_styles.append(styles)
 
 ## Met a jour la ligne d'un joueur. score_text : son score ou "Out" ;
 ## direction : +1 (vers 321), -1 (vers 0), 0 pour ne pas afficher de fleche ;
@@ -101,30 +99,26 @@ func set_row(index: int, score_text: String, direction: int, zap_state: ZapBolt.
 	_bolts[index].set_state(zap_state)
 
 func set_current_player(index: int) -> void:
-	for i in _row_styles.size():
-		var color := HIGHLIGHT_COLOR if i == index else NORMAL_COLOR
-		for style: StyleBoxFlat in _row_styles[i]:
-			style.bg_color = color
+	_row_plates.set_current(index)
 
-func _add_label_cell(text: String, font_size: int, align: HorizontalAlignment, styles: Array[StyleBoxFlat]) -> Label:
+func _add_label_cell(text: String, font_size: int, align: HorizontalAlignment) -> Label:
 	var label := Label.new()
 	label.text = text
 	label.add_theme_font_size_override("font_size", font_size)
 	label.horizontal_alignment = align
 	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	_add_cell(label, 0.0, styles)
+	_add_cell(label, 0.0)
 	return label
 
-## Ajoute une cellule (fond + contenu) a la grille ; min_width > 0 fixe sa
+## Ajoute une cellule (contenu, sans fond : voir ScoreRowPlates) a la grille ; min_width > 0 fixe sa
 ## largeur.
-func _add_cell(content: Control, min_width: float, styles: Array[StyleBoxFlat]) -> PanelContainer:
+func _add_cell(content: Control, min_width: float) -> PanelContainer:
 	var style := StyleBoxFlat.new()
-	style.bg_color = NORMAL_COLOR
+	style.draw_center = false
 	style.content_margin_left = CELL_PADDING_X
 	style.content_margin_right = CELL_PADDING_X
 	style.content_margin_top = float(_sizes.pad)
 	style.content_margin_bottom = float(_sizes.pad)
-	styles.append(style)
 
 	var cell := PanelContainer.new()
 	cell.add_theme_stylebox_override("panel", style)
