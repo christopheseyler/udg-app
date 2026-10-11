@@ -84,6 +84,7 @@ func setup(players: Array[String], options: Dictionary) -> void:
 	for i in _players.size():
 		_refresh_row(i)
 	score_panel.set_current_player(_current_player)
+	announce_player(_current_player)
 
 ## Jet detecte : ajoute le jet au tour en cours et rafraichit l'aperçu du
 ## score (la valeur n'est appliquee qu'a la fin du tour, voir
@@ -142,6 +143,7 @@ func _advance_and_start_turn() -> void:
 	_turn_finalized = false
 	score_panel.set_target(_target_label(_current_target()))
 	score_panel.set_current_player(_current_player)
+	announce_player(_current_player)
 	for i in _players.size():
 		_refresh_row(i)
 

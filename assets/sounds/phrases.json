@@ -1,0 +1,20 @@
+{
+  "voice": "marin",
+  "model": "gpt-4o-mini-tts",
+  "instructions": "Female British English voice. Sound like an electrifying Las Vegas casino host hyping up a packed, roaring crowd: bursting with enthusiasm, high energy and big showmanship. Explosive, punchy delivery that builds and erupts on the key word, as if a jackpot just hit. Loud, thrilled and larger than life, while staying crisp and clear.",
+  "phrases": {
+    "player_01": { "text": "Player one!",   "emphasis": "one" },
+    "player_02": { "text": "Player two!",   "emphasis": "two" },
+    "player_03": { "text": "Player three!", "emphasis": "three" },
+    "player_04": { "text": "Player four!",  "emphasis": "four" },
+    "player_05": { "text": "Player five!",  "emphasis": "five" },
+    "player_06": { "text": "Player six!",   "emphasis": "six" },
+    "player_07": { "text": "Player seven!", "emphasis": "seven" },
+    "player_08": { "text": "Player eight!", "emphasis": "eight" },
+    "game_shot": { "text": "And we have a winner!", "emphasis": "winner" },
+    "bust": { "text": "Bust!", "emphasis": "Bust" },
+    "remove_darts": { "text": "Please collect your darts." },
+    "next_player": { "text": "Next player." },
+    "zap": { "text": "Zap !", "emphasis": "Zap" }
+  }
+}

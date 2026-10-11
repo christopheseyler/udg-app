@@ -144,6 +144,7 @@ func setup(players: Array[String], options: Dictionary) -> void:
 	for i in _players.size():
 		_refresh_row(i)
 	score_panel.set_current_player(_current_player)
+	announce_player(_current_player)
 
 ## Jet detecte : ajoute le jet au tour en cours, recalcule l'etat complet
 ## (voir _apply_turn_state) puis affiche le jet comme d'habitude. Termine le
@@ -222,6 +223,7 @@ func _advance_and_start_turn() -> void:
 	_turn_hits = []
 	_start_turn_snapshot()
 	score_panel.set_current_player(_current_player)
+	announce_player(_current_player)
 	# La dette vient de changer (remboursee ou reduite par un saut) sans
 	# passer par _apply_turn_state() : rafraichir explicitement, sinon les
 	# gommettes restent affichees avec l'ancienne valeur jusqu'au prochain

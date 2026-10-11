@@ -184,6 +184,7 @@ func setup(players: Array[String], options: Dictionary) -> void:
 	score_panel.set_players(_players, _both_ways)
 	_refresh_rows()
 	score_panel.set_current_player(_current_player)
+	announce_player(_current_player)
 
 ## Jet detecte : ajoute le jet au tour, recalcule l'etat (voir
 ## _apply_turn_state) et l'affiche. Un rebond (sauf option), un zop ou une
@@ -275,6 +276,7 @@ func _advance_and_start_turn() -> void:
 		return
 	_start_turn()
 	score_panel.set_current_player(_current_player)
+	announce_player(_current_player)
 	_refresh_rows()
 
 ## Cancel hit avec le tour courant vide : rouvre le tour precedent tel qu'il

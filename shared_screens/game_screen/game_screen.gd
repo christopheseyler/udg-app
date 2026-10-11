@@ -30,7 +30,9 @@ extends Control
 ## - finish_game() termine la partie avec le classement final de tous les
 ##   joueurs (voir rank_standings) : apres l'eventuelle annonce en cours,
 ##   l'ecran de classement (RankingScreen) s'affiche, puis ramene a la
-##   configuration de la partie quand il se ferme.
+##   configuration de la partie quand il se ferme ;
+## - announce_player() joue l'annonce vocale du joueur dont c'est le tour ;
+##   "Please collect your darts" accompagne l'ecran "Remove your darts".
 ## Pilote aussi la carte d'interface reelle (DartInputManager) : chaque debut
 ## de tour (reset_turn()) et chaque jet tant qu'il en reste (add_throw())
 ## arme l'attente d'un jet ; la fin du tour (_start_remove_darts(), donc
@@ -92,6 +94,12 @@ const BADGE_APPEAR_DELAY := 0.1
 ## l'animation du jet se terminer (voir start_remove_darts_after_throw).
 const REMOVE_DARTS_DELAY := 0.8
 
+## Annonces vocales (voir assets/sounds/generate_voice.py) : "Player one!"
+## a "Player eight!" (player_01.wav a player_08.wav, numerotes dans l'ordre de
+## passage) et "Please collect your darts." au debut de "Remove your darts".
+const PLAYER_ANNOUNCE_PATH := "res://assets/sounds/player_%02d.wav"
+const REMOVE_DARTS_SOUND := preload("res://assets/sounds/remove_darts.wav")
+
 ## Duree (secondes) du decompte "Remove your darts" entre deux tours.
 @export var remove_darts_duration: float = 5.0
 
@@ -152,8 +160,13 @@ var _throws_serial := 0
 ## Derniere demande de "Remove your darts" differe : seule elle aboutit.
 var _remove_darts_request := 0
 var _next_pulse_tween: Tween
+## Une seule voix a la fois : une nouvelle annonce coupe la precedente (ex.
+## Next presse pendant "Please collect your darts").
+var _announcer: AudioStreamPlayer
 
 func _ready() -> void:
+	_announcer = AudioStreamPlayer.new()
+	add_child(_announcer)
 	remove_darts_screen = REMOVE_DARTS_SCREEN.instantiate()
 	add_child(remove_darts_screen)
 	# Sous le bouton Next : il reste visible et cliquable pendant "Remove your
@@ -199,6 +212,18 @@ func _on_dart_hit(hit: DartHit) -> void:
 ## options choisies dans l'ecran de selection. A surcharger par chaque jeu.
 func setup(_players: Array[String], _options: Dictionary) -> void:
 	pass
+
+## Annonce vocale du joueur dont c'est le tour (index dans l'ordre de passage,
+## 0 = "Player one!"). A appeler par le jeu au debut de chaque tour, pas quand
+## Cancel hit revient au joueur precedent. Sans effet au-dela du huitieme.
+func announce_player(index: int) -> void:
+	var path := PLAYER_ANNOUNCE_PATH % (index + 1)
+	if ResourceLoader.exists(path):
+		_play_announce(load(path))
+
+func _play_announce(stream: AudioStream) -> void:
+	_announcer.stream = stream
+	_announcer.play()
 
 ## Annonce que player_names (plusieurs noms = ex aequo) terminent a la place
 ## rank (1 = victoire) : ecran PlayerWinsScreen, jets bloques tant qu'il est
@@ -347,6 +372,7 @@ func _start_remove_darts() -> void:
 		return
 	remove_darts_screen.start(remove_darts_duration)
 	_set_next_button_pulse(true)
+	_play_announce(REMOVE_DARTS_SOUND)
 
 func _set_next_button_pulse(active: bool) -> void:
 	if _next_pulse_tween:

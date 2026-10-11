@@ -89,6 +89,7 @@ func setup(players: Array[String], options: Dictionary) -> void:
 	score_panel.set_values(_state.values, drawn)
 	_refresh_rows()
 	score_panel.set_current_player(_current_player)
+	announce_player(_current_player)
 
 func set_round(number: int) -> void:
 	super.set_round(number)
@@ -165,6 +166,7 @@ func _advance_and_start_turn() -> void:
 	var changed := _start_turn()
 	score_panel.set_values(_state.values, changed)
 	score_panel.set_current_player(_current_player)
+	announce_player(_current_player)
 	_refresh_rows()
 	_play_eliminated(eliminated)
 
