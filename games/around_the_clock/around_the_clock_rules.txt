@@ -1,12 +1,76 @@
-Around-the-clock
+Around the Clock
 
-
-Min/Max Player : 1/8
+1 to 8 players
 Player order screen : yes
 
-Option
 
-Game Mode : classic, classic extended, the Irish Way
+Options
+
+Game Mode
+	classic (default) : 1 to 20
+	classic extended : 1 to 20, then Bull
+	the Irish Way : 1 to 20, then Bull, with bonus progression (see below)
+
+Max Rounds : 10 (default), 12, 15, 20
+	à la fin du dernier round, la partie s'arrête et les joueurs qui n'ont pas terminé sont classés selon la cible atteinte (la plus avancée en premier) ; même cible = même rang.
+
+End at First Finish : on (default) / off
+	on : la partie s'arrête dès qu'un joueur termine ; il gagne.
+	off : les joueurs qui terminent sortent du jeu avec leur rang (1er, 2e...) et les autres continuent, jusqu'à ce que tous les joueurs aient terminé ou que le nombre maximum de rounds soit atteint.
+
+partie à 1 joueur
+	en fin de partie, on affiche le nombre de fléchettes utilisées pour terminer.
+
+
+Rules
+
+Classic & classic extended
+
+le jeu consiste à toucher les numéros de la cible dans l'ordre, de 1 à 20 (puis le Bull en mode extended). le premier joueur qui termine gagne.
+
+chaque joueur a une cible courante, qui commence à 1.
+chaque joueur lance 3 fléchettes par tour.
+une fléchette qui touche la cible courante (simple, double ou triple : le multiplicateur n'a pas d'importance) valide la cible : la cible courante passe au numéro suivant.
+une fléchette qui touche un autre numéro, ou un raté, ne fait rien.
+on peut valider plusieurs cibles dans le même tour (ex : 1, 2 puis 3 avec les trois fléchettes).
+en mode extended, après le 20 la cible devient le Bull : le simple Bull (25) comme le double Bull (50) le valident.
+
+fin du jeu
+	un joueur a terminé lorsqu'il valide sa dernière cible (20 en classic, Bull en extended). son tour s'arrête immédiatement, même s'il lui reste des fléchettes.
+	la suite dépend des options End at First Finish et Max Rounds.
+
+
+The Irish Way
+
+variante d'Around the Clock où les doubles et triples font avancer plus vite. le parcours est 1 à 20, puis le Bull.
+
+progression bonus (cibles 1 à 9)
+	tant que la cible courante est entre 1 et 9 :
+		simple : avance de 1 (ex : cible 1, simple 1 -> cible 2)
+		double : avance de 2 (ex : cible 1, double 1 -> cible 3)
+		triple : avance de 3 (ex : cible 1, triple 1 -> cible 4)
+	le bonus peut faire sauter le 10 (ex : cible 9, triple 9 -> cible 12). le raccourci du 10 est alors perdu.
+
+raccourci du 10
+	lorsque la cible courante est exactement le 10 :
+		double 10 : la cible devient directement le Bull (les numéros 11 à 20 sont sautés)
+		simple ou triple 10 : avance de 1 (cible 11)
+	le raccourci ne fonctionne que lorsque le 10 est la cible courante. si le joueur passe au 11 (ou saute le 10), il doit faire tout le parcours jusqu'au 20 avant de viser le Bull.
+
+cibles 11 à 20
+	les doubles et triples ne donnent plus de bonus : toute touche de la cible courante avance de 1.
+
+Bull et victoire
+	pour gagner, le joueur doit toucher deux fois le Bull dans le même tour. un simple Bull compte pour un Bull, un double Bull compte pour deux (un double Bull suffit donc pour gagner).
+	les fléchettes lancées avant d'atteindre la cible Bull ne comptent pas (ex : un joueur qui valide le 20 avec sa 1ère fléchette peut gagner avec ses 2e et 3e).
+	si le joueur ne touche pas deux Bulls dans le même tour, le compteur repart à zéro au tour suivant.
+
+fin du jeu
+	comme en classic, la suite dépend des options End at First Finish et Max Rounds.
+	exception : si un joueur termine en ayant pris le raccourci du 10, il gagne et la partie s'arrête immédiatement, même avec End at First Finish à off.
+
+
+Autres variantes (référence, non implémentées)
 
 
 1. 180 Around the Clock (The Point Variant)
@@ -28,34 +92,3 @@ Instead of following numerical sequence (1, 2, 3...), you navigate the board geo
 5. Sudden Death / Penalty Clock
 Designed to create high-pressure practice scenarios.
 • Rules: You advance sequentially from 1 to 20, but if you miss your target number with all three darts during a turn, you suffer a penalty and are forced to move backward by one number.
-
-
-
-
-Rules:
-
-
-Game Mode : Classic & classic extended
-
-Les règles du jeu de fléchettes Around the Clock (ou le tour de l'horloge) consistent à toucher les numéros de la cible dans un ordre séquentiel, de 1 à 20 (+bull pour le mode extended), pour être le premier à terminer.
-
-Il faut toucher le 1, puis le 2, puis le 3, et ainsi de suite jusqu'au 20 (ou bull pour le mode extented)
-
-
-
-
-
-
-
-
-
-
-Game mode : The Irish Way
-
-Round-The-Clock The Irish Way is a popular electronic dartboard variation of the classic Around the Clock game where hitting special segments accelerates your progress.Core RulesObjective: Hit every number from 1 to 20 in sequential order, followed by the bullseye.Turns: Each player throws up to 3 darts per turn.Bonus Progression: Doubles and triples advance you forward by the value of the multiplier plus one (e.g., hitting a Double 1 moves you ahead by 2 + 1 = 3 numbers total, landing you straight on number 3).The 10-Number Cutoff: Once you pass number 10, doubles and triples no longer boost your progress and simply count as standard single hits.Approaching the Bullseye: After you pass number 10 and clear your way up, hitting a Double 10 immediately advances your next target straight to the bullseye.Winning the Game: To successfully win the game, a player must hit two bullseyes in the same turn
-
-
-Dans cette variante, le nombre 10 est un raccourci secret pour aller directement à la fin du jeu.Voici comment cela fonctionne concrètement :Vous commencez le jeu et vous avancez dans l'ordre (1, 2, 3, 4...).Dès que vous atteignez le nombre 10 (c'est-à-dire que le 10 est votre cible actuelle) :Si vous réussissez à toucher le Double 10 (l'anneau extérieur vert ou rouge du 10), vous activez le raccourci.L'effet : Le jeu considère que vous avez sauté toutes les étapes suivantes (11, 12, 13... jusqu'à 20). Votre toute prochaine cible devient immédiatement le Bullseye (le centre de la cible).Pourquoi la phrase précédente était trompeuse ?Elle disait "après avoir dépassé le 10", ce qui est faux. Le raccourci ne fonctionne que lorsque vous êtes précisément en train de viser le nombre 10. Si vous le manquez et que vous passez au 11 à la place, le raccourci est perdu, et vous devez faire tout le tour classique (11, 12, 13...) jusqu'à 20 avant de pouvoir viser le centre.
-
-
-
