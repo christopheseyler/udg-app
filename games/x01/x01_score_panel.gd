@@ -5,7 +5,9 @@ extends PanelContainer
 ## texte indiquant ce qu'il doit faire, ex. "Need a master to enter"), une
 ## ligne par joueur. Le joueur en cours est mis en surbrillance. Une gommette
 ## (DebtBadge) se pose sur le nom du joueur qui a des fleches en dette
-## (mode "Give-me your darts", voir set_debt).
+## (mode "Give-me your darts", voir set_debt), et dans ce meme mode un
+## encadre delta (DeltaBox, voir set_delta) a sa droite : les points que le
+## joueur en cours doit marquer pour arriver au score de ce joueur.
 ## set_players() construit les lignes, set_row() met a jour score et texte
 ## d'un joueur, set_current_player() deplace la surbrillance.
 
@@ -14,6 +16,10 @@ const DEBT_BADGE := preload("res://games/x01/debt_badge.tscn")
 ## la cellule du nom (voir _add_name_cell).
 const DEBT_BADGE_SIZE := 56.0
 const DEBT_BADGE_MARGIN := 8.0
+## Encadre delta, centre verticalement a droite de la cellule du nom, a
+## gauche de la place de la gommette de dette pour ne jamais la chevaucher.
+const DELTA_MARGIN := DEBT_BADGE_SIZE + 2.0 * DEBT_BADGE_MARGIN
+const DELTA_FONT_RATIO := 0.7
 
 const SCORE_COLUMN_WIDTH := 240.0
 ## Tailles selon le nombre de joueurs (le premier seuil atteint), pour
@@ -34,6 +40,7 @@ var _row_plates: ScoreRowPlates
 var _score_labels: Array[Label] = []
 var _hint_labels: Array[Label] = []
 var _debt_badges: Array[DebtBadge] = []
+var _delta_boxes: Array[DeltaBox] = []
 
 func set_players(names: Array[String]) -> void:
 	for child in grid.get_children():
@@ -44,6 +51,7 @@ func set_players(names: Array[String]) -> void:
 	_score_labels.clear()
 	_hint_labels.clear()
 	_debt_badges.clear()
+	_delta_boxes.clear()
 	for sizes in ROW_SIZES:
 		if names.size() >= sizes.players:
 			_sizes = sizes
@@ -64,6 +72,12 @@ func set_row(index: int, score: int, hint: String) -> void:
 ## (debt <= 0 la masque). Voir DebtBadge pour les animations.
 func set_debt(index: int, debt: int) -> void:
 	_debt_badges[index].set_debt(debt)
+
+## Points que le joueur en cours doit marquer pour arriver au score du joueur
+## index (voir DeltaBox) ; delta <= 0 masque l'encadre. reachable : delta
+## jouable avec les fleches restantes.
+func set_delta(index: int, delta: int, reachable: bool) -> void:
+	_delta_boxes[index].set_delta(delta, reachable)
 
 func set_current_player(index: int) -> void:
 	_row_plates.set_current(index)
@@ -107,6 +121,11 @@ func _add_name_cell(player_name: String) -> DebtBadge:
 	badge.offset_top = DEBT_BADGE_MARGIN
 	badge.offset_bottom = DEBT_BADGE_MARGIN + DEBT_BADGE_SIZE
 	wrap.add_child(badge)
+
+	var delta_box := DeltaBox.new(int(_sizes.name * DELTA_FONT_RATIO))
+	delta_box.anchor_right_center(DELTA_MARGIN)
+	wrap.add_child(delta_box)
+	_delta_boxes.append(delta_box)
 	return badge
 
 ## Ajoute une cellule (label, sans fond : voir ScoreRowPlates) a la grille et retourne son label.

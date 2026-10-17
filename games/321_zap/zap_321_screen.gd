@@ -34,9 +34,6 @@ const TARGET := 321
 ## double, triple, et le bull en simple et double. Sert au tirage de l'entree
 ## automatique et a savoir si un joueur peut terminer en une fleche.
 static var ALL_DARTS: Array[DartHit] = _build_all_darts()
-## REACHABLE_SUMS[k] : totaux atteignables avec exactement k fleches (0 a 3),
-## pour savoir si un delta de zap est jouable avec les fleches restantes.
-static var REACHABLE_SUMS: Array[Dictionary] = _build_reachable_sums(3)
 
 ## Animation "Auto Enter!" (voir _show_auto_entry) : le texte arrive comme le
 ## "Bust!" du X01 (SpinBanner), une fleche traverse la zone de score derriere
@@ -133,16 +130,6 @@ var _zap_tween: Tween
 ## Incremente a chaque affichage ou masquage de l'animation de zap : un
 ## affichage ou un masquage differe (timer) devenu obsolete est abandonne.
 var _zap_token := 0
-
-static func _build_reachable_sums(max_darts: int) -> Array[Dictionary]:
-	var sums: Array[Dictionary] = [{0: true}]
-	for k in max_darts:
-		var next := {}
-		for total in sums[k]:
-			for dart in _build_all_darts():
-				next[total + dart.get_score()] = true
-		sums.append(next)
-	return sums
 
 static func _build_all_darts() -> Array[DartHit]:
 	var darts: Array[DartHit] = []
@@ -502,13 +489,9 @@ func _refresh_rows() -> void:
 ## Vrai si le joueur en cours peut marquer exactement delta points avec les
 ## fleches qu'il lui reste ce tour (encadre de delta brillant).
 func _is_reachable(delta: int) -> bool:
-	if delta <= 0 or _turn_over:
+	if _turn_over:
 		return false
-	var remaining := mini(darts_per_turn - _turn_hits.size(), REACHABLE_SUMS.size() - 1)
-	for k in range(1, remaining + 1):
-		if REACHABLE_SUMS[k].has(delta):
-			return true
-	return false
+	return DeltaBox.is_reachable(delta, darts_per_turn - _turn_hits.size())
 
 ## Points que le joueur en cours doit marquer pour arriver exactement au
 ## score du joueur index et le zapper, en suivant son propre chemin. Un

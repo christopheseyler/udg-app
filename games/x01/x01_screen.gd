@@ -102,6 +102,9 @@ var _turn_start_finished: Array[int] = []
 ## exact. Les tours entierement sautes (dette de fleches) n'y figurent pas,
 ## de meme qu'ils ne figurent pas dans GameScreen._history.
 var _turn_history: Array[Dictionary] = []
+## Vrai quand le tour en cours vient de faire un bust (voir
+## _apply_turn_state) : plus aucune fleche ne peut rapporter de points.
+var _turn_busted := false
 
 func _ready() -> void:
 	super._ready()
@@ -205,6 +208,9 @@ func _advance_and_start_turn() -> void:
 		set_round(round_number + 1)
 		if round_number > max_rounds:
 			finish_game(_standings())
+			# Partie terminee : plus d'encadre delta.
+			for i in _players.size():
+				_refresh_row(i)
 			return
 
 	if _finished.has(_current_player):
@@ -267,6 +273,7 @@ func _on_throw_cancelled() -> void:
 ## partir de l'etat courant : c'est ce qui rend Cancel hit correct, y
 ## compris pour les effets same_score_hit sur d'autres joueurs.
 func _start_turn_snapshot() -> void:
+	_turn_busted = false
 	_turn_start_scores = _scores.duplicate()
 	_turn_start_entered = _entered.duplicate()
 	_turn_start_dart_debt = _dart_debt.duplicate()
@@ -309,6 +316,7 @@ func _apply_turn_state() -> Dictionary:
 	_finished = _turn_start_finished.duplicate()
 	if result.finished:
 		_finished.append(_current_player)
+	_turn_busted = result.busted
 
 	for i in _players.size():
 		_refresh_row(i)
@@ -437,6 +445,32 @@ func _standings() -> Array[Dictionary]:
 func _refresh_row(index: int) -> void:
 	score_panel.set_row(index, _scores[index], _hint_for(index))
 	score_panel.set_debt(index, _dart_debt[index])
+	var delta := _tie_delta(index)
+	score_panel.set_delta(index, delta, _is_reachable(delta))
+
+## Mode "Give-me your darts" : points que le joueur en cours doit marquer
+## pour arriver exactement au score du joueur index (et lui prendre des
+## fleches). 0 (pas d'encadre) hors de ce mode, pour le joueur en cours
+## lui-meme, si l'un des deux a termine, tant que le joueur en cours n'est
+## pas entre, une fois la partie terminee, et si ce score est deja depasse
+## (le score ne fait que descendre) ou ne peut pas etre atteint sans bust
+## (1 avec une condition de sortie double/triple/master).
+func _tie_delta(index: int) -> int:
+	var player := _current_player
+	if _same_score_hit != "Give-me your darts" or _game_over or index == player:
+		return 0
+	if _finished.has(player) or _finished.has(index) or not _entered[player]:
+		return 0
+	if _scores[index] == 1 and _out_condition != "None":
+		return 0
+	return maxi(_scores[player] - _scores[index], 0)
+
+## Vrai si le joueur en cours peut marquer exactement delta points avec les
+## fleches qu'il lui reste ce tour (encadre delta brillant).
+func _is_reachable(delta: int) -> bool:
+	if _turn_busted:
+		return false
+	return DeltaBox.is_reachable(delta, darts_per_turn - _turn_hits.size())
 
 ## Texte d'aide du joueur : son rang s'il a termine, sinon condition
 ## d'entree tant qu'il n'est pas entre dans la partie, puis condition de
