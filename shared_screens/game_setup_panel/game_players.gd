@@ -8,8 +8,8 @@ extends SlidePanel
 ## medaillon numerote a sa couleur, son nom et une icone crayon.
 ## Cliquer un joueur ouvre la vue d'edition de son nom. Depuis cette vue, le
 ## bouton base de donnees ouvre la liste des joueurs inscrits
-## (PlayerDatabasePanel), puis la fiche d'un joueur (PlayerFilePanel) dont
-## Select donne le nom a la place editee.
+## (PlayerDatabasePanel) : cliquer un inscrit donne son nom a la place
+## editee, son crayon ouvre son profil (PlayerProfilePanel).
 ## La liste demarre avec un joueur (minimum : MIN_PLAYERS).
 ## Le nombre maximum de joueurs depend du jeu selectionne : le definir via
 ## set_max_players() (ou l'export max_players).
@@ -32,7 +32,7 @@ const PENCIL := preload("res://assets/ui/setup/icon_pencil.png")
 @onready var players_view: VBoxContainer = $Layout/Margin/PlayersView
 @onready var edit_panel: PlayerEditPanel = $Layout/Margin/PlayerEditPanel
 @onready var database_panel: PlayerDatabasePanel = $Layout/Margin/PlayerDatabasePanel
-@onready var file_panel: PlayerFilePanel = $Layout/Margin/PlayerFilePanel
+@onready var profile_panel: PlayerProfilePanel = $Layout/Margin/PlayerProfilePanel
 @onready var minus_button: Button = $Layout/Margin/PlayersView/Header/MinusButton
 @onready var plus_button: Button = $Layout/Margin/PlayersView/Header/PlusButton
 @onready var count_label: Label = $Layout/Margin/PlayersView/Header/CountLabel
@@ -50,15 +50,18 @@ func _ready() -> void:
 	edit_panel.cancelled.connect(_close_edit)
 	edit_panel.database_requested.connect(_open_database)
 	database_panel.back_pressed.connect(_back_to_edit)
+	database_panel.player_selected.connect(_on_name_confirmed)
 	database_panel.add_pressed.connect(func():
-		_show_view(file_panel, true)
-		file_panel.open_new(_suggested_new_name()))
-	database_panel.player_opened.connect(func(id: String):
-		_show_view(file_panel, true)
-		file_panel.open(id))
-	file_panel.back_pressed.connect(_open_database)
-	file_panel.saved.connect(_open_database)
-	file_panel.selected.connect(_on_name_confirmed)
+		_show_view(profile_panel, false)
+		profile_panel.open_new(_suggested_new_name()))
+	database_panel.profile_requested.connect(func(id: String):
+		_show_view(profile_panel, false)
+		profile_panel.open(id))
+	profile_panel.back_pressed.connect(_open_database)
+	profile_panel.saved.connect(_open_database)
+	profile_panel.selected.connect(_on_name_confirmed)
+	profile_panel.name_edit_started.connect(func(): name_edit_opened.emit())
+	profile_panel.name_edit_finished.connect(func(): name_edit_closed.emit())
 	_names.append(_next_default_name())
 	_refresh()
 
@@ -140,7 +143,7 @@ func _make_row(index: int) -> Button:
 ## Affiche une seule des vues du panneau ; `needs_keyboard` affiche le
 ## clavier a l'ecran (vues avec saisie de nom).
 func _show_view(view: Control, needs_keyboard: bool) -> void:
-	for other in [players_view, edit_panel, database_panel, file_panel]:
+	for other in [players_view, edit_panel, database_panel, profile_panel]:
 		other.visible = other == view
 	if needs_keyboard:
 		name_edit_opened.emit()

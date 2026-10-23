@@ -2,16 +2,20 @@ class_name PlayerDatabasePanel
 extends VBoxContainer
 
 ## Vue de la base des joueurs inscrits (PlayerDatabase) : liste des joueurs
-## (photo, nom, bouton de suppression), bouton "+" pour en inscrire un et
-## bouton Back. Cliquer un joueur ouvre sa fiche (player_opened).
+## (photo, nom, boutons d'edition et de suppression), bouton "+" pour en
+## inscrire un et bouton Back. Cliquer un joueur le selectionne pour la place
+## en cours d'edition (player_selected) ; le bouton crayon ouvre son profil
+## (profile_requested).
 ## La suppression demande une confirmation : le bouton "-" de la ligne se
 ## change en bouton rouge "Delete" a toucher une seconde fois.
 
 signal back_pressed
 signal add_pressed
-signal player_opened(id: String)
+signal player_selected(player_name: String)
+signal profile_requested(id: String)
 
 const PHOTO_SIZE := 80
+const PENCIL := preload("res://assets/ui/setup/icon_pencil.png")
 
 @onready var count_label: Label = $Header/CountLabel
 @onready var plus_button: Button = $Header/PlusButton
@@ -37,8 +41,8 @@ func refresh() -> void:
 	empty_label.visible = players.is_empty()
 	count_label.text = "%d registered" % players.size()
 
-## Ligne d'un joueur : plaque cliquable (photo + nom) et bouton de
-## suppression a droite.
+## Ligne d'un joueur : plaque cliquable (photo + nom), puis boutons
+## d'edition du profil et de suppression a droite.
 func _make_row(player: Dictionary) -> Control:
 	var row := HBoxContainer.new()
 	row.add_theme_constant_override("separation", 24)
@@ -47,7 +51,7 @@ func _make_row(player: Dictionary) -> Control:
 	button.theme_type_variation = &"RowButton"
 	button.custom_minimum_size = Vector2(0, 90)
 	button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	button.pressed.connect(func(): player_opened.emit(player.id))
+	button.pressed.connect(func(): player_selected.emit(player.name))
 	PressScale.attach(button)
 	row.add_child(button)
 
@@ -59,7 +63,7 @@ func _make_row(player: Dictionary) -> Control:
 	content.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	button.add_child(content)
 
-	content.add_child(PlayerFilePanel.photo_thumbnail(player.id, PHOTO_SIZE))
+	content.add_child(PlayerProfilePanel.photo_thumbnail(player.id, PHOTO_SIZE))
 
 	var name_label := Label.new()
 	name_label.text = player.name
@@ -69,6 +73,19 @@ func _make_row(player: Dictionary) -> Control:
 	name_label.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
 	name_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	content.add_child(name_label)
+
+	var edit_button := Button.new()
+	edit_button.theme_type_variation = &"PillButton"
+	edit_button.custom_minimum_size = Vector2(140, 90)
+	edit_button.tooltip_text = "Edit profile"
+	edit_button.pressed.connect(func(): profile_requested.emit(player.id))
+	var pencil := CenterContainer.new()
+	pencil.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	pencil.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	pencil.add_child(UiKit.image(PENCIL, 56))
+	edit_button.add_child(pencil)
+	PressScale.attach(edit_button)
+	row.add_child(edit_button)
 
 	var delete_button := Button.new()
 	delete_button.theme_type_variation = &"RoundMinusButton"
