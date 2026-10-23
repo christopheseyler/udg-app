@@ -1,0 +1,65 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://shared_screens/game_setup_panel/player_database_panel.gd" id="1_script"]
+
+[node name="PlayerDatabasePanel" type="VBoxContainer"]
+theme_override_constants/separation = 16
+script = ExtResource("1_script")
+
+[node name="Header" type="HBoxContainer" parent="."]
+layout_mode = 2
+theme_override_constants/separation = 24
+alignment = 1
+
+[node name="TitleLabel" type="Label" parent="Header"]
+layout_mode = 2
+theme_type_variation = &"SetupTitle"
+text = "Player database"
+vertical_alignment = 1
+
+[node name="CountLabel" type="Label" parent="Header"]
+custom_minimum_size = Vector2(320, 0)
+layout_mode = 2
+theme_override_font_sizes/font_size = 40
+text = "0 registered"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="PlusButton" type="Button" parent="Header"]
+custom_minimum_size = Vector2(80, 80)
+layout_mode = 2
+theme_type_variation = &"RoundPlusButton"
+
+[node name="Scroll" type="ScrollContainer" parent="."]
+layout_mode = 2
+size_flags_vertical = 3
+horizontal_scroll_mode = 0
+
+[node name="ListMargin" type="MarginContainer" parent="Scroll"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/margin_left = 24
+theme_override_constants/margin_top = 24
+theme_override_constants/margin_right = 24
+theme_override_constants/margin_bottom = 24
+
+[node name="PlayerList" type="VBoxContainer" parent="Scroll/ListMargin"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 16
+
+[node name="EmptyLabel" type="Label" parent="Scroll/ListMargin/PlayerList"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 40
+text = "No registered player yet. Press + to add one."
+horizontal_alignment = 1
+
+[node name="Buttons" type="HBoxContainer" parent="."]
+layout_mode = 2
+alignment = 1
+
+[node name="BackButton" type="Button" parent="Buttons"]
+custom_minimum_size = Vector2(300, 120)
+layout_mode = 2
+theme_type_variation = &"PillButton"
+text = "Back"

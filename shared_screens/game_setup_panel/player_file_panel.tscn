@@ -1,0 +1,89 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://shared_screens/game_setup_panel/player_file_panel.gd" id="1_script"]
+
+[node name="PlayerFilePanel" type="VBoxContainer"]
+theme_override_constants/separation = 24
+script = ExtResource("1_script")
+
+[node name="TitleLabel" type="Label" parent="."]
+layout_mode = 2
+theme_type_variation = &"SetupTitle"
+text = "Player file"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="Content" type="HBoxContainer" parent="."]
+layout_mode = 2
+size_flags_vertical = 3
+theme_override_constants/separation = 48
+
+[node name="PhotoColumn" type="VBoxContainer" parent="Content"]
+layout_mode = 2
+theme_override_constants/separation = 16
+
+[node name="Photo" type="TextureRect" parent="Content/PhotoColumn"]
+custom_minimum_size = Vector2(280, 280)
+layout_mode = 2
+expand_mode = 1
+stretch_mode = 5
+
+[node name="PhotoButton" type="Button" parent="Content/PhotoColumn"]
+custom_minimum_size = Vector2(280, 100)
+layout_mode = 2
+theme_type_variation = &"PillButton"
+text = "Photo"
+
+[node name="Info" type="VBoxContainer" parent="Content"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 16
+
+[node name="NameEdit" type="LineEdit" parent="Content/Info"]
+custom_minimum_size = Vector2(0, 80)
+layout_mode = 2
+theme_type_variation = &"NameEdit"
+theme_override_font_sizes/font_size = 44
+placeholder_text = "Player name"
+max_length = 24
+alignment = 1
+
+[node name="HintLabel" type="Label" parent="Content/Info"]
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 0.55, 0.45, 1)
+theme_override_font_sizes/font_size = 32
+horizontal_alignment = 1
+
+[node name="StatsTitle" type="Label" parent="Content/Info"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 40
+text = "Statistics"
+
+[node name="StatsLabel" type="Label" parent="Content/Info"]
+layout_mode = 2
+size_flags_vertical = 3
+theme_override_font_sizes/font_size = 36
+text = "No statistics yet."
+
+[node name="Buttons" type="HBoxContainer" parent="."]
+layout_mode = 2
+theme_override_constants/separation = 80
+alignment = 1
+
+[node name="BackButton" type="Button" parent="Buttons"]
+custom_minimum_size = Vector2(300, 120)
+layout_mode = 2
+theme_type_variation = &"PillButton"
+text = "Back"
+
+[node name="SaveButton" type="Button" parent="Buttons"]
+custom_minimum_size = Vector2(300, 120)
+layout_mode = 2
+theme_type_variation = &"PillButton"
+text = "Save"
+
+[node name="SelectButton" type="Button" parent="Buttons"]
+custom_minimum_size = Vector2(300, 120)
+layout_mode = 2
+theme_type_variation = &"PillButton"
+text = "Select"

@@ -3,6 +3,8 @@
 [ext_resource type="Script" uid="uid://cj8dnte2jak4l" path="res://shared_screens/game_setup_panel/game_players.gd" id="1_script"]
 [ext_resource type="PackedScene" path="res://shared_screens/game_setup_panel/player_edit_panel.tscn" id="2_edit"]
 [ext_resource type="Theme" path="res://assets/ui/setup/setup_theme.tres" id="3_theme"]
+[ext_resource type="PackedScene" path="res://shared_screens/game_setup_panel/player_database_panel.tscn" id="4_database"]
+[ext_resource type="PackedScene" path="res://shared_screens/game_setup_panel/player_file_panel.tscn" id="5_file"]
 
 [node name="GamePlayers" type="PanelContainer" unique_id=950180914]
 anchors_preset = -1
@@ -99,5 +101,13 @@ size_flags_horizontal = 3
 theme_override_constants/separation = 16
 
 [node name="PlayerEditPanel" parent="Layout/Margin" unique_id=2086582311 instance=ExtResource("2_edit")]
+visible = false
+layout_mode = 2
+
+[node name="PlayerDatabasePanel" parent="Layout/Margin" instance=ExtResource("4_database")]
+visible = false
+layout_mode = 2
+
+[node name="PlayerFilePanel" parent="Layout/Margin" instance=ExtResource("5_file")]
 visible = false
 layout_mode = 2

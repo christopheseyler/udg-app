@@ -6,7 +6,10 @@ extends SlidePanel
 ## joueur), et la liste des joueurs en dessous ("Player #1", "Player #2", ...).
 ## Chaque joueur est une plaque (RowButton du theme setup_theme) avec un
 ## medaillon numerote a sa couleur, son nom et une icone crayon.
-## Cliquer un joueur ouvre la vue d'edition de son nom.
+## Cliquer un joueur ouvre la vue d'edition de son nom. Depuis cette vue, le
+## bouton base de donnees ouvre la liste des joueurs inscrits
+## (PlayerDatabasePanel), puis la fiche d'un joueur (PlayerFilePanel) dont
+## Select donne le nom a la place editee.
 ## La liste demarre avec un joueur (minimum : MIN_PLAYERS).
 ## Le nombre maximum de joueurs depend du jeu selectionne : le definir via
 ## set_max_players() (ou l'export max_players).
@@ -28,6 +31,8 @@ const PENCIL := preload("res://assets/ui/setup/icon_pencil.png")
 
 @onready var players_view: VBoxContainer = $Layout/Margin/PlayersView
 @onready var edit_panel: PlayerEditPanel = $Layout/Margin/PlayerEditPanel
+@onready var database_panel: PlayerDatabasePanel = $Layout/Margin/PlayerDatabasePanel
+@onready var file_panel: PlayerFilePanel = $Layout/Margin/PlayerFilePanel
 @onready var minus_button: Button = $Layout/Margin/PlayersView/Header/MinusButton
 @onready var plus_button: Button = $Layout/Margin/PlayersView/Header/PlusButton
 @onready var count_label: Label = $Layout/Margin/PlayersView/Header/CountLabel
@@ -43,6 +48,17 @@ func _ready() -> void:
 	plus_button.pressed.connect(add_player)
 	edit_panel.name_confirmed.connect(_on_name_confirmed)
 	edit_panel.cancelled.connect(_close_edit)
+	edit_panel.database_requested.connect(_open_database)
+	database_panel.back_pressed.connect(_back_to_edit)
+	database_panel.add_pressed.connect(func():
+		_show_view(file_panel, true)
+		file_panel.open_new(_suggested_new_name()))
+	database_panel.player_opened.connect(func(id: String):
+		_show_view(file_panel, true)
+		file_panel.open(id))
+	file_panel.back_pressed.connect(_open_database)
+	file_panel.saved.connect(_open_database)
+	file_panel.selected.connect(_on_name_confirmed)
 	_names.append(_next_default_name())
 	_refresh()
 
@@ -121,18 +137,38 @@ func _make_row(index: int) -> Button:
 		child.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	return button
 
+## Affiche une seule des vues du panneau ; `needs_keyboard` affiche le
+## clavier a l'ecran (vues avec saisie de nom).
+func _show_view(view: Control, needs_keyboard: bool) -> void:
+	for other in [players_view, edit_panel, database_panel, file_panel]:
+		other.visible = other == view
+	if needs_keyboard:
+		name_edit_opened.emit()
+	else:
+		name_edit_closed.emit()
+
 func _open_edit(index: int) -> void:
 	_editing_index = index
-	players_view.visible = false
-	edit_panel.visible = true
+	_show_view(edit_panel, true)
 	edit_panel.open(_names[index])
-	name_edit_opened.emit()
 
 func _close_edit() -> void:
 	_editing_index = -1
-	edit_panel.visible = false
-	players_view.visible = true
-	name_edit_closed.emit()
+	_show_view(players_view, false)
+
+func _open_database() -> void:
+	_show_view(database_panel, false)
+	database_panel.refresh()
+
+func _back_to_edit() -> void:
+	_show_view(edit_panel, true)
+	edit_panel.resume()
+
+## Nom propose pour inscrire un nouveau joueur : celui en cours de saisie,
+## sauf s'il s'agit d'un nom par defaut ("Player #n").
+func _suggested_new_name() -> String:
+	var current := edit_panel.get_current_name()
+	return "" if current.begins_with("Player #") else current
 
 func _on_name_confirmed(new_name: String) -> void:
 	if _editing_index >= 0 and _editing_index < _names.size():
