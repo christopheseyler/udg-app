@@ -6,9 +6,12 @@ extends DartInput
 ## udg-yocto/doc/DARTBOARD-INTERFACE.md et de l'ICD du firmware
 ## (udg-dartboardif-rbpico/icd.md) : port stable /dev/udg-dartboard, mode
 ## brut sans echo (stty), lu en continu par un thread. Chaque ligne recue est
-## classee par son premier caractere ("#..." reponse, "*..." evenement, ">"
-## prompt, sinon echo a ignorer) ; un evenement "*HIT:<valeur>-<mult>-<extra>*"
-## est converti en DartHit et emis via hit_detected.
+## classee par son premier caractere ("#..." reponse, "*..." evenement, sinon
+## echo a ignorer), une fois retire le prompt ">" qui la precede : le firmware
+## ne termine pas la ligne apres le prompt, donc un evenement spontane arrive
+## colle derriere lui (">*HIT:20-3-N*"). Un evenement
+## "*HIT:<valeur>-<mult>-<extra>*" est converti en DartHit et emis via
+## hit_detected.
 ##
 ## Le tour est pilote de l'exterieur : start_waiting() arme WaitForHit sans
 ## timeout (voir DartInputManager.start_turn(), appele au debut du tour puis
@@ -21,15 +24,27 @@ extends DartInput
 ## alors silencieusement et toutes les autres methodes deviennent des no-op,
 ## le jeu continuant avec le seul simulateur.
 ##
-## Lecture et ecriture utilisent deux FileAccess distincts (deux ouvertures
-## du meme peripherique) : ecrire une commande pendant que le thread est
-## bloque dans une lecture ne doit jamais attendre que cette lecture
-## aboutisse.
+## Le port n'est pas ouvert avec FileAccess : sous Linux, FileAccess.open()
+## et FileAccess.file_exists() refusent tout ce qui n'est pas un fichier
+## regulier, donc un peripherique comme /dev/udg-dartboard. Il passe par deux
+## processus lances avec OS.execute_with_pipe() : un lecteur
+## (`dd if=PORT`, dont la sortie est lue par le thread) et un ecrivain
+## (`cat > PORT`, qui recoit les commandes sur son entree). Deux processus
+## distincts : ecrire une commande pendant que le thread est bloque dans une
+## lecture ne doit jamais attendre que cette lecture aboutisse.
+##
+## Le lecteur n'est pas `cat` : celui de busybox copie avec sendfile() et,
+## vers un tube, le noyau garde le tube verrouille pendant que la lecture du
+## port attend des octets. Ce qui est deja dans le tube n'est alors lu qu'a
+## l'arrivee des octets suivants : mesure sur la cible, chaque reponse
+## n'arrivait qu'apres la commande suivante, et un HIT jamais. dd lit et
+## ecrit (read/write), et transmet tout de suite chaque lecture partielle.
 ##
 ## send_command()/response_received permettent d'envoyer une commande
 ## quelconque (alive, scan, help, ...) et de recuperer sa reponse "#...#",
 ## en dehors de la politique de tour ; utilise par l'ecran Settings pour le
-## test de l'interface (voir settings_screen.gd).
+## test de l'interface (voir settings_screen.gd), qui affiche aussi les lignes
+## brutes recues (line_received).
 
 const PORT := "/dev/udg-dartboard"
 const HIT_EVENT_PATTERN := "^\\*HIT:(\\d+)-(\\d+)-([A-Za-z])\\*$"
@@ -38,8 +53,17 @@ const HIT_EVENT_PATTERN := "^\\*HIT:(\\d+)-(\\d+)-([A-Za-z])\\*$"
 ## compris (ex. "#alive-v01.00.0000#", "#3,4 5,2#", "##").
 signal response_received(text: String)
 
+## Emis (sur le thread principal) pour chaque ligne recue, brute (prompt, echo,
+## reponse ou evenement, ex. ">scan", "#3,4#", ">*HIT:20-3-N*"), avant
+## response_received/hit_detected : terminal du test de l'ecran Settings.
+signal line_received(text: String)
+
+## Sortie du processus lecteur (dd if=PORT) et entree du processus ecrivain
+## (cat > PORT), voir connect_to_board().
 var _read_file: FileAccess
 var _write_file: FileAccess
+var _reader_pid := -1
+var _writer_pid := -1
 var _read_thread: Thread
 var _connected := false
 var _waiting := false
@@ -56,57 +80,73 @@ func _exit_tree() -> void:
 func is_connected_to_board() -> bool:
 	return _connected
 
-## Ouvre le port (mode brut, sans echo) et demarre le thread de lecture.
-## Ne fait rien si la carte n'est pas branchee ou deja connectee.
+## Vrai si le lien du port existe. Pas FileAccess.file_exists(), toujours faux
+## pour un peripherique (voir plus haut) ; DirAccess n'exclut que les dossiers.
+static func _port_exists() -> bool:
+	var dev := DirAccess.open(PORT.get_base_dir())
+	return dev != null and dev.file_exists(PORT)
+
+## Passe le port en mode brut sans echo, lance les processus lecteur et
+## ecrivain puis le thread de lecture. Ne fait rien si la carte n'est pas
+## branchee ou deja connectee.
 func connect_to_board() -> void:
 	if _connected:
 		return
-	if not FileAccess.file_exists(PORT):
+	if not _port_exists():
 		return
+	# Avant que les processus n'ouvrent le port : avec l'echo du pilote tty,
+	# carte et hote s'echangeraient les caracteres en boucle
+	# (DARTBOARD-INTERFACE.md §2.2).
 	if OS.execute("stty", ["-F", PORT, "raw", "-echo"], [], true) != 0:
 		push_warning("DartBoardInput: stty a echoue sur %s, carte ignoree" % PORT)
 		return
 
-	var read_file := FileAccess.open(PORT, FileAccess.READ_WRITE)
-	if read_file == null:
-		push_warning("DartBoardInput: impossible d'ouvrir %s en lecture (%s)" % [PORT, error_string(FileAccess.get_open_error())])
+	# Pas `cat PORT` (voir plus haut). Sans iflag=fullblock, dd ecrit chaque
+	# lecture partielle des qu'elle revient.
+	var reader := OS.execute_with_pipe("dd", ["if=" + PORT, "bs=256"])
+	if reader.is_empty():
+		push_warning("DartBoardInput: impossible de lancer la lecture de %s" % PORT)
 		return
-	var write_file := FileAccess.open(PORT, FileAccess.READ_WRITE)
-	if write_file == null:
-		push_warning("DartBoardInput: impossible d'ouvrir %s en ecriture (%s)" % [PORT, error_string(FileAccess.get_open_error())])
-		read_file.close()
+	var writer := OS.execute_with_pipe("sh", ["-c", "exec cat > %s" % PORT])
+	if writer.is_empty():
+		push_warning("DartBoardInput: impossible de lancer l'ecriture sur %s" % PORT)
+		OS.kill(reader["pid"])
 		return
 
-	_read_file = read_file
-	_write_file = write_file
+	_read_file = reader["stdio"]
+	_reader_pid = reader["pid"]
+	_write_file = writer["stdio"]
+	_writer_pid = writer["pid"]
 	_connected = true
 	_waiting = false
 	_stop_requested = false
 	_read_thread = Thread.new()
 	_read_thread.start(_read_loop)
 
-## Ferme le port et arrete le thread de lecture ; libere la carte pour un
-## autre usage (ex : mise a jour du firmware depuis l'ecran Settings). No-op
-## si deja deconnecte.
+## Arrete les processus lecteur et ecrivain et le thread de lecture ; libere
+## la carte pour un autre usage (ex : mise a jour du firmware depuis l'ecran
+## Settings). No-op si deja deconnecte.
 func disconnect_from_board() -> void:
 	if not _connected:
 		return
 	_connected = false
 	_waiting = false
 	_stop_requested = true
-	# Debloque le get_line() en cours dans le thread : n'importe quelle
-	# commande provoque une reponse du firmware (voir icd.md), "alive" est
-	# valide dans tous les etats. Le thread ferme _read_file lui-meme (voir
-	# _read_loop) ; le manipuler depuis ce thread-ci serait une course.
-	if _write_file:
-		_write_file.store_string("alive\r\n")
-	if _read_thread:
-		_read_thread.wait_to_finish()
-		_read_thread = null
 	if _write_file:
 		_write_file.close()
 		_write_file = null
+	# OS.kill() attend la fin du processus (et le recolte). Tuer le lecteur
+	# ferme son tube de sortie, ce qui debloque le get_line() en cours dans
+	# le thread. Le thread ferme _read_file lui-meme (voir _read_loop) ; le
+	# manipuler depuis ce thread-ci serait une course.
+	OS.kill(_writer_pid)
+	OS.kill(_reader_pid)
+	if _read_thread:
+		_read_thread.wait_to_finish()
+		_read_thread = null
 	_read_file = null
+	_reader_pid = -1
+	_writer_pid = -1
 
 ## Arme l'attente d'un jet, sans timeout (icd.md : WaitForHit 0 = pas de
 ## timeout). No-op si la carte n'est pas connectee ou deja en attente.
@@ -143,18 +183,25 @@ func _send_line(command: String) -> void:
 func _read_loop() -> void:
 	var file := _read_file
 	while not _stop_requested:
-		var line := file.get_line().strip_edges()
+		var raw := file.get_line().strip_edges()
 		var err := file.get_error()
 		if _stop_requested:
 			break
 		if err != OK:
 			call_deferred("_on_port_lost")
 			break
+		call_deferred("_on_raw_line", raw)
+		# Le prompt ">" n'est jamais suivi d'une fin de ligne : il prefixe la
+		# ligne suivante (echo de commande ou evenement *...*).
+		var line := raw.lstrip(">")
 		if line.begins_with("*"):
 			call_deferred("_on_event_line", line)
 		elif line.begins_with("#"):
 			call_deferred("_on_response_line", line)
 	file.close()
+
+func _on_raw_line(line: String) -> void:
+	line_received.emit(line)
 
 func _on_response_line(line: String) -> void:
 	response_received.emit(line)

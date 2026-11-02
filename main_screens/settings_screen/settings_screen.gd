@@ -61,11 +61,12 @@ extends Control
 ## board_input (la meme instance que celle du jeu - voir dart_board_input.gd,
 ## libre ici puisqu'aucune partie n'est en cours quand Settings est ouvert) ;
 ## si la connexion echoue, affiche simplement que la carte n'est pas branchee.
-## Sinon, envoie `alive` pour afficher la version, puis boucle sur `scan`
-## (icd.md : cellules actuellement en contact) pour laisser tester chaque
-## segment a la main. send_command()/response_received n'imposent aucune
-## politique de tour (a la difference de start_waiting()/stop_waiting()) :
-## chaque commande recoit simplement sa reponse "#...#".
+## Sinon, envoie `alive` pour afficher la version, puis `WaitForHits 0`
+## (icd.md 1.1 : un *HIT* par impact jusqu'a StopWaitingHit, envoye par le
+## bouton Close) et affiche chaque jet ; un terminal montre les commandes
+## envoyees et les lignes brutes recues. send_command()/response_received
+## n'imposent aucune politique de tour (a la difference de start_waiting()/
+## stop_waiting()) : chaque commande recoit simplement sa reponse "#...#".
 
 signal back_pressed
 
@@ -92,8 +93,10 @@ const DARTBOARD_FLASH_LOG := "/tmp/udg-dartboard-flash.log"
 const DARTBOARD_FLASH_RC := "/tmp/udg-dartboard-flash.rc"
 const DARTBOARD_ALIVE_LOG := "/tmp/udg-dartboard-alive.out"
 
-## Delai entre deux `scan` pendant le test de l'interface.
-const DARTBOARD_TEST_SCAN_INTERVAL_S := 0.3
+## Attente max de la reponse a une commande du test (icd.md : 1 s suggere).
+const DARTBOARD_REPLY_TIMEOUT_S := 1.0
+## Nombre de lignes gardees dans le terminal du test.
+const DARTBOARD_TEST_LOG_LINES := 10
 
 ## Ce que "Yes" declenche dans le dialogue de confirmation, partage entre
 ## la confirmation d'upgrade et la proposition de redemarrage qui suit une
@@ -120,7 +123,8 @@ enum UpdateKind { APP, DARTBOARD }
 @onready var yes_button: Button = $ConfirmOverlay/Center/Dialog/Margin/Content/Buttons/YesButton
 @onready var test_overlay: Control = $DartboardTestOverlay
 @onready var test_version_label: Label = $DartboardTestOverlay/Center/Dialog/Margin/Content/VersionLabel
-@onready var test_scan_label: Label = $DartboardTestOverlay/Center/Dialog/Margin/Content/ScanLabel
+@onready var test_hit_label: Label = $DartboardTestOverlay/Center/Dialog/Margin/Content/HitLabel
+@onready var test_terminal_label: Label = $DartboardTestOverlay/Center/Dialog/Margin/Content/Terminal/TerminalLabel
 @onready var test_close_button: Button = $DartboardTestOverlay/Center/Dialog/Margin/Content/CloseButton
 
 var _pending_bundle_path := ""
@@ -137,6 +141,20 @@ var _install_thread: Thread
 var _info_thread: Thread
 var _confirm_action := ConfirmAction.NONE
 var _test_running := false
+## Numero du test en cours : une boucle _run_dartboard_test() d'un test ferme
+## puis rouvert s'arrete d'elle-meme au lieu de tourner en double.
+var _test_serial := 0
+## Vrai tant qu'une boucle _run_dartboard_test() tourne, jusqu'a la
+## deconnexion de la carte (StopWaitingHit compris) : un nouveau test attend
+## la fin.
+var _test_loop_running := false
+## Numero du test qui a connecte la carte : lignes et jets encore en vol d'un
+## test precedent sont ignores.
+var _test_connected_serial := -1
+## Vrai des la premiere ligne recue de la carte pendant le test.
+var _test_board_answered := false
+var _test_hits := 0
+var _test_log := PackedStringArray()
 
 func _ready() -> void:
 	check_update_button.pressed.connect(_on_check_update_pressed)
@@ -147,6 +165,8 @@ func _ready() -> void:
 	no_button.pressed.connect(_on_confirm_no)
 	yes_button.pressed.connect(_on_confirm_yes)
 	test_close_button.pressed.connect(_stop_dartboard_test)
+	DartInputManager.board_input.line_received.connect(_on_board_line)
+	DartInputManager.board_input.hit_detected.connect(_on_test_hit)
 	for button in [check_update_button, check_online_button, dartboard_update_button,
 			dartboard_test_button, back_button, no_button, yes_button, test_close_button]:
 		PressScale.attach(button)
@@ -156,15 +176,19 @@ func _ready() -> void:
 	_show_system_info()
 
 func _exit_tree() -> void:
+	DartInputManager.board_input.line_received.disconnect(_on_board_line)
+	DartInputManager.board_input.hit_detected.disconnect(_on_test_hit)
 	if _install_thread:
 		_install_thread.wait_to_finish()
 	if _info_thread:
 		_info_thread.wait_to_finish()
-	if _test_running:
+	if _test_running or _test_loop_running:
 		# Filet de securite si l'ecran est libere pendant un test (ex. sortie
-		# du jeu) : _run_dartboard_test() ferme normalement la carte
-		# lui-meme, mais ne tournera plus une fois ce noeud detruit.
+		# du jeu) : _run_dartboard_test() arrete normalement l'attente et
+		# ferme la carte lui-meme, mais ne tournera plus une fois ce noeud
+		# detruit.
 		_test_running = false
+		DartInputManager.board_input.send_command("StopWaitingHit")
 		DartInputManager.board_input.disconnect_from_board()
 
 func _on_check_update_pressed() -> void:
@@ -435,10 +459,17 @@ func _read_dartboard_file_info(path: String) -> Dictionary:
 ## port doit etre en raw sans echo a chaque ouverture (sinon le pilote tty et
 ## le firmware se renvoient les caracteres en boucle) ; pas de `timeout` sur
 ## l'image, d'ou le `cat` en arriere-plan tue apres 1 s.
+##
+## Les "$" sont echappes : avec un tableau de sortie, OS.execute() passe la
+## commande a popen(), donc a un premier shell, en mettant chaque argument
+## entre guillemets doubles sans rien echapper. Sans "\$", ce shell-la
+## remplacerait $! et $P par du vide avant que le script ne tourne : le `cat`
+## ne serait jamais tue et continuerait a lire le port, volant ensuite les
+## reponses et les jets destines a DartBoardInput.
 func _read_alive_version() -> String:
 	var script := (
 		"stty -F %s raw -echo && "
-		+ "(cat %s > %s & P=$!; sleep 0.3; printf 'alive\\r\\n' > %s; sleep 1; kill $P) 2>/dev/null; "
+		+ "(cat %s > %s & P=\\$!; sleep 0.3; printf 'alive\\r\\n' > %s; sleep 1; kill \\$P) 2>/dev/null; "
 		+ "tr -d '\\r' < %s"
 	) % [DARTBOARD_PORT, DARTBOARD_PORT, DARTBOARD_ALIVE_LOG, DARTBOARD_PORT, DARTBOARD_ALIVE_LOG]
 	var output := []
@@ -621,58 +652,134 @@ func _finish_dartboard_update(success: bool, message: String) -> void:
 func _set_status(text: String) -> void:
 	status_label.text = text
 
-## Se connecte a la carte (DartInputManager.board_input, libre puisqu'aucune
-## partie n'est en cours) ; en cas d'echec (carte non branchee - voir
-## dart_board_input.gd), le signale simplement au lieu d'ouvrir le dialogue.
+## Ouvre le dialogue de test et se connecte a la carte
+## (DartInputManager.board_input, libre puisqu'aucune partie n'est en cours).
+## Attend d'abord la fin de la lecture de version lancee a l'ouverture de
+## l'ecran (_read_alive_version, ~1,3 s) et la fin complete d'un test
+## precedent : un second lecteur du port volerait reponses et jets, et une
+## reponse en vol de l'ancien test arriverait dans le nouveau. Si la
+## carte n'est pas branchee (voir dart_board_input.gd), le signale au lieu
+## du dialogue.
 func _on_dartboard_test_pressed() -> void:
+	_test_running = true
+	_test_serial += 1
+	var serial := _test_serial
+	_test_hits = 0
+	_test_board_answered = false
+	_test_log.clear()
+	test_terminal_label.text = ""
+	test_version_label.text = "Connecting..."
+	test_hit_label.text = "Throw a dart at the target to test it."
+	test_overlay.visible = true
+	while (_info_thread or _test_loop_running) and _is_current_test(serial):
+		await get_tree().process_frame
+	if not _is_current_test(serial):
+		return
+
 	var board := DartInputManager.board_input
 	board.connect_to_board()
 	if not board.is_connected_to_board():
+		_test_running = false
+		test_overlay.visible = false
 		_set_status("DartBoard Interface not connected.")
 		return
-
-	_test_running = true
-	test_version_label.text = "Connecting..."
-	test_scan_label.text = "Touch each segment on the target to test it."
-	test_overlay.visible = true
-	_run_dartboard_test()
+	_test_connected_serial = serial
+	_run_dartboard_test(serial)
 
 func _stop_dartboard_test() -> void:
 	_test_running = false
 	test_overlay.visible = false
-	# _run_dartboard_test() constate l'arret et ferme la carte lui-meme des
-	# la prochaine reponse (voir plus bas) : le faire ici couperait une
-	# reponse deja en vol.
+	# _run_dartboard_test() constate l'arret, envoie StopWaitingHit et ferme
+	# la carte lui-meme une fois la reponse recue : le faire ici couperait
+	# une reponse deja en vol.
 
-## Boucle du test, lancee par _on_dartboard_test_pressed() : verifie la
-## version (`alive`) puis scanne en continu (`scan`, icd.md : cellules
-## actuellement en contact) jusqu'a la fermeture (bouton Close). Chaque
-## commande recoit exactement une reponse "#...#" (send_command()/
-## response_received, sans le protocole de tour de start_waiting()).
-func _run_dartboard_test() -> void:
+func _is_current_test(serial: int) -> bool:
+	return _test_running and serial == _test_serial
+
+## Deroulement du test, lance par _on_dartboard_test_pressed() : envoie
+## `alive` toutes les DARTBOARD_REPLY_TIMEOUT_S jusqu'a la premiere ligne
+## recue de la carte (connexion etablie, voir _on_board_line, qui affiche
+## aussi la version a l'arrivee de "#alive-v...#", meme en retard), puis arme
+## une seule fois `WaitForHits 0` (icd.md 1.1 : un *HIT* par impact, sans
+## timeout, jusqu'a StopWaitingHit) ; chaque jet est affiche par
+## _on_test_hit(). A la fermeture (bouton Close), envoie StopWaitingHit et
+## rend la carte. Commandes envoyees par send_command(), hors de la politique
+## de tour de start_waiting()/stop_waiting() (faite pour WaitForHit, qui se
+## termine a chaque impact).
+func _run_dartboard_test(serial: int) -> void:
+	_test_loop_running = true
 	var board := DartInputManager.board_input
-	board.send_command("alive")
-	var alive_reply: String = await board.response_received
-	if not _test_running:
-		board.disconnect_from_board()
-		return
+	while not _test_board_answered and _is_current_test(serial):
+		_send_test_command("alive")
+		var deadline := Time.get_ticks_msec() + int(DARTBOARD_REPLY_TIMEOUT_S * 1000.0)
+		while not _test_board_answered and Time.get_ticks_msec() < deadline \
+				and _is_current_test(serial):
+			await get_tree().process_frame
+	if _is_current_test(serial):
+		_send_test_command("WaitForHits 0")
 
-	var version := _regex_group(alive_reply, "#alive-v(\\d\\d\\.\\d\\d\\.\\d{4})#")
-	test_version_label.text = "DartBoard Interface v%s" % version if version != "" \
-		else "Unexpected reply to alive: %s" % alive_reply
+	while _is_current_test(serial):
+		await get_tree().process_frame
 
-	while _test_running:
-		board.send_command("scan")
-		var scan_reply: String = await board.response_received
-		if not _test_running:
-			break
-		_display_scan_result(scan_reply)
-		await get_tree().create_timer(DARTBOARD_TEST_SCAN_INTERVAL_S).timeout
-
+	# Ferme (bouton Close) ou remplace par un nouveau test, qui attend la fin
+	# de celui-ci : arrete l'attente, puis rend la carte.
+	board.send_command("StopWaitingHit")
+	await _await_reply(func(r: String) -> bool: return r == "#stopped#" or r == "#idle#",
+		func() -> bool: return false)
 	board.disconnect_from_board()
+	_test_loop_running = false
 
-## Reponse a `scan` : "#r,c r,c ...#" (cellules en contact, ligne 0-7, colonne
-## 0-10) ou "##" si rien n'est touche.
-func _display_scan_result(reply: String) -> void:
-	var cells := reply.trim_prefix("#").trim_suffix("#")
-	test_scan_label.text = ("Contact: %s" % cells) if cells != "" else "No contact."
+## Jet recu pendant le test (`WaitForHits` continue apres chaque impact :
+## rien a rearmer). La ligne brute, avec la zone O/I, est dans le terminal.
+func _on_test_hit(hit: DartHit) -> void:
+	if not _is_current_test(_test_connected_serial):
+		return
+	_test_hits += 1
+	test_hit_label.text = "Hit %d: %s" % [_test_hits, hit.get_label()]
+
+func _send_test_command(command: String) -> void:
+	_log_test_line("TX: %s" % command)
+	DartInputManager.board_input.send_command(command)
+
+## Attend une reponse "#...#" de la carte reconnue par accept() (les autres,
+## en retard d'une commande precedente, sont ignorees) au plus
+## DARTBOARD_REPLY_TIMEOUT_S ; "" si elle n'arrive pas ou si cancelled()
+## devient vrai.
+func _await_reply(accept: Callable, cancelled: Callable) -> String:
+	var board := DartInputManager.board_input
+	var reply := [""]
+	var on_reply := func(text: String) -> void:
+		if reply[0] == "" and accept.call(text):
+			reply[0] = text
+	board.response_received.connect(on_reply)
+	var deadline := Time.get_ticks_msec() + int(DARTBOARD_REPLY_TIMEOUT_S * 1000.0)
+	while reply[0] == "" and Time.get_ticks_msec() < deadline and not cancelled.call():
+		await get_tree().process_frame
+	if board.response_received.is_connected(on_reply):
+		board.response_received.disconnect(on_reply)
+	return reply[0]
+
+## Ligne brute recue de la carte (DartInputManager.board_input.line_received),
+## ajoutee au terminal du test. La premiere prouve que la connexion est
+## etablie (fin des `alive`) ; "#alive-v...#" donne la version et une erreur
+## de la carte ("#error:...#", ex. WaitForHits inconnu d'un firmware
+## anterieur a la v01.01) est affichee.
+func _on_board_line(text: String) -> void:
+	if not _is_current_test(_test_connected_serial):
+		return
+	_log_test_line(text)
+	if not _test_board_answered:
+		_test_board_answered = true
+		test_version_label.text = "Connected"
+	var line := text.lstrip(">")
+	var version := _regex_group(line, "^#alive-v(\\d\\d\\.\\d\\d\\.\\d{4})#$")
+	if version != "":
+		test_version_label.text = "DartBoard Interface v%s" % version
+	elif line.begins_with("#error:"):
+		test_hit_label.text = "Board error: %s" % line
+
+func _log_test_line(text: String) -> void:
+	_test_log.append(text)
+	while _test_log.size() > DARTBOARD_TEST_LOG_LINES:
+		_test_log.remove_at(0)
+	test_terminal_label.text = "\n".join(_test_log)
