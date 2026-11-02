@@ -1,2 +1,10 @@
 # Normalize EOL for all files that Git considers text files.
 * text=auto eol=lf
+
+# 3D models and their textures go through Git LFS (git-lfs is needed to
+# clone the repository). The .import files next to them stay plain text.
+*.glb filter=lfs diff=lfs merge=lfs -text
+*.gltf filter=lfs diff=lfs merge=lfs -text
+*.fbx filter=lfs diff=lfs merge=lfs -text
+*.blend filter=lfs diff=lfs merge=lfs -text
+assets/udg-3d-assets/**/*.png filter=lfs diff=lfs merge=lfs -text
