@@ -1,6 +1,8 @@
 extends Control
 
-## Ecran titre : le titre apparait en fondu, reste affiche, puis
+## Ecran titre : le titre apparait en fondu pendant que l'intro 3D joue
+## devant lui (cible qui monte en tournant, trois flechettes qui s'y
+## plantent). Une fois les deux termines, le tout reste affiche, puis
 ## disparait en fondu avec un zoom accelere pendant que le background
 ## s'assombrit, avant de basculer vers l'ecran de selection de jeu (qui
 ## demarre sur ce fond assombri). Un tap/clic saute directement a la suite.
@@ -16,6 +18,8 @@ extends Control
 @onready var background: TextureRect = $Background
 @onready var title_image: TextureRect = $TitleImage
 @onready var version_label: Label = $VersionLabel
+@onready var intro_layer: SubViewportContainer = $Intro3DLayer
+@onready var intro_3d: TitleIntro3D = $Intro3DLayer/SubViewport/TitleIntro3D
 
 var _going_to_next_scene := false
 var _preload_paths: Array[String] = []
@@ -24,17 +28,25 @@ func _ready() -> void:
 	_preload_next_scene()
 	_show_version()
 	title_image.modulate.a = 0.0
-	title_image.pivot_offset = title_image.size / 2.0
-	title_image.resized.connect(func(): title_image.pivot_offset = title_image.size / 2.0)
+	for layer: Control in [title_image, intro_layer]:
+		layer.pivot_offset = layer.size / 2.0
+		layer.resized.connect(func(): layer.pivot_offset = layer.size / 2.0)
+
+	intro_3d.play()
+	var fade_in := create_tween()
+	fade_in.tween_interval(start_delay)
+	fade_in.tween_property(title_image, "modulate:a", 1.0, fade_in_duration)
+	await fade_in.finished
+	if not intro_3d.is_finished:
+		await intro_3d.finished
 
 	var tween := create_tween()
-	tween.tween_interval(start_delay)
-	tween.tween_property(title_image, "modulate:a", 1.0, fade_in_duration)
 	tween.tween_interval(hold_duration)
-	tween.tween_property(title_image, "modulate:a", 0.0, fade_out_duration)
-	tween.parallel().tween_property(title_image, "scale", Vector2.ONE * zoom_out_scale, fade_out_duration) \
-		.set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_IN)
-	tween.parallel().tween_property(background, "modulate", background_dark_color, fade_out_duration)
+	tween.tween_property(background, "modulate", background_dark_color, fade_out_duration)
+	for layer: Control in [title_image, intro_layer]:
+		tween.parallel().tween_property(layer, "modulate:a", 0.0, fade_out_duration)
+		tween.parallel().tween_property(layer, "scale", Vector2.ONE * zoom_out_scale, fade_out_duration) \
+			.set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_IN)
 	tween.tween_callback(_go_to_next_scene)
 
 func _unhandled_input(event: InputEvent) -> void:
