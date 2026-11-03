@@ -1,22 +1,21 @@
 extends Control
 
-## Ecran titre : le titre apparait en fondu pendant que l'intro 3D joue
-## devant lui (cible qui monte en tournant, trois flechettes qui s'y
-## plantent). Une fois les deux termines, le tout reste affiche, puis
-## disparait en fondu avec un zoom accelere pendant que le background
-## s'assombrit, avant de basculer vers l'ecran de selection de jeu (qui
-## demarre sur ce fond assombri). Un tap/clic saute directement a la suite.
+## Ecran titre : l'intro 3D joue sur le background (cible qui monte en
+## tournant, titre en lettres 3D qui arrive devant elle, trois flechettes
+## qui s'y plantent, spot sur le titre). Quand les lettres du titre
+## s'envolent, la cible disparait a son tour en fondu avec un zoom accelere
+## pendant que le background s'assombrit, avant de basculer vers l'ecran de
+## selection de jeu (qui demarre sur ce fond assombri). Un tap/clic saute
+## directement a la suite.
 
 @export var next_scene_path: String = "res://main_screens/game_selection/game_select.tscn"
-@export var start_delay: float = 1.0
-@export var fade_in_duration: float = 1.5
-@export var hold_duration: float = 2.0
+## Attente entre l'envol des lettres du titre et le debut du fondu.
+@export var hold_duration: float = 0.3
 @export var fade_out_duration: float = 1.0
 @export var zoom_out_scale: float = 20.0
 @export var background_dark_color: Color = Color(0.55, 0.55, 0.55, 1.0)
 
 @onready var background: TextureRect = $Background
-@onready var title_image: TextureRect = $TitleImage
 @onready var version_label: Label = $VersionLabel
 @onready var intro_layer: SubViewportContainer = $Intro3DLayer
 @onready var intro_3d: TitleIntro3D = $Intro3DLayer/SubViewport/TitleIntro3D
@@ -27,26 +26,19 @@ var _preload_paths: Array[String] = []
 func _ready() -> void:
 	_preload_next_scene()
 	_show_version()
-	title_image.modulate.a = 0.0
-	for layer: Control in [title_image, intro_layer]:
-		layer.pivot_offset = layer.size / 2.0
-		layer.resized.connect(func(): layer.pivot_offset = layer.size / 2.0)
+	intro_layer.pivot_offset = intro_layer.size / 2.0
+	intro_layer.resized.connect(func(): intro_layer.pivot_offset = intro_layer.size / 2.0)
 
 	intro_3d.play()
-	var fade_in := create_tween()
-	fade_in.tween_interval(start_delay)
-	fade_in.tween_property(title_image, "modulate:a", 1.0, fade_in_duration)
-	await fade_in.finished
 	if not intro_3d.is_finished:
 		await intro_3d.finished
 
 	var tween := create_tween()
 	tween.tween_interval(hold_duration)
 	tween.tween_property(background, "modulate", background_dark_color, fade_out_duration)
-	for layer: Control in [title_image, intro_layer]:
-		tween.parallel().tween_property(layer, "modulate:a", 0.0, fade_out_duration)
-		tween.parallel().tween_property(layer, "scale", Vector2.ONE * zoom_out_scale, fade_out_duration) \
-			.set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_IN)
+	tween.parallel().tween_property(intro_layer, "modulate:a", 0.0, fade_out_duration)
+	tween.parallel().tween_property(intro_layer, "scale", Vector2.ONE * zoom_out_scale, fade_out_duration) \
+		.set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_IN)
 	tween.tween_callback(_go_to_next_scene)
 
 func _unhandled_input(event: InputEvent) -> void:
