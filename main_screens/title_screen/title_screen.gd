@@ -47,14 +47,13 @@ func _unhandled_input(event: InputEvent) -> void:
 	elif event is InputEventMouseButton and event.pressed:
 		_go_to_next_scene()
 
-## Charge en arriere-plan la scene suivante et les images du carrousel
-## pendant que le titre s'affiche : evite l'ecran gris cause par le
-## chargement synchrone au moment du changement de scene. Les ressources
-## sont gardees sur la racine du SceneTree pour survivre a cette scene.
+## Charge en arriere-plan la scene suivante (avec les modeles 3D du
+## carrousel qu'elle reference) pendant que le titre s'affiche : evite
+## l'ecran gris cause par le chargement synchrone au moment du changement de
+## scene. Les ressources sont gardees sur la racine du SceneTree pour
+## survivre a cette scene.
 func _preload_next_scene() -> void:
 	_preload_paths = [next_scene_path]
-	for game in GameRegistry.create_all():
-		_preload_paths.append(game.image)
 	for path in _preload_paths:
 		ResourceLoader.load_threaded_request(path)
 

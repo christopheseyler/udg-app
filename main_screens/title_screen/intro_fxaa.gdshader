@@ -1,7 +1,7 @@
 shader_type canvas_item;
 
-// FXAA (version "console" de T. Lottes) applique a la texture de la couche
-// 3D de l'intro. Le renderer Compatibility utilise sur la carte n'a pas
+// FXAA (version "console" de T. Lottes) applique a la texture d'une couche
+// 3D (intro de l'ecran titre, carrousel de selection de jeu). Le renderer Compatibility utilise sur la carte n'a pas
 // d'AA d'ecran, et son MSAA coute ~11 ms par frame sur le Mali-G610 (30 FPS
 // au lieu de 60). Calcule en alpha premultiplie, avec l'alpha dans la
 // luminance, pour lisser aussi le contour des objets sur le fond transparent.

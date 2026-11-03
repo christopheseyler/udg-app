@@ -1,12 +1,13 @@
 extends Control
 
-## Ecran de selection de jeu. S'ouvre sur le titre (intro), puis le titre
-## disparait et le carrousel apparait. Carrousel d'images disposees sur un
-## cylindre virtuel. L'image en face du joueur est nette, les autres
-## s'estompent progressivement selon leur angle sur le cylindre.
+## Ecran de selection de jeu. S'ouvre sur le fond assombri par l'ecran
+## titre, puis le carrousel apparait : carrousel 3D de logos de jeux disposes
+## sur un cylindre (voir GameCarousel3D), rendu dans un SubViewport
+## transparent au-dessus du fond. Le logo en face du joueur est net, les
+## autres s'estompent progressivement selon leur angle sur le cylindre.
 ## Navigation par gesture (glisser au tactile ou a la souris) : la
 ## transparence et la position se mettent a jour en temps reel pendant
-## le geste, puis le carrousel se cale sur la carte la plus proche au
+## le geste, puis le carrousel se cale sur le logo le plus proche au
 ## relachement. Bouton PlayButton pour valider la selection.
 
 ## Les jeux proposes sont definis dans games/ (voir game_registry.gd).
@@ -14,13 +15,8 @@ extends Control
 const PLAYERS_ORDER_SCREEN := preload("res://shared_screens/players_order_screen/players_order_screen.tscn")
 const SETTINGS_SCREEN := preload("res://main_screens/settings_screen/settings_screen.tscn")
 
-@export var card_size: float = 500.0
-@export var cylinder_radius: float = 900.0
-@export var angle_step_degrees: float = 42.0
-@export var min_alpha: float = 0.00
-@export var alpha_falloff_power: float = 4
-@export var min_scale_x: float = 0.06
-@export var carousel_center_y_ratio: float = 0.42
+## Glissement du doigt, en pixels, qui fait passer d'un jeu au suivant.
+@export var drag_distance_per_game: float = 660.0
 @export var settle_duration: float = 0.35
 
 @export_group("Bouton Jouer")
@@ -33,10 +29,9 @@ const SETTINGS_SCREEN := preload("res://main_screens/settings_screen/settings_sc
 
 @export_group("Selection")
 @export var select_duration: float = 0.6
-@export var selected_zoom: float = 1.15
-@export var others_slide_distance: float = 600.0
 
-@onready var card_container: Control = $CardContainer
+@onready var carousel_layer: SubViewportContainer = $Carousel3DLayer
+@onready var carousel: GameCarousel3D = $Carousel3DLayer/SubViewport/GameCarousel3D
 @onready var play_button: TextureButton = $PlayButton
 @onready var setup_panel: GameSetupPanel = $SetupPanel
 @onready var players_panel: GamePlayers = $PlayersPanel
@@ -49,9 +44,7 @@ var current_index: int = 0
 var _intro_done := false
 var _selecting := false
 var _selection_amount := 0.0
-var _cards: Array[TextureRect] = []
 var _scroll_offset: float = 0.0
-var _px_per_card: float = 1.0
 
 var _dragging: bool = false
 var _drag_start_x: float = 0.0
@@ -62,9 +55,8 @@ var _play_button_base_position: Vector2
 var _button_tween: Tween
 
 func _ready() -> void:
-	_px_per_card = cylinder_radius * deg_to_rad(angle_step_degrees)
-	_build_cards()
-	_update_cards()
+	carousel.set_games(games)
+	_update_carousel()
 	_setup_play_button()
 	_setup_panels()
 	settings_button.pressed.connect(_on_settings_pressed)
@@ -79,13 +71,13 @@ func _ready() -> void:
 ## Ouverture : le carrousel et le bouton apparaissent en fondu sur le
 ## fond deja assombri. Les interactions sont bloquees pendant le fondu.
 func _play_intro() -> void:
-	card_container.modulate.a = 0.0
+	carousel_layer.modulate.a = 0.0
 	play_button.modulate.a = 0.0
 	play_button.disabled = true
 
 	var tween := create_tween()
 	tween.set_parallel(true)
-	tween.tween_property(card_container, "modulate:a", 1.0, carousel_fade_in_duration)
+	tween.tween_property(carousel_layer, "modulate:a", 1.0, carousel_fade_in_duration)
 	tween.tween_property(play_button, "modulate:a", 1.0, carousel_fade_in_duration)
 	tween.set_parallel(false)
 	tween.tween_callback(_on_intro_finished)
@@ -100,61 +92,8 @@ func _on_settings_pressed() -> void:
 	add_child(screen)
 	screen.back_pressed.connect(screen.queue_free)
 
-func _build_cards() -> void:
-	for game in games:
-		var card := TextureRect.new()
-		card.size = Vector2(card_size, card_size)
-		card.pivot_offset = Vector2(card_size, card_size) / 2.0
-		card.texture = load(game.image)
-		card.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-		card.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-		card.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		card_container.add_child(card)
-		_cards.append(card)
-
-## Positionne, estompe et "tourne" chaque carte selon son angle sur le
-## cylindre virtuel, en fonction de _scroll_offset courant. Le delta
-## angulaire passe par wrapf pour un defilement infini : une carte peut
-## se rapprocher du centre par la gauche ou par la droite selon le
-## chemin le plus court sur le cylindre.
-## La rotation autour de l'axe Y (comme une carte collee sur un
-## cylindre qui tourne) est simulee en 2D par un ecrasement horizontal :
-## scale.x = cos(angle), la hauteur ne change pas. Une carte de face
-## (angle = 0) garde sa largeur pleine ; une carte de profil (angle =
-## +-90 deg) devient une fine tranche verticale.
-func _update_cards() -> void:
-	var screen_center := get_viewport_rect().size / 2.0
-	var center := get_viewport_rect().size * Vector2(0.5, carousel_center_y_ratio)
-	var angle_step := deg_to_rad(angle_step_degrees)
-	var n := _cards.size()
-
-	for i in n:
-		var card := _cards[i]
-		var delta := wrapf(i - _scroll_offset, -n / 2.0, n / 2.0)
-		var angle := clampf(delta * angle_step, -PI / 2.0, PI / 2.0)
-		var depth := cos(angle)
-
-		var pos := Vector2(
-			center.x + sin(angle) * cylinder_radius - card_size / 2.0,
-			center.y - card_size / 2.0
-		)
-		var scl := Vector2(lerpf(min_scale_x, 1.0, depth), 1.0)
-		var alpha := lerpf(min_alpha, 1.0, pow(depth, alpha_falloff_power))
-
-		if _selection_amount > 0.0:
-			if i == current_index:
-				var selected_pos := screen_center - Vector2(card_size, card_size) / 2.0
-				pos = pos.lerp(selected_pos, _selection_amount)
-				scl = scl.lerp(Vector2.ONE * selected_zoom, _selection_amount)
-			else:
-				var side := signf(wrapf(i - current_index, -n / 2.0, n / 2.0))
-				pos.x += side * others_slide_distance * _selection_amount
-				alpha *= 1.0 - _selection_amount
-
-		card.position = pos
-		card.scale = scl
-		card.modulate.a = alpha
-		card.z_index = int(depth * 100.0)
+func _update_carousel() -> void:
+	carousel.update_layout(_scroll_offset, _selection_amount, current_index)
 
 func _gui_input(event: InputEvent) -> void:
 	if not _intro_done:
@@ -178,16 +117,16 @@ func _start_drag(x: float) -> void:
 
 func _update_drag(x: float) -> void:
 	var delta_x := x - _drag_start_x
-	_scroll_offset = fposmod(_drag_start_offset - delta_x / _px_per_card, float(_cards.size()))
-	_update_cards()
+	_scroll_offset = fposmod(_drag_start_offset - delta_x / drag_distance_per_game, float(games.size()))
+	_update_carousel()
 
 func _end_drag() -> void:
 	_dragging = false
-	current_index = roundi(_scroll_offset) % _cards.size()
+	current_index = roundi(_scroll_offset) % games.size()
 	_settle_to_current()
 
 func _go_to_index(index: int) -> void:
-	var n := _cards.size()
+	var n := games.size()
 	current_index = ((index % n) + n) % n
 	_settle_to_current()
 
@@ -197,7 +136,7 @@ func _go_to_index(index: int) -> void:
 func _settle_to_current() -> void:
 	if _tween:
 		_tween.kill()
-	var n := _cards.size()
+	var n := games.size()
 	var shortest_diff := wrapf(float(current_index) - _scroll_offset, -n / 2.0, n / 2.0)
 	var target := _scroll_offset + shortest_diff
 	_tween = create_tween()
@@ -207,7 +146,7 @@ func _settle_to_current() -> void:
 
 func _set_scroll_offset(value: float) -> void:
 	_scroll_offset = value
-	_update_cards()
+	_update_carousel()
 
 ## Prepare le bouton texture "start_button" : centre le pivot pour que
 ## l'enfoncement se fasse depuis son centre, et branche l'animation de
@@ -265,7 +204,7 @@ func _animate_selection(target: float) -> Tween:
 
 func _set_selection_amount(value: float) -> void:
 	_selection_amount = value
-	_update_cards()
+	_update_carousel()
 
 ## Branche les panneaux de configuration : Players / Options s'ouvrent
 ## au-dessus du panneau de boutons (un seul a la fois), Back ferme tout et

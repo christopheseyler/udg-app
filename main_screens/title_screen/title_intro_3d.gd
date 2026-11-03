@@ -15,9 +15,6 @@ extends Node3D
 signal finished
 
 const DART_SCENE := preload("res://assets/udg-3d-assets/dart/Dart.glb")
-## Caracteres HemiHead (Char_A, Char_a, Char_0...) : origine sur la ligne de
-## base, chasse en metres dans la metadonnee glTF extras.advance.
-const LETTERS_SCENE := preload("res://assets/udg-3d-assets/hemihead/HemiHeadChamfer.glb")
 ## Calque de rendu des lettres, le seul eclaire par TitleLight : vu de face,
 ## le metal ne reflete sinon que le ciel sombre de l'environnement.
 const TITLE_LAYER := 2
@@ -126,43 +123,12 @@ func play() -> void:
 	is_finished = true
 	finished.emit()
 
-## Pose les lettres des deux mots en ajoutant leurs chasses, le titre
-## centre sur l'origine de Title. Les plaques de deux lettres voisines
-## peuvent se chevaucher : une lettre sur deux est avancee d'un
-## demi-millimetre pour que leurs faces ne se battent pas a l'affichage.
+## Pose les lettres des deux mots (voir HemiHeadText), le titre centre sur
+## l'origine de Title.
 func _build_title() -> void:
-	var font := LETTERS_SCENE.instantiate()
-	var x := 0.0
-	var index := 0
-	for word in [left_word, right_word]:
-		var pivots: Array[Node3D] = []
-		for ch in word:
-			var glyph := font.get_node_or_null("HemiHead/Char_" + ch) as MeshInstance3D
-			if glyph == null:
-				push_warning("Titre : pas de caractere 3D pour '%s'" % ch)
-				continue
-			var aabb := glyph.mesh.get_aabb()
-			var mesh := MeshInstance3D.new()
-			mesh.mesh = glyph.mesh
-			mesh.layers = TITLE_LAYER
-			mesh.position = -aabb.get_center()
-			var pivot := Node3D.new()
-			pivot.position = Vector3(x, 0.0, (index % 2) * 0.0005) + aabb.get_center()
-			pivot.add_child(mesh)
-			title.add_child(pivot)
-			pivots.append(pivot)
-			_title_bounds = aabb if index == 0 else _title_bounds.merge(Transform3D(Basis(), Vector3(x, 0.0, 0.0)) * aabb)
-			x += glyph.get_meta("extras")["advance"]
-			index += 1
-		_words.append(pivots)
-		x += word_gap
-	font.free()
-
-	var centre := Vector3(_title_bounds.get_center().x, 0.0, 0.0)
-	_title_bounds.position -= centre
-	for pivots in _words:
-		for pivot: Node3D in pivots:
-			pivot.position -= centre
+	var text := HemiHeadText.new(title, left_word + " " + right_word, TITLE_LAYER, word_gap)
+	_words = text.words
+	_title_bounds = text.bounds
 
 ## Ajoute a `tween` l'arrivee des deux mots, chacun depuis son bord de
 ## l'ecran : un mot glisse d'un bloc pendant que ses lettres font chacune un

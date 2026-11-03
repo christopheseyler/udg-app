@@ -1,6 +1,6 @@
-"""HemiHead Bold Italic characters A-Z, a-z and 0-9, each its own object (Char_A,
-Char_a, Char_0...): slightly extruded, with a rounded bevel on the front face only
-(flat back). Facing Blender -Y (= Godot +Z), back face at y = 0.
+"""HemiHead Bold Italic characters A-Z, a-z, 0-9 and the hyphen, each its own object
+(Char_A, Char_a, Char_0, Char_-...): slightly extruded, with a rounded bevel on the
+front face only (flat back). Facing Blender -Y (= Godot +Z), back face at y = 0.
 
 With --chamfer the front bevel is a flat chamfer instead. With --outline each
 character also gets a backing plate behind it: the same glyph dilated by that
@@ -12,7 +12,7 @@ box-mapped; otherwise both are plain greys.
 Each mesh has its origin on the baseline at the glyph's pen position, and carries
 its advance width in metres as the "advance" custom property (glTF extras), so
 words can be laid out by adding advances. In the file the characters are laid out
-in three rows (upper case, lower case, digits) under the "HemiHead" root.
+in three rows (upper case, lower case, digits and hyphen) under the "HemiHead" root.
 
     blender --background --factory-startup --python make_hemihead.py -- <out_dir>
             [--size 0.1] [--depth 0.1] [--bevel 0.02] [--chamfer] [--outline 0.03]
@@ -63,7 +63,7 @@ NAME = arg("--name", "HemiHead")
 RESOLUTION = 5                        # curve segments between font control points
 CHARS = arg("--chars", None)
 ROWS = tuple(r for r in ("".join(c for c in row if CHARS is None or c in CHARS) for row in (
-    "ABCDEFGHIJKLMNOPQRSTUVWXYZ", "abcdefghijklmnopqrstuvwxyz", "0123456789")) if r)
+    "ABCDEFGHIJKLMNOPQRSTUVWXYZ", "abcdefghijklmnopqrstuvwxyz", "0123456789-")) if r)
 LETTER_GAP, ROW_GAP = 0.06, 1.0       # layout of the rows in the file (text size)
 SHARP = math.radians(35)
 os.makedirs(OUT, exist_ok=True)
