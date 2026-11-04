@@ -14,6 +14,12 @@ const LOGO_SCENE := preload("res://main_screens/game_selection/game_logo_3d.tscn
 @export var angle_step_degrees: float = 30.0
 @export var min_alpha: float = 0.0
 @export var alpha_falloff_power: float = 4.0
+## Opacite ramenee a 0 : l'opacite des logos est recalee pour s'annuler ici
+## plutot qu'a +-90 deg, et les logos plus estompes ne sont plus dessines (voir
+## GameLogo3D.set_opacity()). Les deux logos a +-60 deg, a 6 % d'opacite et
+## presque invisibles, faisaient rater des images au carrousel sur la carte
+## quand le glow tourne (3-2-1 Zap ou Cricket au centre).
+@export var fade_cutoff: float = 0.1
 
 @export_group("Selection")
 @export var selected_zoom: float = 1.15
@@ -62,6 +68,7 @@ func update_layout(scroll_offset: float, selection_amount: float, selected_index
 		var pos := Vector3(sin(angle) * ring_radius, 0.0, (depth - 1.0) * ring_radius)
 		var zoom := 1.0
 		var alpha := lerpf(min_alpha, 1.0, pow(depth, alpha_falloff_power))
+		alpha = clampf((alpha - fade_cutoff) / (1.0 - fade_cutoff), 0.0, 1.0)
 
 		if selection_amount > 0.0:
 			if i == selected_index:

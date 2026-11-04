@@ -8,7 +8,7 @@ extends RefCounted
 ## et alourdit tout le reste de la scene (les autres logos estompes, leurs
 ## decors) : il ne tourne que tant qu'un noeud le demande avec un poids d'au
 ## moins MIN_WEIGHT, soit pour un logo au centre de l'ecran ou presque (a moins
-## de 13 degres sur le carrousel). Son intensite y monte de 0 a celle de
+## de 12 degres sur le carrousel). Son intensite y monte de 0 a celle de
 ## l'environnement entre MIN_WEIGHT et un poids de 1 : il apparait et disparait
 ## en fondu pendant le defilement.
 
