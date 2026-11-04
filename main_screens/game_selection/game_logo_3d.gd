@@ -3,10 +3,10 @@ extends Node3D
 
 ## Logo 3D d'un jeu dans le carrousel de selection : la cible de l'ecran
 ## titre, de face, avec devant elle le nom du jeu en lettres HemiHead, un peu
-## sous son centre. Le nom a la meme taille pour tous les jeux tant qu'il
-## tient dans `max_name_width` ; un nom de plusieurs mots qui devrait sinon
-## descendre sous `min_one_line_scale` passe sur deux lignes, et un nom qui
-## ne tient toujours pas est reduit.
+## sous son centre (voir set_text()). Le nom a la meme taille pour tous les
+## jeux tant qu'il tient dans `max_name_width` ; un nom de plusieurs mots qui
+## devrait sinon descendre sous `min_one_line_scale` passe sur deux lignes, et
+## un nom qui ne tient toujours pas est reduit.
 ## Une fois le nom pose, les maillages du logo sont fusionnes (voir
 ## _merge_meshes()) : le logo n'est plus qu'une poignee de maillages, toujours
 ## rendus opaques. Un masque, dessine par-dessus, l'estompe (voir
@@ -24,8 +24,11 @@ const FADE_MASK_SHADER := preload("res://main_screens/game_selection/logo_fade_m
 ## En dessous de cet agrandissement, un nom de plusieurs mots passe sur deux
 ## lignes plutot que d'etre reduit sur une seule.
 @export var min_one_line_scale: float = 1.4
-## Ecart entre les lignes de base de deux lignes, a l'echelle des caracteres.
-@export var line_spacing: float = 0.075
+## Ecart entre deux lignes (du bas de l'une au haut de la suivante, plaques
+## comprises), a l'echelle des caracteres.
+@export var line_gap: float = 0.004
+## Taille d'une ligne entre crochets (voir set_text()) par rapport aux autres.
+@export var small_line_scale: float = 0.6
 
 @onready var name_root: Node3D = $Name
 
@@ -41,20 +44,26 @@ static var _mask_meshes: Dictionary = {}
 var _fade_mask := ShaderMaterial.new()
 var _masks: Array[MeshInstance3D] = []
 
-## Construit le nom du jeu devant la cible. A appeler une fois, apres
-## l'ajout du logo a l'arbre.
-func set_game_name(game_name: String) -> void:
-	var lines := _split_lines(game_name)
+## Construit le texte du logo devant la cible : le nom du jeu, ou son
+## GameDefinition.logo_text. Un "\n" force un retour a la ligne, et une ligne
+## entre crochets ("Around\n[the]\nClock") est reduite a `small_line_scale`.
+## Les lignes sont empilees selon leur hauteur, a `line_gap` l'une de
+## l'autre, et le bloc est centre sur le noeud Name. A appeler une fois,
+## apres l'ajout du logo a l'arbre.
+func set_text(text: String) -> void:
 	var block: AABB
 	var widest := 0.0
+	var lines := _lines(text)
 	for k in lines.size():
 		var line := Node3D.new()
-		line.position.y = -k * line_spacing
+		line.scale = Vector3.ONE * lines[k][1]
 		name_root.add_child(line)
-		var text := HemiHeadText.new(line, lines[k], LETTERS_LAYER)
-		var placed := Transform3D(Basis(), line.position) * text.bounds
-		block = placed if k == 0 else block.merge(placed)
-		widest = maxf(widest, text.bounds.size.x)
+		var bounds := line.transform * HemiHeadText.new(line, lines[k][0], LETTERS_LAYER).bounds
+		if k > 0:
+			line.position.y = block.position.y - line_gap - bounds.end.y
+			bounds.position.y += line.position.y
+		block = bounds if k == 0 else block.merge(bounds)
+		widest = maxf(widest, bounds.size.x)
 
 	for line: Node3D in name_root.get_children():
 		line.position.y -= block.get_center().y
@@ -72,6 +81,19 @@ func set_opacity(alpha: float) -> void:
 	_fade_mask.set_shader_parameter("opacity", alpha)
 	for mask in _masks:
 		mask.visible = alpha < 0.995
+
+## Lignes du texte, [texte, taille] : coupees aux retours a la ligne, ou a
+## defaut par _split_lines() ; une ligne entre crochets est reduite.
+func _lines(text: String) -> Array[Array]:
+	var lines: Array[Array] = []
+	var parts: Array = Array(text.split("\n", false)) if "\n" in text else _split_lines(text)
+	for part: String in parts:
+		part = part.strip_edges()
+		if part.begins_with("[") and part.ends_with("]"):
+			lines.append([part.substr(1, part.length() - 2), small_line_scale])
+		else:
+			lines.append([part, 1.0])
+	return lines
 
 ## Le nom sur une ligne, ou sur deux s'il est trop large et a plusieurs mots :
 ## coupe a l'espace qui equilibre le mieux la largeur des deux lignes.

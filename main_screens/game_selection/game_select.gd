@@ -15,8 +15,6 @@ extends Control
 const PLAYERS_ORDER_SCREEN := preload("res://shared_screens/players_order_screen/players_order_screen.tscn")
 const SETTINGS_SCREEN := preload("res://main_screens/settings_screen/settings_screen.tscn")
 
-## Glissement du doigt, en pixels, qui fait passer d'un jeu au suivant.
-@export var drag_distance_per_game: float = 660.0
 @export var settle_duration: float = 0.35
 
 @export_group("Bouton Jouer")
@@ -129,7 +127,7 @@ func _start_drag(x: float) -> void:
 
 func _update_drag(x: float) -> void:
 	var delta_x := x - _drag_start_x
-	_scroll_offset = fposmod(_drag_start_offset - delta_x / drag_distance_per_game, float(games.size()))
+	_scroll_offset = fposmod(_drag_start_offset - delta_x / carousel.pixels_per_game(), float(games.size()))
 	_update_carousel()
 
 func _end_drag() -> void:

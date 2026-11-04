@@ -10,8 +10,8 @@ extends Node3D
 
 const LOGO_SCENE := preload("res://main_screens/game_selection/game_logo_3d.tscn")
 
-@export var ring_radius: float = 0.98
-@export var angle_step_degrees: float = 42.0
+@export var ring_radius: float = 1.3
+@export var angle_step_degrees: float = 30.0
 @export var min_alpha: float = 0.0
 @export var alpha_falloff_power: float = 4.0
 
@@ -29,8 +29,15 @@ func set_games(games: Array[GameDefinition]) -> void:
 	for game in games:
 		var logo: GameLogo3D = LOGO_SCENE.instantiate()
 		logos_root.add_child(logo)
-		logo.set_game_name(game.name)
+		logo.set_text(game.logo_text if game.logo_text else game.name)
 		_logos.append(logo)
+
+## Deplacement a l'ecran, en pixels du SubViewport, du logo central quand le
+## carrousel avance d'un jeu (a la tangente du cylindre) : le glissement du
+## doigt qui fait passer d'un jeu au suivant, pour que le logo suive le doigt.
+func pixels_per_game() -> float:
+	var step := Vector3(ring_radius * deg_to_rad(angle_step_degrees), 0.0, 0.0)
+	return camera.unproject_position(step).x - camera.unproject_position(Vector3.ZERO).x
 
 ## Place, tourne et estompe chaque logo selon son angle sur le cylindre pour
 ## le defilement `scroll_offset` (en nombre de jeux). Le delta angulaire

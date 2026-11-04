@@ -3,6 +3,7 @@ extends GameDefinition
 func _init() -> void:
 	id = "around_the_clock"
 	name = "Around the Clock"
+	logo_text = "Around\n[the]\nClock"
 	image = "res://assets/game_selector/game_selector_around_the_clock.png"
 	screen_scene = preload("res://games/around_the_clock/around_the_clock_screen.tscn")
 	max_players = 8

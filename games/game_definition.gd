@@ -3,8 +3,9 @@ extends RefCounted
 
 ## Definition d'un jeu, exposee a l'ecran de selection. Chaque jeu vit dans
 ## games/<nom_du_jeu>/ et etend cette classe en renseignant ses champs dans
-## _init(). "min_players", "max_players", "options", "uses_players_order" et
-## "reverse_players_order" sont facultatifs (voir game_options.gd pour le
+## _init(). "logo_text", "min_players", "max_players", "options",
+## "uses_players_order" et "reverse_players_order" sont facultatifs (voir
+## game_options.gd pour le
 ## format des options ; un jeu sans option desactive le bouton Options ;
 ## "uses_players_order" indique si le demarrage passe par l'ecran d'ordre de
 ## passage, vrai par defaut ; "reverse_players_order" inverse cet ordre : le
@@ -14,6 +15,10 @@ const DEFAULT_MAX_PLAYERS := 4
 
 var id: String
 var name: String
+## Texte du logo 3D de l'ecran de selection, quand il differe du nom : un
+## "\n" force un retour a la ligne, et une ligne entre crochets, comme
+## "[the]", est plus petite (voir GameLogo3D.set_text()).
+var logo_text: String
 var image: String
 var min_players: int = 1
 var max_players: int = DEFAULT_MAX_PLAYERS

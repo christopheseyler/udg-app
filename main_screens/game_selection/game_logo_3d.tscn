@@ -9,4 +9,4 @@ script = ExtResource("1_logo")
 [node name="Dartboard" parent="." instance=ExtResource("2_board")]
 
 [node name="Name" type="Node3D" parent="."]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.03, 0.08)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.055, 0.08)
