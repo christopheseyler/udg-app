@@ -16,6 +16,10 @@ extends Node3D
 ## le metal ne reflete sinon que le ciel sombre de l'environnement.
 const LETTERS_LAYER := 2
 const FADE_MASK_SHADER := preload("res://main_screens/game_selection/logo_fade_mask.gdshader")
+## Groupe des noeuds d'un decor gardes tels quels, sans fusion de leurs
+## maillages, comme la marque du logo Cricket, dont un script change les
+## materiaux (voir _merge_meshes()).
+const UNMERGED_GROUP := &"logo_unmerged"
 
 ## Agrandissement des lettres (1 = taille des caracteres generes).
 @export var name_scale: float = 1.8
@@ -43,8 +47,9 @@ static var _mask_meshes: Dictionary = {}
 ## Materiau du masque d'estompage de ce logo, qui porte son opacite.
 var _fade_mask := ShaderMaterial.new()
 var _masks: Array[MeshInstance3D] = []
-## Lueurs du decor, qui suivent l'opacite du logo (voir LogoGlow).
-var _glows: Array[LogoGlow] = []
+## Noeuds du decor qui suivent l'opacite du logo : ceux qui ont une methode
+## set_logo_opacity(alpha), comme LogoGlow.
+var _opacity_listeners: Array[Node] = []
 
 ## Construit le texte du logo devant la cible : le nom du jeu, ou son
 ## GameDefinition.logo_text. Un "\n" force un retour a la ligne, et une ligne
@@ -86,8 +91,8 @@ func set_opacity(alpha: float) -> void:
 	_fade_mask.set_shader_parameter("opacity", alpha)
 	for mask in _masks:
 		mask.visible = alpha < 0.995
-	for glow in _glows:
-		glow.opacity = alpha
+	for node in _opacity_listeners:
+		node.set_logo_opacity(alpha)
 
 ## Lignes du texte, [texte, taille] : coupees aux retours a la ligne, ou a
 ## defaut par _split_lines() ; une ligne entre crochets est reduite.
@@ -123,16 +128,24 @@ func _split_lines(game_name: String) -> Array[String]:
 ## rendu. La cible compte une centaine de maillages et le nom un par lettre :
 ## avec trois logos a l'ecran et leurs ombres, le carrousel depassait 700 draw
 ## calls, et ne tenait plus 60 FPS sur la carte (le temps CPU du pilote GL
-## faisait rater l'image au compositeur). Les decors mobiles (LogoMover, non
-## imbriques) sont detaches avant, rattaches au logo a la meme place, puis
-## fusionnes chacun a part dans son repere : ils continuent a bouger. Les
-## noeuds d'origine sont liberes.
+## faisait rater l'image au compositeur). Les decors mobiles (LogoMover) et
+## les noeuds du groupe UNMERGED_GROUP, non imbriques, sont detaches avant et
+## rattaches au logo a la meme place : chaque decor mobile est ensuite fusionne
+## a part dans son repere, pour continuer a bouger, et chaque maillage d'un
+## noeud UNMERGED_GROUP recoit son propre masque. Les noeuds d'origine sont
+## liberes.
 func _merge_meshes() -> void:
+	# Apres les materiaux transparents (comme ceux de la marque du logo
+	# Cricket), dont il multiplie l'alpha une fois melanges au fond.
+	_fade_mask.render_priority = 1
 	var moving: Array[Node3D] = []
+	var unmerged: Array[Node3D] = []
 	for node in find_children("*", "Node3D", true, false):
 		if node is LogoMover:
 			moving.append(node)
-	for part in moving:
+		elif node.is_in_group(UNMERGED_GROUP):
+			unmerged.append(node)
+	for part in moving + unmerged:
 		var parent_to_logo := _transform_in(part.get_parent(), self)
 		part.get_parent().remove_child(part)
 		part.transform = parent_to_logo * part.transform
@@ -140,6 +153,12 @@ func _merge_meshes() -> void:
 	for part in moving:
 		add_child(part)
 		_merge_into(part)
+	for part in unmerged:
+		add_child(part)
+		_add_mesh_masks(part)
+	for node in find_children("*", "Node", true, false):
+		if node.has_method("set_logo_opacity"):
+			_opacity_listeners.append(node)
 
 ## Remplace les maillages sous `root` par un maillage par materiau et calque de
 ## rendu, enfants de `root`, et y ajoute leurs masques d'estompage. Les autres
@@ -160,10 +179,6 @@ func _merge_into(root: Node3D) -> void:
 			node.get_parent().remove_child(node)
 			node.transform = parent_to_root * node.transform
 			kept.append(node)
-	for node in kept:
-		for glow in [node] + node.find_children("*", "Node3D", true, false):
-			if glow is LogoGlow:
-				_glows.append(glow)
 
 	for child in root.get_children():
 		child.free()
@@ -200,6 +215,18 @@ func _add_fade_masks(root: Node3D, meshes_by_layers: Array) -> void:
 		mask.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 		mask.visible = false
 		root.add_child(mask)
+		_masks.append(mask)
+
+## Ajoute un masque d'estompage (voir set_opacity()) a chaque maillage sous
+## `root`, comme enfant : il en suit la transformation et les changements.
+func _add_mesh_masks(root: Node3D) -> void:
+	for mesh: MeshInstance3D in root.find_children("*", "MeshInstance3D", true, false):
+		var mask := MeshInstance3D.new()
+		mask.mesh = mesh.mesh
+		mask.material_override = _fade_mask
+		mask.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		mask.visible = false
+		mesh.add_child(mask)
 		_masks.append(mask)
 
 ## Fusionne des surfaces ([maillage, surface, transformation]) en un maillage
