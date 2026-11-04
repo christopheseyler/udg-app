@@ -55,6 +55,7 @@ var _play_button_base_position: Vector2
 var _button_tween: Tween
 
 func _ready() -> void:
+	_setup_carousel_layer()
 	carousel.set_games(games)
 	_update_carousel()
 	_setup_play_button()
@@ -91,6 +92,17 @@ func _on_settings_pressed() -> void:
 	screen.z_index = 300
 	add_child(screen)
 	screen.back_pressed.connect(screen.queue_free)
+
+## Le carrousel estompe ses logos par l'alpha de son image 3D (voir
+## GameLogo3D.set_opacity()). Le renderer Mobile stocke cette image en RGB10A2,
+## avec 2 bits d'alpha : quatre niveaux d'estompage seulement. En HDR 2D,
+## l'image passe en flottant, mais la texture du SubViewport devient lineaire :
+## le FXAA la repasse en sRGB. Le renderer Compatibility de la carte garde
+## 8 bits d'alpha sans HDR, moins lourd pour son GPU.
+func _setup_carousel_layer() -> void:
+	var hdr := RenderingServer.get_current_rendering_method() == "mobile"
+	($Carousel3DLayer/SubViewport as SubViewport).use_hdr_2d = hdr
+	(carousel_layer.material as ShaderMaterial).set_shader_parameter("linear_input", hdr)
 
 func _update_carousel() -> void:
 	carousel.update_layout(_scroll_offset, _selection_amount, current_index)
