@@ -5,7 +5,9 @@ extends GameDefinition
 func _init() -> void:
 	id = "321_zap"
 	name = "3-2-1 Zap"
+	logo_text = "321\nZap"
 	image = "res://assets/game_selector/game_selector_321_zap.png"
+	logo_decoration = preload("res://games/321_zap/zap_321_logo_bolt.tscn")
 	screen_scene = preload("res://games/321_zap/zap_321_screen.tscn")
 	min_players = 2
 	max_players = 8

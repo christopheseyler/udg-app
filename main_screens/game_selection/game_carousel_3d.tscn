@@ -18,6 +18,9 @@ ambient_light_source = 3
 ambient_light_energy = 0.4
 reflected_light_source = 2
 tonemap_mode = 2
+glow_intensity = 0.8
+glow_blend_mode = 0
+glow_hdr_threshold = 1.0
 
 [node name="GameCarousel3D" type="Node3D"]
 script = ExtResource("1_carousel")
