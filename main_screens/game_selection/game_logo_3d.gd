@@ -12,8 +12,8 @@ extends Node3D
 ## rendus opaques. Un masque, dessine par-dessus, l'estompe (voir
 ## set_opacity()).
 
-## Calque de rendu des lettres, le seul eclaire par LettersLight (voir
-## TitleIntro3D.TITLE_LAYER).
+## Calque de rendu des lettres, le seul eclaire par LettersLight : vu de face,
+## le metal ne reflete sinon que le ciel sombre de l'environnement.
 const LETTERS_LAYER := 2
 const FADE_MASK_SHADER := preload("res://main_screens/game_selection/logo_fade_mask.gdshader")
 
