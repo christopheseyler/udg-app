@@ -22,9 +22,10 @@ var logo_text: String
 ## Decor ajoute au logo 3D, comme le hachoir plante dans la cible de Halve It :
 ## une scene placee dans le repere du logo, ou la cible est centree sur
 ## l'origine (rayon 0.2485 m), sa face avant en z = 0 vers la camera et son
-## dos en z = -0.04 (voir GameLogo3D.set_text()). Ses noeuds LogoFloat, comme
-## les flechettes de X01, flottent devant la cible, et ses lumieres LogoGlow,
-## comme celle de l'eclair de 3-2-1 Zap, scintillent.
+## dos en z = -0.04 (voir GameLogo3D.set_text()). Ses noeuds LogoMover
+## bougent : les flechettes de X01 flottent (LogoFloat), les aiguilles et les
+## roues de Around the Clock tournent (LogoSpin). Ses lumieres LogoGlow, comme
+## celle de l'eclair de 3-2-1 Zap, scintillent.
 var logo_decoration: PackedScene
 var image: String
 var min_players: int = 1

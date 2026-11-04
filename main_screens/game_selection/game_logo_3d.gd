@@ -123,14 +123,14 @@ func _split_lines(game_name: String) -> Array[String]:
 ## rendu. La cible compte une centaine de maillages et le nom un par lettre :
 ## avec trois logos a l'ecran et leurs ombres, le carrousel depassait 700 draw
 ## calls, et ne tenait plus 60 FPS sur la carte (le temps CPU du pilote GL
-## faisait rater l'image au compositeur). Les decors mobiles (LogoFloat, non
+## faisait rater l'image au compositeur). Les decors mobiles (LogoMover, non
 ## imbriques) sont detaches avant, rattaches au logo a la meme place, puis
 ## fusionnes chacun a part dans son repere : ils continuent a bouger. Les
 ## noeuds d'origine sont liberes.
 func _merge_meshes() -> void:
 	var moving: Array[Node3D] = []
 	for node in find_children("*", "Node3D", true, false):
-		if node is LogoFloat:
+		if node is LogoMover:
 			moving.append(node)
 	for part in moving:
 		var parent_to_logo := _transform_in(part.get_parent(), self)
