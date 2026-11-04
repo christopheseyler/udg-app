@@ -1,0 +1,32 @@
+[gd_scene format=3]
+
+[ext_resource type="PackedScene" path="res://assets/udg-3d-assets/lightning/Lightning.glb" id="1_bolt"]
+[ext_resource type="Script" path="res://main_screens/game_selection/logo_glow.gd" id="3_glow"]
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_bolt"]
+albedo_color = Color(1, 0.82, 0.1, 1)
+metallic = 0.4
+roughness = 0.35
+emission_enabled = true
+emission = Color(1, 0.75, 0.05, 1)
+emission_energy_multiplier = 1.5
+
+[node name="Zap321LogoBolt" type="Node3D"]
+
+[node name="Bolt" parent="." instance=ExtResource("1_bolt")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.03, 0.012)
+
+[node name="Lightning" parent="Bolt" index="0"]
+material_override = SubResource("StandardMaterial3D_bolt")
+
+[node name="Glow" type="OmniLight3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.03, 0.03)
+light_color = Color(1, 0.82, 0.3, 1)
+light_energy = 0.6
+light_specular = 0.5
+light_cull_mask = 1
+omni_range = 0.35
+script = ExtResource("3_glow")
+emissive = SubResource("StandardMaterial3D_bolt")
+
+[editable path="Bolt"]

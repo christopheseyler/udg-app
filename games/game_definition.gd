@@ -3,8 +3,8 @@ extends RefCounted
 
 ## Definition d'un jeu, exposee a l'ecran de selection. Chaque jeu vit dans
 ## games/<nom_du_jeu>/ et etend cette classe en renseignant ses champs dans
-## _init(). "logo_text", "min_players", "max_players", "options",
-## "uses_players_order" et "reverse_players_order" sont facultatifs (voir
+## _init(). "logo_text", "logo_decoration", "min_players", "max_players",
+## "options", "uses_players_order" et "reverse_players_order" sont facultatifs (voir
 ## game_options.gd pour le
 ## format des options ; un jeu sans option desactive le bouton Options ;
 ## "uses_players_order" indique si le demarrage passe par l'ecran d'ordre de
@@ -19,6 +19,16 @@ var name: String
 ## "\n" force un retour a la ligne, et une ligne entre crochets, comme
 ## "[the]", est plus petite (voir GameLogo3D.set_text()).
 var logo_text: String
+## Decor ajoute au logo 3D, comme le hachoir plante dans la cible de Halve It :
+## une scene placee dans le repere du logo, ou la cible est centree sur
+## l'origine (rayon 0.2485 m), sa face avant en z = 0 vers la camera et son
+## dos en z = -0.04 (voir GameLogo3D.set_text()). Ses noeuds LogoMover
+## bougent : les flechettes de X01 flottent (LogoFloat), les aiguilles et les
+## roues de Around the Clock tournent (LogoSpin). Ses lumieres LogoGlow, comme
+## celle de l'eclair de 3-2-1 Zap, scintillent. Ses noeuds du groupe
+## GameLogo3D.UNMERGED_GROUP, comme la marque du logo Cricket, restent tels
+## quels.
+var logo_decoration: PackedScene
 var image: String
 var min_players: int = 1
 var max_players: int = DEFAULT_MAX_PLAYERS

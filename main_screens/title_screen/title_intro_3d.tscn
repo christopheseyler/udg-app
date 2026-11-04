@@ -2,23 +2,21 @@
 
 [ext_resource type="Script" path="res://main_screens/title_screen/title_intro_3d.gd" id="1_intro"]
 [ext_resource type="PackedScene" uid="uid://dhdq1n5upi4yx" path="res://assets/udg-3d-assets/dartboard/Dartboard.glb" id="2_board"]
+[ext_resource type="Texture2D" path="res://assets/udg-3d-assets/environment/hotel_room.hdr" id="3_room"]
 
-[sub_resource type="ProceduralSkyMaterial" id="ProceduralSkyMaterial_warm"]
-sky_top_color = Color(0.12, 0.09, 0.07, 1)
-sky_horizon_color = Color(0.42, 0.3, 0.17, 1)
-ground_bottom_color = Color(0.03, 0.02, 0.015, 1)
-ground_horizon_color = Color(0.3, 0.21, 0.12, 1)
+[sub_resource type="PanoramaSkyMaterial" id="PanoramaSkyMaterial_room"]
+panorama = ExtResource("3_room")
 
-[sub_resource type="Sky" id="Sky_warm"]
-sky_material = SubResource("ProceduralSkyMaterial_warm")
+[sub_resource type="Sky" id="Sky_room"]
+sky_material = SubResource("PanoramaSkyMaterial_room")
 
 [sub_resource type="Environment" id="Environment_intro"]
 background_mode = 2
-sky = SubResource("Sky_warm")
+sky = SubResource("Sky_room")
+sky_rotation = Vector3(0, 1.5707964, 0)
 ambient_light_source = 3
-ambient_light_energy = 0.4
 reflected_light_source = 2
-tonemap_mode = 2
+tonemap_mode = 4
 
 [node name="TitleIntro3D" type="Node3D"]
 script = ExtResource("1_intro")
@@ -44,12 +42,6 @@ shadow_blur = 1.5
 transform = Transform3D(0.34202015, -0.3213938, 0.8830222, 0, 0.9396926, 0.34202012, -0.9396926, -0.11697777, 0.32139382, 0, 0, 0)
 light_color = Color(1, 0.86, 0.68, 1)
 light_energy = 0.5
-
-[node name="TitleLight" type="DirectionalLight3D" parent="."]
-transform = Transform3D(1, 0, 0, 0, 0.9902681, 0.13917311, 0, -0.13917311, 0.9902681, 0, 0, 0)
-light_energy = 0.6
-light_specular = 1.0
-light_cull_mask = 2
 
 [node name="Board" type="Node3D" parent="."]
 transform = Transform3D(0.8670187, 0.013327474, -0.49809736, 0.034766693, 0.9955879, 0.08715574, 0.49706125, -0.09288286, 0.8627299, 0, 0.06, 0)

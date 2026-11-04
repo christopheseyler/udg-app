@@ -15,8 +15,11 @@ extends Node3D
 signal finished
 
 const DART_SCENE := preload("res://assets/udg-3d-assets/dart/Dart.glb")
-## Calque de rendu des lettres, le seul eclaire par TitleLight : vu de face,
-## le metal ne reflete sinon que le ciel sombre de l'environnement.
+## Panorama de l'environnement (eclairage et reflets) pour le renderer
+## Compatibility de la carte : il decode le panorama comme du sRGB, d'ou cette
+## copie pre-encodee de hotel_room.hdr (voir environment/source).
+const SKY_COMPATIBILITY_PATH := "res://assets/udg-3d-assets/environment/hotel_room_compat.hdr"
+## Calque de rendu des lettres, le seul eclaire par le spot (TitleSpot).
 const TITLE_LAYER := 2
 
 @export_group("Cible")
@@ -61,7 +64,9 @@ const TITLE_LAYER := 2
 @export_group("Spot")
 @export var sweep_delay: float = 0.3
 @export var sweep_duration: float = 1.2
-@export var spot_energy: float = 16.0
+## Faible : le spot est presque dans l'axe du reflet des faces avant vers la
+## camera, et le pic speculaire du metal brule les lettres en blanc des 1.
+@export var spot_energy: float = 0.4
 ## Position du spot par rapport au point vise sur la ligne mediane du titre.
 @export var spot_offset := Vector3(0.0, 0.06, 0.3)
 
@@ -90,6 +95,9 @@ var _words: Array[Array] = []
 var _title_bounds: AABB
 
 func _ready() -> void:
+	if RenderingServer.get_current_rendering_method() == "gl_compatibility":
+		var sky := ($WorldEnvironment as WorldEnvironment).environment.sky
+		(sky.sky_material as PanoramaSkyMaterial).panorama = load(SKY_COMPATIBILITY_PATH)
 	_rest_position = board.position
 	_rest_rotation = board.rotation
 	board.visible = false

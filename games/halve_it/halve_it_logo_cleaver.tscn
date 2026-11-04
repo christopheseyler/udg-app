@@ -1,0 +1,8 @@
+[gd_scene format=3]
+
+[ext_resource type="PackedScene" path="res://assets/udg-3d-assets/cleaver/Cleaver.glb" id="1_cleaver"]
+
+[node name="HalveItLogoCleaver" type="Node3D"]
+
+[node name="Cleaver" parent="." instance=ExtResource("1_cleaver")]
+transform = Transform3D(-0.2379165, -0.2379165, -1.2557036, -0.9192388, 0.9192388, 0, 0.8879165, 0.8879165, -0.3364648, -0.00705, 0.11893, 0.02631)

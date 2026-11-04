@@ -1,0 +1,10 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://games/cricket/cricket_logo_mark.gd" id="1_logo_mark"]
+[ext_resource type="PackedScene" path="res://games/cricket/cricket_mark_3d.tscn" id="2_mark"]
+
+[node name="CricketLogoMark" type="Node3D" groups=["logo_unmerged"]]
+script = ExtResource("1_logo_mark")
+
+[node name="Mark" parent="." instance=ExtResource("2_mark")]
+transform = Transform3D(0.36, 0, 0, 0, 0.36, 0, 0, 0, 0.36, 0, 0, 0.004)

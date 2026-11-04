@@ -6,6 +6,7 @@ func _init() -> void:
 	id = "cricket"
 	name = "Cricket"
 	image = "res://assets/game_selector/game_selector_cricket.png"
+	logo_decoration = preload("res://games/cricket/cricket_logo_mark.tscn")
 	screen_scene = preload("res://games/cricket/cricket_screen.tscn")
 	min_players = 2
 	max_players = 8

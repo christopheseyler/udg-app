@@ -18,6 +18,10 @@ ambient_light_source = 3
 ambient_light_energy = 0.4
 reflected_light_source = 2
 tonemap_mode = 2
+glow_levels/3 = 0.0
+glow_intensity = 0.8
+glow_blend_mode = 0
+glow_hdr_threshold = 1.0
 
 [node name="GameCarousel3D" type="Node3D"]
 script = ExtResource("1_carousel")
@@ -26,8 +30,8 @@ script = ExtResource("1_carousel")
 environment = SubResource("Environment_carousel")
 
 [node name="Camera3D" type="Camera3D" parent="."]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.094, 2.2)
-fov = 30.0
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.094, 1.132)
+fov = 55.0
 near = 0.05
 
 [node name="KeyLight" type="DirectionalLight3D" parent="."]
@@ -45,8 +49,8 @@ light_color = Color(1, 0.86, 0.68, 1)
 light_energy = 0.5
 
 [node name="LettersLight" type="DirectionalLight3D" parent="."]
-transform = Transform3D(1, 0, 0, 0, 0.9902681, 0.13917311, 0, -0.13917311, 0.9902681, 0, 0, 0)
-light_energy = 0.6
+transform = Transform3D(0.9063078, -0.17860620, 0.38302222, 0, 0.9063078, 0.42261826, -0.42261826, -0.38302222, 0.82139380, 0, 0, 0)
+light_energy = 0.4
 light_specular = 1.0
 light_cull_mask = 2
 

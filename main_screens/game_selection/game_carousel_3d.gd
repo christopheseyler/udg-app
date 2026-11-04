@@ -29,7 +29,7 @@ func set_games(games: Array[GameDefinition]) -> void:
 	for game in games:
 		var logo: GameLogo3D = LOGO_SCENE.instantiate()
 		logos_root.add_child(logo)
-		logo.set_text(game.logo_text if game.logo_text else game.name)
+		logo.set_text(game.logo_text if game.logo_text else game.name, game.logo_decoration)
 		_logos.append(logo)
 
 ## Deplacement a l'ecran, en pixels du SubViewport, du logo central quand le
