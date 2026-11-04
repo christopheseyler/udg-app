@@ -4,10 +4,12 @@ front face only (flat back). Facing Blender -Y (= Godot +Z), back face at y = 0.
 
 With --chamfer the front bevel is a flat chamfer instead. With --outline each
 character also gets a backing plate behind it: the same glyph dilated by that
-amount (mitred corners), a quarter of the character's depth thick, in a second
-material (HemiHead_Outline). With --textures <dir> (the PBR sets of
-tools/blender/textures) the letter is brushed metal and the backing scuffed gold,
-box-mapped; otherwise both are plain greys.
+amount (mitred corners), --outline-depth thick (a quarter of the character's depth
+by default), in a second material (HemiHead_Outline). --outline-chamfer bevels
+the front edges of the plate, --outline-round rounds its back edges with that
+radius. With --textures <dir> (the PBR sets of tools/blender/textures) the letter
+is brushed metal and the backing scuffed gold, box-mapped; otherwise both are
+plain greys.
 
 Each mesh has its origin on the baseline at the glyph's pen position, and carries
 its advance width in metres as the "advance" custom property (glTF extras), so
@@ -16,12 +18,13 @@ in three rows (upper case, lower case, digits and hyphen) under the "HemiHead" r
 
     blender --background --factory-startup --python make_hemihead.py -- <out_dir>
             [--size 0.1] [--depth 0.1] [--bevel 0.02] [--chamfer] [--outline 0.03]
+            [--outline-depth 0.025] [--outline-chamfer 0.01] [--outline-round 0.01]
             [--textures <dir>] [--chars ABC] [--name HemiHead] [--font <otf>] [--preview]
 
 --size is the text size in metres as Blender defines it: the height of the font's
 bounding box (1255 units of its 1000-unit em for HemiHead). --depth (extrusion),
---bevel (front bevel width) and --outline (dilation of the backing) are fractions
-of that size. --chars limits the characters. Output: <name>.glb + <name>.blend
+--bevel (front bevel width), --outline (dilation of the backing) and the other
+--outline-* lengths are fractions of that size. --chars limits the characters. Output: <name>.glb + <name>.blend
 (+ <name>_preview.png with --preview).
 """
 import glob
@@ -54,8 +57,17 @@ DEPTH = float(arg("--depth", 0.1))
 BEVEL = float(arg("--bevel", 0.02))
 BEVEL_SEG = 1 if "--chamfer" in ARGS else 3
 OUTLINE = float(arg("--outline", 0))  # dilation of the backing plate, 0 = none
-BACKING = DEPTH / 4                   # thickness of the backing plate
+BACKING = float(arg("--outline-depth", DEPTH / 4))      # thickness of the backing plate
+OUTLINE_CHAMFER = float(arg("--outline-chamfer", 0))    # its front edges, 0 = square
+OUTLINE_ROUND = float(arg("--outline-round", 0))        # its back edges, 0 = square
+ROUND_SEG = 3
+if OUTLINE and OUTLINE_CHAMFER >= OUTLINE:
+    sys.exit("--outline-chamfer must stay below --outline: it would cut under the letter")
+if OUTLINE and OUTLINE_CHAMFER + OUTLINE_ROUND >= BACKING:
+    sys.exit("--outline-chamfer + --outline-round must stay below --outline-depth")
 MITER_LIMIT = 2.0                     # backing corners: mitred up to 2x the dilation
+# backing notches and holes narrower than its bevels filled (backing_bm)
+CLOSING = max(OUTLINE_CHAMFER, OUTLINE_ROUND)
 TEXTURES = arg("--textures", None)    # folder of the PBR sets, None = plain greys
 LETTER_TEX, BACK_TEX = "brushed-metal-bl", "gold-scuffed-bl"
 TEX_TILE = 1.0                        # one texture repeat per text size
@@ -198,32 +210,84 @@ def font_bm(char, font, extrude):
 
 
 def backing_bm(char, font):
-    """Backing plate (material 1): the glyph dilated by OUTLINE, with mitred corners
-    clipped beyond MITER_LIMIT, extruded from z = -BACKING to 0. The dilated shape
-    is the union of the glyph, a band OUTLINE wide outside each outline edge and a
-    mitre at each convex corner: the triangles of their constrained Delaunay
-    triangulation that lie in at least one of them."""
+    """Backing plate (material 1): the glyph dilated by OUTLINE, extruded from
+    z = -BACKING to 0, its front edges chamfered by OUTLINE_CHAMFER and its back
+    edges rounded by OUTLINE_ROUND. A hole or a notch of the outline narrower than
+    the bevels (the dilated counter of the R, the notch between its leg and its
+    stem) would turn into a funnel or a groove, so the outline is first closed by
+    CLOSING: dilated by that much more, then eroded back by as much. That fills
+    such holes and notches and rounds every hollow corner to at least that radius."""
     bm = font_bm(char, font, 0)
-    index = {v: i for i, v in enumerate(bm.verts)}
-    pts = [v.co.xy for v in bm.verts]
-    faces = []
-    for f in bm.faces:
-        vs = [index[v] for v in f.verts]
-        faces.append(vs if f.normal.z > 0 else vs[::-1])       # CCW
+    shape = flat_region(*dilation(outline(bm), OUTLINE + CLOSING))
     bm.free()
+    if CLOSING:
+        closed = flat_region(*erosion(outline(shape), CLOSING))
+        shape.free()
+        shape = closed
+    bm = plate(shape)
+    shape.free()
+    if not is_sound(bm):
+        raise RuntimeError("the bevels of the backing of %r fold" % char)
+
+    # Flat front and back faces stay flat: sharp edges around them. The chamfer is
+    # faceted like the walls, the rounding is smooth and blends into the walls.
+    def part(f):
+        z = f.normal.z
+        return 0 if z > 0.999 else 3 if z < -0.999 else 1 if z > 0.05 else 4 if z < -0.05 else 2
+    for f in bm.faces:
+        f.smooth = True
+        f.material_index = 1
+    for e in bm.edges:
+        fs = e.link_faces
+        if len(fs) != 2:
+            e.smooth = False
+            continue
+        a, b = part(fs[0]), part(fs[1])
+        e.smooth = (fs[0].normal.angle(fs[1].normal) < SHARP
+                    and (a == b and a not in (0, 3) or {a, b} == {2, 4}))
+    return bm
+
+
+def outline(bm):
+    """(points, counter-clockwise triangles, outline edges) of the flat `bm`, the
+    outline edges a -> b (the shape on their left) as next / previous maps."""
+    tri = bm.copy()
+    bmesh.ops.triangulate(tri, faces=tri.faces)
+    tri.normal_update()
+    index = {v: i for i, v in enumerate(tri.verts)}
+    pts = [v.co.xy for v in tri.verts]
+    faces = []
+    for f in tri.faces:
+        vs = [index[v] for v in f.verts]
+        faces.append(vs if f.normal.z > 0 else vs[::-1])
+    tri.free()
     uses = Counter(frozenset(e) for f in faces for e in zip(f, f[1:] + f[:1]))
-    nxt, prv = {}, {}             # outline edges a -> b, with the glyph on their left
+    nxt, prv = {}, {}
     for f in faces:
         for a, b in zip(f, f[1:] + f[:1]):
             if uses[frozenset((a, b))] == 1:
                 nxt.setdefault(a, []).append(b)
                 prv.setdefault(b, []).append(a)
+    return pts, faces, nxt, prv
+
+
+def disc(p, r):
+    """16-gon containing the disc of radius r around p."""
+    r /= math.cos(math.pi / 16)
+    return [p + Vector((math.cos(i * math.pi / 8), math.sin(i * math.pi / 8))) * r
+            for i in range(16)]
+
+
+def dilation(shape, d):
+    """(points, polygons, keep) for flat_region: the `outline` shape dilated by d,
+    with mitred corners clipped beyond MITER_LIMIT. It is the union of the shape, a
+    band d wide outside each outline edge and a mitre at each convex corner."""
+    pts, faces, nxt, prv = shape
 
     def add(*ps):
         faces.append(list(range(len(pts), len(pts) + len(ps))))
         pts.extend(ps)
 
-    d = OUTLINE
     for a, bs in nxt.items():
         for b in bs:
             t = (pts[b] - pts[a]).normalized()
@@ -232,9 +296,7 @@ def backing_bm(char, font):
     for v, ws in nxt.items():
         p = pts[v]
         if len(ws) != 1 or len(prv[v]) != 1:       # outlines touching: a disc
-            r = d / math.cos(math.pi / 16)
-            add(*(p + Vector((math.cos(i * math.pi / 8), math.sin(i * math.pi / 8))) * r
-                  for i in range(16)))
+            add(*disc(p, d))
             continue
         t1 = (p - pts[prv[v][0]]).normalized()
         t2 = (pts[ws[0]] - p).normalized()
@@ -248,36 +310,150 @@ def backing_bm(char, font):
         else:
             s = (MITER_LIMIT - cos_half) * d / t1.dot(bis)
             add(p, p + n1 * d, p + n1 * d + t1 * s, p + n2 * d - t2 * s, p + n2 * d)
+    return pts, faces, lambda c: inside(c, [[pts[i] for i in f] for f in faces])
 
-    out, _, tris, _, _, orig = delaunay_2d_cdt(pts, [], faces, 0, 1e-7)
+
+def erosion(shape, d):
+    """(points, polygons, keep) for flat_region: the `outline` shape eroded by d,
+    what is left of it once a band d wide inside each outline edge and a disc at
+    each hollow corner are taken out."""
+    pts, faces, nxt, prv = shape
+    n = len(faces)
+
+    def add(*ps):
+        faces.append(list(range(len(pts), len(pts) + len(ps))))
+        pts.extend(ps)
+
+    for a, bs in nxt.items():
+        for b in bs:
+            t = (pts[b] - pts[a]).normalized()
+            m = Vector((-t.y, t.x)) * d
+            add(pts[a], pts[b], pts[b] + m, pts[a] + m)
+    for v, ws in nxt.items():
+        p = pts[v]
+        if len(ws) != 1 or len(prv[v]) != 1 or (p - pts[prv[v][0]]).cross(pts[ws[0]] - p) < 0:
+            add(*disc(p, d))
+    polys = [[pts[i] for i in f] for f in faces]
+    return pts, faces, lambda c: inside(c, polys[:n]) & ~inside(c, polys[n:])
+
+
+def inside(points, polygons):
+    """Mask of the 2D points lying strictly inside at least one of the convex,
+    counter-clockwise polygons (none inside a degenerate one)."""
+    x = numpy.array(points)[:, None, :]
+    mask = numpy.zeros(len(points), bool)
+    for poly in polygons:
+        q = numpy.array([(v.x, v.y) for v in poly])[None]
+        e = numpy.roll(q, -1, 1) - q
+        cross = e[..., 0] * (x[..., 1] - q[..., 1]) - e[..., 1] * (x[..., 0] - q[..., 0])
+        mask |= (cross > 0).all(1)
+    return mask
+
+
+def flat_region(pts, faces, keep):
+    """Flat bmesh at z = 0 (counter-clockwise n-gons) of the triangles of the
+    constrained Delaunay triangulation of the polygons `faces` that keep(their
+    centres) selects. Testing the centres against the polygons, rather than
+    trusting the polygons the triangulation says they come from, keeps a
+    degenerate band or two coinciding edges from taking out the wrong side."""
+    out, _, tris, _, _, _ = delaunay_2d_cdt(pts, [], faces, 0, 1e-7)
+    centres = [((out[a].x + out[b].x + out[c].x) / 3, (out[a].y + out[b].y + out[c].y) / 3)
+               for a, b, c in tris]
     bm = bmesh.new()
     vs = [bm.verts.new((p.x, p.y, 0)) for p in out]
-    for f, o in zip(tris, orig):
-        if o:
+    for f, k in zip(tris, keep(centres)):
+        if k:
             bm.faces.new([vs[i] for i in f])
     bmesh.ops.delete(bm, geom=[v for v in bm.verts if not v.link_faces], context="VERTS")
+    # outline edges of a hundredth of a millimetre where discs and bands meet
+    bmesh.ops.remove_doubles(bm, verts=bm.verts, dist=1e-4)
     bmesh.ops.dissolve_limit(bm, angle_limit=math.radians(1), verts=bm.verts, edges=bm.edges)
-    bmesh.ops.triangulate(bm, faces=bm.faces, quad_method="BEAUTY", ngon_method="BEAUTY")
-    # slivers between outline vertices left in a straight line
-    bmesh.ops.dissolve_degenerate(bm, dist=1e-6, edges=bm.edges)
-    bmesh.ops.triangulate(bm, faces=[f for f in bm.faces if len(f.verts) > 3],
-                          quad_method="BEAUTY", ngon_method="BEAUTY")
-
-    rim = [(l.vert, l.link_loop_next.vert) for f in bm.faces for l in f.loops
-           if l.edge.is_boundary]
-    low = {v: bm.verts.new(v.co - Vector((0, 0, BACKING))) for v in list(bm.verts)}
-    for f in list(bm.faces):
-        bm.faces.new([low[v] for v in reversed(f.verts)])
-    for a, b in rim:
-        bm.faces.new((a, low[a], low[b], b))
     bm.normal_update()
-    for f in bm.faces:
-        f.smooth = True
-        f.material_index = 1
-    for e in bm.edges:
-        fs = e.link_faces
-        e.smooth = len(fs) == 2 and fs[0].normal.angle(fs[1].normal) < SHARP
     return bm
+
+
+def plate(shape):
+    """The flat `shape` made solid from z = -BACKING to 0: its front and back are
+    reliefs over the shape, the front sloping down at 45 degrees to z =
+    -OUTLINE_CHAMFER at the outline, the back rising on a quarter circle of radius
+    OUTLINE_ROUND, joined by vertical walls along the outline. Being heights over
+    one triangulation of the shape, they cannot fold whatever the outline (a bevel
+    offsetting its edges folds where they are shorter than its width) and share
+    their outline."""
+    c, r = OUTLINE_CHAMFER, OUTLINE_ROUND
+
+    def front(e):
+        return -max(0.0, c - e)
+
+    def back(e):
+        return -BACKING + (r - math.sqrt(r * r - (r - e) ** 2) if e < r else 0.0)
+
+    levels = ([c] if c else []) + [r * (1 - math.cos(math.pi / 2 * j / ROUND_SEG))
+                                          for j in range(1, ROUND_SEG + 1) if r]
+    out, tris, dist = relief(shape, levels)
+    bm = bmesh.new()
+    top = [bm.verts.new((p.x, p.y, front(e))) for p, e in zip(out, dist)]
+    low = [bm.verts.new((p.x, p.y, back(e))) for p, e in zip(out, dist)]
+    for f in tris:
+        bm.faces.new([top[i] for i in f])
+        bm.faces.new([low[i] for i in reversed(f)])
+    index = {v: i for i, v in enumerate(top)}
+    rim = [(l.vert, l.link_loop_next.vert) for v in top for l in v.link_loops
+           if l.edge.is_boundary]
+    for a, b in rim:
+        bm.faces.new((a, low[index[a]], low[index[b]], b))
+    bmesh.ops.delete(bm, geom=[v for v in bm.verts if not v.link_faces], context="VERTS")
+    # slivers where the triangulation meets nearly aligned outline vertices
+    bmesh.ops.dissolve_degenerate(bm, dist=5e-5, edges=bm.edges)
+    bmesh.ops.triangulate(bm, faces=[f for f in bm.faces if len(f.verts) > 3])
+    bm.normal_update()
+    return bm
+
+
+def relief(shape, levels):
+    """Triangulation of the flat `shape` with its outline eroded by each of `levels`
+    as extra constraints: (points, triangles, distance of each point to the
+    outline)."""
+    pts, faces, nxt, _ = outline(shape)
+    seg = numpy.array([(pts[a].x, pts[a].y, pts[b].x, pts[b].y)
+                       for a, bs in nxt.items() for b in bs if (pts[b] - pts[a]).length > 1e-9])
+    edges = []
+    for e in levels:
+        ring = flat_region(*erosion(outline(shape), e))
+        # only a guide for the triangulation (the heights are exact): coarser
+        bmesh.ops.dissolve_limit(ring, angle_limit=math.radians(6), verts=ring.verts,
+                                 edges=ring.edges)
+        rp, _, rn, _ = outline(ring)
+        ring.free()
+        edges += [(len(pts) + a, len(pts) + b) for a, bs in rn.items() for b in bs]
+        pts = pts + rp
+    out, _, tris, _, _, orig = delaunay_2d_cdt(pts, edges, faces, 0, 1e-7)
+    return out, [f for f, o in zip(tris, orig) if o], outline_distance(out, seg)
+
+
+def outline_distance(points, seg):
+    """Distance of each 2D point to the nearest of the segments (x0, y0, x1, y1)."""
+    x = numpy.array([(p.x, p.y) for p in points])[:, None, :]
+    a, ab = seg[None, :, :2], (seg[:, 2:] - seg[:, :2])[None]
+    t = numpy.clip(((x - a) * ab).sum(-1) / (ab * ab).sum(-1), 0.0, 1.0)
+    return numpy.linalg.norm(x - (a + t[..., None] * ab), axis=-1).min(1)
+
+
+def is_sound(bm):
+    """Closed and consistently wound, without degenerate faces, and without a bevel
+    folded back on itself: no face near the front pointing backwards, none near
+    the back pointing forwards. Where the outline touches itself (the S once
+    closed), the vertical wall edge there bounds four walls."""
+    def pinch(e):
+        return len(e.link_faces) == 4 and (e.verts[0].co.xy - e.verts[1].co.xy).length < 1e-9
+    if not all(len(e.link_faces) == 2 and e.is_contiguous or pinch(e) for e in bm.edges):
+        return False
+    for f in bm.faces:
+        z, nz = f.calc_center_median().z, f.normal.z
+        if (f.calc_area() < 1e-10 or z > -OUTLINE_CHAMFER and nz < -0.05
+                or z < OUTLINE_ROUND - BACKING and nz > 0.05):
+            return False
+    return True
 
 
 def bevelled_glyph(char, font, width):
