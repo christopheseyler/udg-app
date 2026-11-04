@@ -1,16 +1,20 @@
 shader_type canvas_item;
 
-// FXAA (version "console" de T. Lottes) applique a la texture de la couche
-// 3D de l'intro. Le renderer Compatibility utilise sur la carte n'a pas
+// FXAA (version "console" de T. Lottes) applique a la texture d'une couche
+// 3D (intro de l'ecran titre, carrousel de selection de jeu). Le renderer Compatibility utilise sur la carte n'a pas
 // d'AA d'ecran, et son MSAA coute ~11 ms par frame sur le Mali-G610 (30 FPS
 // au lieu de 60). Calcule en alpha premultiplie, avec l'alpha dans la
 // luminance, pour lisser aussi le contour des objets sur le fond transparent.
+// Avec `linear_input`, la texture est lineaire (SubViewport en HDR 2D) : elle
+// est repassee en sRGB avant le calcul, comme une texture ordinaire.
 
 const float EDGE_THRESHOLD_MIN = 0.0312;
 const float EDGE_THRESHOLD = 0.125;
 const float REDUCE_MIN = 1.0 / 128.0;
 const float REDUCE_MUL = 1.0 / 8.0;
 const float SPAN_MAX = 8.0;
+
+uniform bool linear_input = false;
 
 varying vec4 modulate;
 
@@ -19,7 +23,16 @@ void vertex() {
 }
 
 // TEXTURE n'est accessible que dans fragment() : macro plutot que fonction.
-#define SAMPLE(uv) premul(texture(TEXTURE, uv))
+#define SAMPLE(uv) premul(to_srgb(texture(TEXTURE, uv)))
+
+vec4 to_srgb(vec4 c) {
+	if (linear_input) {
+		vec3 low = c.rgb * 12.92;
+		vec3 high = 1.055 * pow(max(c.rgb, vec3(0.0)), vec3(1.0 / 2.4)) - 0.055;
+		c.rgb = mix(high, low, vec3(lessThan(c.rgb, vec3(0.0031308))));
+	}
+	return c;
+}
 
 vec4 premul(vec4 c) {
 	return vec4(c.rgb * c.a, c.a);

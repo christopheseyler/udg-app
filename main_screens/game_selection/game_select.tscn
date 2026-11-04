@@ -13,6 +13,11 @@
 [ext_resource type="StyleBox" path="res://addons/onscreenkeyboard/customize/styles/defaultPressedStyle.tres" id="11_osk_pressed"]
 [ext_resource type="StyleBox" path="res://addons/onscreenkeyboard/customize/styles/defaultNormalSpecialKeysStyle.tres" id="12_osk_special"]
 [ext_resource type="Texture2D" path="res://assets/settings_icon.svg" id="13_settings_icon"]
+[ext_resource type="PackedScene" path="res://main_screens/game_selection/game_carousel_3d.tscn" id="14_carousel"]
+[ext_resource type="Shader" path="res://main_screens/title_screen/intro_fxaa.gdshader" id="15_fxaa"]
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_fxaa"]
+shader = ExtResource("15_fxaa")
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_settings_normal"]
 bg_color = Color(0.05, 0.05, 0.08, 0.78)
@@ -83,7 +88,8 @@ texture = ExtResource("2_f0y0j")
 expand_mode = 1
 stretch_mode = 6
 
-[node name="CardContainer" type="Control" parent="." unique_id=169201000]
+[node name="Carousel3DLayer" type="SubViewportContainer" parent="."]
+material = SubResource("ShaderMaterial_fxaa")
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
@@ -91,6 +97,16 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
+stretch = true
+
+[node name="SubViewport" type="SubViewport" parent="Carousel3DLayer"]
+own_world_3d = true
+transparent_bg = true
+handle_input_locally = false
+size = Vector2i(1920, 1080)
+render_target_update_mode = 4
+
+[node name="GameCarousel3D" parent="Carousel3DLayer/SubViewport" instance=ExtResource("14_carousel")]
 
 [node name="PlayButton" type="TextureButton" parent="." unique_id=2064230613]
 layout_mode = 1

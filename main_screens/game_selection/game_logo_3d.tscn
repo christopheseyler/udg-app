@@ -1,0 +1,12 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://main_screens/game_selection/game_logo_3d.gd" id="1_logo"]
+[ext_resource type="PackedScene" uid="uid://dhdq1n5upi4yx" path="res://assets/udg-3d-assets/dartboard/Dartboard.glb" id="2_board"]
+
+[node name="GameLogo3D" type="Node3D"]
+script = ExtResource("1_logo")
+
+[node name="Dartboard" parent="." instance=ExtResource("2_board")]
+
+[node name="Name" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.055, 0.08)
