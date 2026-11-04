@@ -1,0 +1,5 @@
+# Original 4K model (about 240 MB): kept on the PC it was made on, not in git.
+# make_cleaver.py needs Hachoir_Boucher.glb to rebuild ../Cleaver.glb.
+Hachoir_Boucher.blend
+Hachoir_Boucher.glb
+textures/

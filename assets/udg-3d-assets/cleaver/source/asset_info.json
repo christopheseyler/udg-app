@@ -1,0 +1,21 @@
+{
+  "objects": 7,
+  "triangles": 11972,
+  "textures": [
+    "BaseColor",
+    "Roughness",
+    "Metallic",
+    "Height",
+    "Normal_OpenGL",
+    "AO",
+    "ORM"
+  ],
+  "size": 4096,
+  "dimensions_mm": [
+    330,
+    21.05,
+    115
+  ],
+  "normal": "OpenGL +Y",
+  "blender": "5.2.2 LTS"
+}

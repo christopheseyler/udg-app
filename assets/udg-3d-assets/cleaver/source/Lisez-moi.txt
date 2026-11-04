@@ -1,0 +1,43 @@
+HACHOIR DE BOUCHER
+=================
+
+Modele inspire de l'image de reference fournie.
+Dimensions : environ 330 x 115 x 21 mm.
+Lame : acier de 3,6 mm, biseau de 7 mm, fil de 0,16 mm.
+Tranchant legerement convexe : extremites relevees de 3,5 mm par rapport au centre.
+Trou de suspension traversant : diametre 10,2 mm.
+Manche : deux plaquettes noires, soie pleine visible, trois rivets traversants.
+
+FICHIERS
+Hachoir_Boucher.blend : scene Blender avec modele, materiaux, cameras et studio.
+Hachoir_Boucher.glb : modele seul, materiaux PBR et textures integrees.
+renders/ : vues de presentation et de profil.
+textures/ : atlas UV communs a toutes les pieces, 4096 x 4096 pixels.
+
+TEXTURES
+Cleaver_BaseColor_4K.png : couleur sans eclairage, sRGB.
+Cleaver_Roughness_4K.png : rugosite, donnees lineaires / Non-Color.
+Cleaver_Metallic_4K.png : metal 1 / polymere 0, Non-Color.
+Cleaver_Normal_OpenGL_4K.png : normale tangente, +Y (vert vers le haut), 16 bits, Non-Color.
+Cleaver_AO_4K.png : occlusion ambiante calculee sur la geometrie, Non-Color.
+Cleaver_Height_4K.png : micro-relief normalise, 16 bits, Non-Color.
+Cleaver_ORM_4K.png : texture combinee, R = AO, G = Roughness, B = Metallic, Non-Color.
+
+Les textures sont deja reliees aux materiaux et integrees dans le .blend.
+Le depliage UV_PBR est partage par toutes les pieces et ne se chevauche pas.
+La normale contient deja le micro-relief : la Height est livree comme source
+et n'est pas branchee en displacement pour eviter de doubler l'effet.
+La Height n'exprime pas une distance physique absolue.
+L'AO est reliee a l'entree d'export glTF. Dans Cycles, l'occlusion est rendue
+par la geometrie elle-meme, sans multiplication supplementaire sur la couleur.
+
+Les materiaux SOURCE conservent les proceduraux ayant servi aux calculs.
+Les materiaux PBR utilisent les images exportees.
+Les pieces restent separees et sont regroupees sous HACHOIR | 330 mm.
+Les cameras de presentation, de profil et de detail sont dans la collection STUDIO.
+
+Normal DirectX : inverser le canal vert de la normale si le moteur le demande.
+Pour refaire un calcul de texture apres modification de la forme, reutiliser
+les materiaux SOURCE et adapter le depliage UV.
+
+build_cleaver.py et build_log.txt documentent la generation dans Blender.

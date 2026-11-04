@@ -4,6 +4,7 @@ func _init() -> void:
 	id = "halve_it"
 	name = "Halve It"
 	image = "res://assets/game_selector/game_selector_halve_it.png"
+	logo_decoration = preload("res://games/halve_it/halve_it_logo_cleaver.tscn")
 	screen_scene = preload("res://games/halve_it/halve_it_screen.tscn")
 	max_players = 8
 	uses_players_order = false
