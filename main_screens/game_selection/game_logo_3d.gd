@@ -43,14 +43,19 @@ static var _mask_meshes: Dictionary = {}
 ## Materiau du masque d'estompage de ce logo, qui porte son opacite.
 var _fade_mask := ShaderMaterial.new()
 var _masks: Array[MeshInstance3D] = []
+## Lueurs du decor, qui suivent l'opacite du logo (voir LogoGlow).
+var _glows: Array[LogoGlow] = []
 
 ## Construit le texte du logo devant la cible : le nom du jeu, ou son
 ## GameDefinition.logo_text. Un "\n" force un retour a la ligne, et une ligne
 ## entre crochets ("Around\n[the]\nClock") est reduite a `small_line_scale`.
 ## Les lignes sont empilees selon leur hauteur, a `line_gap` l'une de
-## l'autre, et le bloc est centre sur le noeud Name. A appeler une fois,
-## apres l'ajout du logo a l'arbre.
-func set_text(text: String) -> void:
+## l'autre, et le bloc est centre sur le noeud Name. `decoration`
+## (GameDefinition.logo_decoration) est ajoute au logo avant la fusion de ses
+## maillages. A appeler une fois, apres l'ajout du logo a l'arbre.
+func set_text(text: String, decoration: PackedScene = null) -> void:
+	if decoration:
+		add_child(decoration.instantiate())
 	var block: AABB
 	var widest := 0.0
 	var lines := _lines(text)
@@ -81,6 +86,8 @@ func set_opacity(alpha: float) -> void:
 	_fade_mask.set_shader_parameter("opacity", alpha)
 	for mask in _masks:
 		mask.visible = alpha < 0.995
+	for glow in _glows:
+		glow.opacity = alpha
 
 ## Lignes du texte, [texte, taille] : coupees aux retours a la ligne, ou a
 ## defaut par _split_lines() ; une ligne entre crochets est reduite.
@@ -116,16 +123,52 @@ func _split_lines(game_name: String) -> Array[String]:
 ## rendu. La cible compte une centaine de maillages et le nom un par lettre :
 ## avec trois logos a l'ecran et leurs ombres, le carrousel depassait 700 draw
 ## calls, et ne tenait plus 60 FPS sur la carte (le temps CPU du pilote GL
-## faisait rater l'image au compositeur). Les noeuds d'origine sont liberes.
+## faisait rater l'image au compositeur). Les decors mobiles (LogoFloat, non
+## imbriques) sont detaches avant, rattaches au logo a la meme place, puis
+## fusionnes chacun a part dans son repere : ils continuent a bouger. Les
+## noeuds d'origine sont liberes.
 func _merge_meshes() -> void:
-	var groups := {}
-	for mesh: MeshInstance3D in find_children("*", "MeshInstance3D", true, false):
-		var to_logo := _transform_in_logo(mesh)
-		for i in mesh.mesh.get_surface_count():
-			groups.get_or_add([mesh.get_active_material(i), mesh.layers], []).append([mesh.mesh, i, to_logo])
+	var moving: Array[Node3D] = []
+	for node in find_children("*", "Node3D", true, false):
+		if node is LogoFloat:
+			moving.append(node)
+	for part in moving:
+		var parent_to_logo := _transform_in(part.get_parent(), self)
+		part.get_parent().remove_child(part)
+		part.transform = parent_to_logo * part.transform
+	_merge_into(self)
+	for part in moving:
+		add_child(part)
+		_merge_into(part)
 
-	for child in get_children():
+## Remplace les maillages sous `root` par un maillage par materiau et calque de
+## rendu, enfants de `root`, et y ajoute leurs masques d'estompage. Les autres
+## instances visuelles (lumieres, comme la lueur de l'eclair de 3-2-1 Zap) sont
+## gardees telles quelles, rattachees a `root` a la meme place, hors des
+## masques.
+func _merge_into(root: Node3D) -> void:
+	var groups := {}
+	for mesh: MeshInstance3D in root.find_children("*", "MeshInstance3D", true, false):
+		var to_root := _transform_in(mesh, root)
+		for i in mesh.mesh.get_surface_count():
+			groups.get_or_add([mesh.get_active_material(i), mesh.layers], []).append([mesh.mesh, i, to_root])
+	var kept: Array[Node3D] = []
+	for node: VisualInstance3D in root.find_children("*", "VisualInstance3D", true, false):
+		# (parents before children: a child of a kept node goes with it)
+		if not node is MeshInstance3D and not kept.any(func(k: Node3D) -> bool: return k.is_ancestor_of(node)):
+			var parent_to_root := _transform_in(node.get_parent(), root)
+			node.get_parent().remove_child(node)
+			node.transform = parent_to_root * node.transform
+			kept.append(node)
+	for node in kept:
+		for glow in [node] + node.find_children("*", "Node3D", true, false):
+			if glow is LogoGlow:
+				_glows.append(glow)
+
+	for child in root.get_children():
 		child.free()
+	for node in kept:
+		root.add_child(node)
 	var by_layers := {}
 	for key in groups:
 		var content := [key, groups[key]]
@@ -134,15 +177,16 @@ func _merge_meshes() -> void:
 		var merged := MeshInstance3D.new()
 		merged.mesh = _merged_meshes[content]
 		merged.layers = key[1]
-		add_child(merged)
+		root.add_child(merged)
 		by_layers.get_or_add(key[1], []).append(merged.mesh)
-	_add_fade_masks(by_layers.values())
+	_add_fade_masks(root, by_layers.values())
 
-## Ajoute le masque d'estompage (voir set_opacity()) : les maillages fusionnes
-## du logo, reunis en un seul par calque de rendu, pour que le masque ne coute
-## qu'un draw call par calque. Le masque de la cible, identique dans tous les
-## logos, n'est construit qu'une fois. Il ne projette pas d'ombre.
-func _add_fade_masks(meshes_by_layers: Array) -> void:
+## Ajoute sous `root` le masque d'estompage (voir set_opacity()) : ses
+## maillages fusionnes, reunis en un seul par calque de rendu, pour que le
+## masque ne coute qu'un draw call par calque. Le masque de la cible, identique
+## dans tous les logos, n'est construit qu'une fois. Il ne projette pas
+## d'ombre.
+func _add_fade_masks(root: Node3D, meshes_by_layers: Array) -> void:
 	_fade_mask.shader = FADE_MASK_SHADER
 	for meshes: Array in meshes_by_layers:
 		if not _mask_meshes.has(meshes):
@@ -155,7 +199,7 @@ func _add_fade_masks(meshes_by_layers: Array) -> void:
 		mask.material_override = _fade_mask
 		mask.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 		mask.visible = false
-		add_child(mask)
+		root.add_child(mask)
 		_masks.append(mask)
 
 ## Fusionne des surfaces ([maillage, surface, transformation]) en un maillage
@@ -168,12 +212,12 @@ static func _merge(parts: Array, material: Material) -> ArrayMesh:
 	merged.surface_set_material(0, material)
 	return merged
 
-## Transformation d'un noeud dans le repere du logo, composee de parent en
-## parent : exacte, donc identique d'un logo a l'autre quelle que soit leur
-## position.
-func _transform_in_logo(node: Node3D) -> Transform3D:
-	var transform_in_logo := Transform3D()
-	while node != self:
-		transform_in_logo = node.transform * transform_in_logo
+## Transformation d'un noeud dans le repere de son ancetre `root`, composee de
+## parent en parent : exacte, donc identique d'un logo a l'autre quelle que
+## soit leur position.
+static func _transform_in(node: Node3D, root: Node3D) -> Transform3D:
+	var transform_in_root := Transform3D()
+	while node != root:
+		transform_in_root = node.transform * transform_in_root
 		node = node.get_parent()
-	return transform_in_logo
+	return transform_in_root
