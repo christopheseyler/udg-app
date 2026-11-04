@@ -8,8 +8,9 @@ extends Node3D
 ## chacune a part (set_lit(), set_marks()). Les trois peuvent aussi s'allumer
 ## ensemble en rouge (set_red()), par-dessus les jaunes. Une partie qui
 ## s'allume (ou passe du jaune au rouge) flashe : son emission part de
-## `flash_gain` fois sa valeur normale et y revient avec un petit rebond.
-## L'emission des parties allumees depasse le seuil du glow de
+## `flash_gain` fois sa valeur normale et y revient avec un petit rebond ;
+## set_red() peut flasher plus fort. switch_off() eteint toute la marque dans
+## un gros flash. L'emission des parties allumees depasse le seuil du glow de
 ## l'environnement : elles rayonnent quand il est actif.
 
 enum Part { FIRST_BAR, SECOND_BAR, RING }
@@ -18,13 +19,23 @@ enum Part { FIRST_BAR, SECOND_BAR, RING }
 const OFF_COLOR := Color(0.03, 0.03, 0.04, 0.78)
 const YELLOW := Color(1.0, 0.82, 0.1)
 const RED := Color(1.0, 0.1, 0.06)
+## Verre brillant des ampoules.
+const ROUGHNESS := 0.08
+const SPECULAR := 0.7
+## Valeurs par defaut des reglages ci-dessous.
+const EMISSION_ENERGY := 1.3
+const FLASH_GAIN := 2.5
+const FLASH_DURATION := 0.35
+## Gros flash (passage au rouge, extinction : voir set_red(), switch_off()).
+const BIG_FLASH_GAIN := 5.0
+const BIG_FLASH_DURATION := 0.6
 
 ## Energie de l'emission d'une partie allumee.
-@export var emission_energy: float = 1.3
+@export var emission_energy: float = EMISSION_ENERGY
 ## Emission au debut du flash d'allumage, par rapport a la normale, et duree du
 ## retour a la normale.
-@export var flash_gain: float = 2.5
-@export var flash_duration: float = 0.35
+@export var flash_gain: float = FLASH_GAIN
+@export var flash_duration: float = FLASH_DURATION
 
 var _materials: Array[StandardMaterial3D] = []
 var _lit: Array[bool] = [false, false, false]
@@ -40,9 +51,11 @@ func _ready() -> void:
 	for node: Node3D in [$FirstBar, $SecondBar, $Ring]:
 		var material := StandardMaterial3D.new()
 		material.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA_DEPTH_PRE_PASS
-		material.roughness = 0.08
-		material.metallic_specular = 0.7
+		material.roughness = ROUGHNESS
+		material.metallic_specular = SPECULAR
 		material.emission_enabled = true
+		material.albedo_color = OFF_COLOR
+		material.emission_energy_multiplier = 0.0
 		for mesh: MeshInstance3D in node.find_children("*", "MeshInstance3D", true, false):
 			mesh.material_override = material
 		_materials.append(material)
@@ -62,12 +75,37 @@ func set_marks(count: int) -> void:
 		set_lit(part, part < count)
 
 ## Allume les trois parties en rouge, ou les rend a leur etat jaune ou eteint.
-func set_red(red: bool) -> void:
+## Les parties qui changent de couleur flashent, `gain` fois leur emission
+## normale au debut du flash (par defaut `flash_gain`), pendant `duration`.
+func set_red(red: bool, gain: float = flash_gain, duration: float = flash_duration) -> void:
 	_red = red
 	for part in Part.values():
-		_update(part)
+		_update(part, gain, duration)
 
-func _update(part: Part) -> void:
+## Eteint toute la marque dans un flash : l'emission des parties allumees part
+## de `gain` fois sa valeur normale et s'eteint en `duration`, pendant que
+## leur verre redevient sombre.
+func switch_off(gain: float = BIG_FLASH_GAIN, duration: float = BIG_FLASH_DURATION) -> void:
+	_red = false
+	_lit.fill(false)
+	for part in Part.values():
+		if _shown[part] == Color.TRANSPARENT:
+			continue
+		_shown[part] = Color.TRANSPARENT
+		if _flashes[part]:
+			_flashes[part].kill()
+		var material := _materials[part]
+		if not is_inside_tree():
+			material.albedo_color = OFF_COLOR
+			material.emission_energy_multiplier = 0.0
+			continue
+		material.emission_energy_multiplier = emission_energy * gain
+		var tween := create_tween().set_parallel()
+		tween.tween_property(material, "emission_energy_multiplier", 0.0, duration).set_ease(Tween.EASE_OUT)
+		tween.tween_property(material, "albedo_color", OFF_COLOR, duration).set_ease(Tween.EASE_IN)
+		_flashes[part] = tween
+
+func _update(part: Part, gain: float = flash_gain, duration: float = flash_duration) -> void:
 	var material := _materials[part]
 	var on := _red or _lit[part]
 	var colour := (RED if _red else YELLOW) if on else Color.TRANSPARENT
@@ -80,7 +118,7 @@ func _update(part: Part) -> void:
 	material.emission = colour
 	material.emission_energy_multiplier = emission_energy if on else 0.0
 	if on and is_inside_tree():
-		material.emission_energy_multiplier = emission_energy * flash_gain
+		material.emission_energy_multiplier = emission_energy * gain
 		_flashes[part] = create_tween()
 		_flashes[part].tween_property(material, "emission_energy_multiplier", emission_energy,
-				flash_duration).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+				duration).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
