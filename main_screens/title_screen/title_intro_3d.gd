@@ -64,7 +64,9 @@ const TITLE_LAYER := 2
 @export_group("Spot")
 @export var sweep_delay: float = 0.3
 @export var sweep_duration: float = 1.2
-@export var spot_energy: float = 16.0
+## Faible : le spot est presque dans l'axe du reflet des faces avant vers la
+## camera, et le pic speculaire du metal brule les lettres en blanc des 1.
+@export var spot_energy: float = 0.4
 ## Position du spot par rapport au point vise sur la ligne mediane du titre.
 @export var spot_offset := Vector3(0.0, 0.06, 0.3)
 
