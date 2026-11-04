@@ -25,7 +25,9 @@ var logo_text: String
 ## dos en z = -0.04 (voir GameLogo3D.set_text()). Ses noeuds LogoMover
 ## bougent : les flechettes de X01 flottent (LogoFloat), les aiguilles et les
 ## roues de Around the Clock tournent (LogoSpin). Ses lumieres LogoGlow, comme
-## celle de l'eclair de 3-2-1 Zap, scintillent.
+## celle de l'eclair de 3-2-1 Zap, scintillent. Ses noeuds du groupe
+## GameLogo3D.UNMERGED_GROUP, comme la marque du logo Cricket, restent tels
+## quels.
 var logo_decoration: PackedScene
 var image: String
 var min_players: int = 1

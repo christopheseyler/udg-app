@@ -1,0 +1,16 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://games/cricket/cricket_mark_3d.gd" id="1_mark"]
+[ext_resource type="PackedScene" path="res://assets/udg-3d-assets/cricket_mark/CricketRing.glb" id="2_ring"]
+[ext_resource type="PackedScene" path="res://assets/udg-3d-assets/cricket_mark/CricketBar.glb" id="3_bar"]
+
+[node name="CricketMark3D" type="Node3D"]
+script = ExtResource("1_mark")
+
+[node name="Ring" parent="." instance=ExtResource("2_ring")]
+
+[node name="SecondBar" parent="." instance=ExtResource("3_bar")]
+transform = Transform3D(0.7071068, -0.7071068, 0, 0.7071068, 0.7071068, 0, 0, 0, 1, 0, 0, 0.015)
+
+[node name="FirstBar" parent="." instance=ExtResource("3_bar")]
+transform = Transform3D(0.7071068, 0.7071068, 0, -0.7071068, 0.7071068, 0, 0, 0, 1, 0, 0, 0.025)
