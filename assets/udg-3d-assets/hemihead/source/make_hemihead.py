@@ -9,7 +9,9 @@ by default), in a second material (HemiHead_Outline). --outline-chamfer bevels
 the front edges of the plate, --outline-round rounds its back edges with that
 radius. With --textures <dir> (the PBR sets of tools/blender/textures) the letter
 is brushed metal and the backing scuffed gold, box-mapped; otherwise both are
-plain greys.
+plain greys. With --dome <degrees> the flat front of the letter keeps its shape
+but gets normals tilted by up to that angle towards its outline, so that it
+reflects its surroundings like a slightly domed face.
 
 Each mesh has its origin on the baseline at the glyph's pen position, and carries
 its advance width in metres as the "advance" custom property (glTF extras), so
@@ -19,13 +21,14 @@ in three rows (upper case, lower case, digits and hyphen) under the "HemiHead" r
     blender --background --factory-startup --python make_hemihead.py -- <out_dir>
             [--size 0.1] [--depth 0.1] [--bevel 0.02] [--chamfer] [--outline 0.03]
             [--outline-depth 0.025] [--outline-chamfer 0.01] [--outline-round 0.01]
-            [--textures <dir>] [--chars ABC] [--name HemiHead] [--font <otf>] [--preview]
+            [--dome 8] [--textures <dir>] [--chars ABC] [--name HemiHead]
+            [--font <otf>] [--preview]
 
 --size is the text size in metres as Blender defines it: the height of the font's
 bounding box (1255 units of its 1000-unit em for HemiHead). --depth (extrusion),
 --bevel (front bevel width), --outline (dilation of the backing) and the other
---outline-* lengths are fractions of that size. --chars limits the characters. Output: <name>.glb + <name>.blend
-(+ <name>_preview.png with --preview).
+--outline-* lengths are fractions of that size. --chars limits the characters.
+Output: <name>.glb + <name>.blend (+ <name>_preview.png with --preview).
 """
 import glob
 import math
@@ -68,6 +71,8 @@ if OUTLINE and OUTLINE_CHAMFER + OUTLINE_ROUND >= BACKING:
 MITER_LIMIT = 2.0                     # backing corners: mitred up to 2x the dilation
 # backing notches and holes narrower than its bevels filled (backing_bm)
 CLOSING = max(OUTLINE_CHAMFER, OUTLINE_ROUND)
+DOME = math.radians(float(arg("--dome", 0)))  # normal tilt at the edge of the letter front
+DOME_WIDTH = 0.03                     # ... fading out over that distance from the edge
 TEXTURES = arg("--textures", None)    # folder of the PBR sets, None = plain greys
 LETTER_TEX, BACK_TEX = "brushed-metal-bl", "gold-scuffed-bl"
 TEX_TILE = 1.0                        # one texture repeat per text size
@@ -169,6 +174,8 @@ def glyph_bm(char, font):
             continue
         a, b = part(fs[0]), part(fs[1])
         e.smooth = a == b and (a not in faceted or fs[0].normal.angle(fs[1].normal) < SHARP)
+    if DOME:
+        dome_front(bm)
 
     if OUTLINE:
         # The backing plate goes under the back face, which is then hidden, and the
@@ -433,10 +440,18 @@ def relief(shape, levels):
 
 def outline_distance(points, seg):
     """Distance of each 2D point to the nearest of the segments (x0, y0, x1, y1)."""
+    return outline_nearest(points, seg)[0]
+
+
+def outline_nearest(points, seg):
+    """(distances, nearest points) of the 2D points to the segments (x0, y0, x1, y1)."""
     x = numpy.array([(p.x, p.y) for p in points])[:, None, :]
     a, ab = seg[None, :, :2], (seg[:, 2:] - seg[:, :2])[None]
     t = numpy.clip(((x - a) * ab).sum(-1) / (ab * ab).sum(-1), 0.0, 1.0)
-    return numpy.linalg.norm(x - (a + t[..., None] * ab), axis=-1).min(1)
+    q = a + t[..., None] * ab
+    d = numpy.linalg.norm(x - q, axis=-1)
+    i, k = numpy.arange(len(d)), d.argmin(1)
+    return d[i, k], q[i, k]
 
 
 def is_sound(bm):
@@ -477,6 +492,73 @@ def bevelled_glyph(char, font, width):
             bevel.update((a, b))
     bm.normal_update()
     return bm, {f for f in bevel if f.is_valid}
+
+
+def dome_front(bm):
+    """Retriangulates the flat front of the letter (as bevelled_glyph leaves it, at
+    z = DEPTH) with its outline eroded across DOME_WIDTH as guides: the vertices
+    inside it that dome_normals tilts."""
+    bm.normal_update()
+    front = [f for f in bm.faces if f.normal.z > 0.999 and f.calc_center_median().z > DEPTH - 1e-6]
+    faces = set(front)
+    key = lambda co: (round(co.x, 6), round(co.y, 6))
+    shape = bmesh.new()
+    copy = {}
+    for f in front:
+        for v in f.verts:
+            if v not in copy:
+                copy[v] = shape.verts.new((v.co.x, v.co.y, 0.0))
+        shape.faces.new([copy[v] for v in f.verts])
+    rim = {key(v.co): v for v in copy if any(g not in faces for g in v.link_faces)}
+    out, tris, dist = relief(shape, [DOME_WIDTH * k / 3 for k in (1, 2, 3)])
+    shape.free()
+    bmesh.ops.delete(bm, geom=front, context="FACES")
+    vs = []
+    for p, e in zip(out, dist):
+        v = rim.get(key(p))
+        if v is None and e < 1e-7:
+            raise RuntimeError("the domed front no longer meets its bevel at %s" % (tuple(p),))
+        vs.append(v)
+    for f in tris:
+        for i in f:
+            if vs[i] is None:
+                vs[i] = bm.verts.new((out[i].x, out[i].y, DEPTH))
+        bm.faces.new([vs[i] for i in f]).smooth = True
+
+
+def dome_normals(bm):
+    """{(face index, corner): normal} for the flat front of the letter: tilted
+    towards the nearest edge of the face, by DOME at the edge, less and less up to
+    DOME_WIDTH from it. Interpolated over its triangles (dome_front gives it inner
+    vertices), they make the flat front reflect like a slightly domed one."""
+    bm.normal_update()
+    bm.faces.index_update()
+    faces = {f for f in bm.faces if f.material_index == 0 and f.normal.z > 0.999}
+    rim = {e for f in faces for e in f.edges
+           if not any(g in faces and g is not f for g in e.link_faces)}
+    across = {}                       # outward direction at the rim vertices
+    for f in faces:
+        centre = f.calc_center_median()
+        for e in f.edges:
+            if e in rim:
+                a, b = e.verts
+                t = (b.co - a.co).xy
+                d = Vector((t.y, -t.x)).normalized()
+                if d.dot(((a.co + b.co) / 2 - centre).xy) < 0:
+                    d = -d
+                for v in (a, b):
+                    across[v] = across.get(v, Vector((0.0, 0.0))) + d
+    seg = numpy.array([(*e.verts[0].co.xy, *e.verts[1].co.xy) for e in rim
+                       if e.calc_length() > 1e-9])
+    verts = list({v for f in faces for v in f.verts})
+    tilted = {}
+    up = Vector((0.0, 0.0, 1.0))
+    for v, e, q in zip(verts, *outline_nearest([v.co.xy for v in verts], seg)):
+        d = across[v] if v in across else Vector(q) - v.co.xy
+        angle = DOME * max(0.0, 1.0 - e / DOME_WIDTH)
+        tilted[v] = (up * math.cos(angle) + d.normalized().to_3d() * math.sin(angle)
+                     if angle > 0 and d.length > 1e-9 else up)
+    return {(f.index, i): tilted[l.vert] for f in faces for i, l in enumerate(f.loops)}
 
 
 def box_uv(bm):
@@ -628,10 +710,16 @@ def main():
             bm = glyph_bm(c, font)
             if TEXTURES:
                 box_uv(bm)
+            dome = dome_normals(bm) if DOME else {}
             bmesh.ops.transform(bm, matrix=TO_BLENDER @ Matrix.Scale(SIZE, 4), verts=bm.verts)
             me = bpy.data.meshes.new("Char_" + c)
             bm.to_mesh(me)
             bm.free()
+            if dome:
+                normals = [n.vector.copy() for n in me.corner_normals]
+                for (face, corner), n in dome.items():
+                    normals[me.polygons[face].loop_start + corner] = TO_BLENDER.to_3x3() @ n
+                me.normals_split_custom_set(normals)
             for m in mats:
                 me.materials.append(m)
             ob = bpy.data.objects.new("Char_" + c, me)
