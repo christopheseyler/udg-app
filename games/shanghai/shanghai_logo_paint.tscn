@@ -1,0 +1,21 @@
+[gd_scene format=3]
+
+[ext_resource type="Texture2D" path="res://assets/game_selector/Shanghai.png" id="1_paint"]
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_paint"]
+transparency = 1
+albedo_color = Color(1, 1, 1, 0.8)
+albedo_texture = ExtResource("1_paint")
+roughness = 0.85
+texture_filter = 3
+
+[sub_resource type="QuadMesh" id="QuadMesh_paint"]
+material = SubResource("StandardMaterial3D_paint")
+size = Vector2(0.42, 0.2517)
+
+[node name="ShanghaiLogoPaint" type="Node3D"]
+
+[node name="Paint" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.06, 0.0025)
+cast_shadow = 0
+mesh = SubResource("QuadMesh_paint")

@@ -55,10 +55,11 @@ var _opacity_listeners: Array[Node] = []
 ## GameDefinition.logo_text. Un "\n" force un retour a la ligne, et une ligne
 ## entre crochets ("Around\n[the]\nClock") est reduite a `small_line_scale`.
 ## Les lignes sont empilees selon leur hauteur, a `line_gap` l'une de
-## l'autre, et le bloc est centre sur le noeud Name. `decoration`
+## l'autre, et le bloc est centre sur le noeud Name, decale de `text_offset`
+## (GameDefinition.logo_text_offset). `decoration`
 ## (GameDefinition.logo_decoration) est ajoute au logo avant la fusion de ses
 ## maillages. A appeler une fois, apres l'ajout du logo a l'arbre.
-func set_text(text: String, decoration: PackedScene = null) -> void:
+func set_text(text: String, decoration: PackedScene = null, text_offset := Vector2.ZERO) -> void:
 	if decoration:
 		add_child(decoration.instantiate())
 	var block: AABB
@@ -78,6 +79,7 @@ func set_text(text: String, decoration: PackedScene = null) -> void:
 	for line: Node3D in name_root.get_children():
 		line.position.y -= block.get_center().y
 	name_root.scale = Vector3.ONE * minf(name_scale, max_name_width / widest)
+	name_root.position += Vector3(text_offset.x, text_offset.y, 0.0)
 	_merge_meshes()
 
 ## Opacite du logo entier (cible et nom) ; masque a 0. Estomper un logo en
@@ -193,8 +195,19 @@ func _merge_into(root: Node3D) -> void:
 		merged.mesh = _merged_meshes[content]
 		merged.layers = key[1]
 		root.add_child(merged)
-		by_layers.get_or_add(key[1], []).append(merged.mesh)
+		if not _is_blended(key[0]):
+			by_layers.get_or_add(key[1], []).append(merged.mesh)
 	_add_fade_masks(root, by_layers.values())
+
+## Surface melangee en transparence (sans pre-passe de profondeur), comme la
+## calligraphie peinte sur la cible de Shanghai : elle n'a pas de masque
+## d'estompage. Dessinee avant les masques (voir _merge_meshes()) sur une
+## surface qui en a un, elle est estompee avec elle ; son propre masque
+## multiplierait l'alpha une seconde fois, et la creuserait d'un trou plus
+## clair dans le logo estompe.
+static func _is_blended(material: Material) -> bool:
+	var base := material as BaseMaterial3D
+	return base != null and base.transparency == BaseMaterial3D.TRANSPARENCY_ALPHA
 
 ## Ajoute sous `root` le masque d'estompage (voir set_opacity()) : ses
 ## maillages fusionnes, reunis en un seul par calque de rendu, pour que le
