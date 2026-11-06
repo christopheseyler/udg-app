@@ -12,41 +12,41 @@
 [node name="CentreWheel" type="Node3D" parent="."]
 transform = Transform3D(1.0000000, -0.0000000, 0, 0.0000000, 1.0000000, 0, 0, 0, 1, 0.00000, 0.00000, 0.00500)
 script = ExtResource("1_spin")
-degrees_per_second = 15.000000
+degrees_per_second = 30.000000
 
 [node name="Wheel52" parent="CentreWheel" instance=ExtResource("Wheel52")]
 
 [node name="TopWheel" type="Node3D" parent="."]
 transform = Transform3D(-0.1736482, 0.9848078, 0, -0.9848078, -0.1736482, 0, 0, 0, 1, 0.00000, 0.17500, 0.00500)
 script = ExtResource("1_spin")
-degrees_per_second = -43.333333
+degrees_per_second = -86.666667
 
 [node name="Wheel18" parent="TopWheel" instance=ExtResource("Wheel18")]
 
 [node name="LeftWheel" type="Node3D" parent="."]
 transform = Transform3D(0.9876883, -0.1564345, 0, 0.1564345, 0.9876883, 0, 0, 0, 1, -0.16914, -0.06156, 0.00500)
 script = ExtResource("1_spin")
-degrees_per_second = -39.000000
+degrees_per_second = -78.000000
 
 [node name="Wheel20" parent="LeftWheel" instance=ExtResource("Wheel20")]
 
 [node name="RightWheel" type="Node3D" parent="."]
 transform = Transform3D(-0.8910065, -0.4539905, 0, 0.4539905, -0.8910065, 0, 0, 0, 1, 0.16914, -0.06156, 0.00500)
 script = ExtResource("1_spin")
-degrees_per_second = -39.000000
+degrees_per_second = -78.000000
 
 [node name="Wheel20" parent="RightWheel" instance=ExtResource("Wheel20")]
 
 [node name="HourHand" type="Node3D" parent="."]
 transform = Transform3D(0.6427876, -0.7660444, 0, 0.7660444, 0.6427876, 0, 0, 0, 1, 0.00000, 0.00000, 0.01600)
 script = ExtResource("1_spin")
-degrees_per_second = 9.000000
+degrees_per_second = 18.000000
 
 [node name="HourHand" parent="HourHand" instance=ExtResource("HourHand")]
 
 [node name="MinuteHand" type="Node3D" parent="."]
 transform = Transform3D(0.5000000, 0.8660254, 0, -0.8660254, 0.5000000, 0, 0, 0, 1, 0.00000, 0.00000, 0.02000)
 script = ExtResource("1_spin")
-degrees_per_second = -30.000000
+degrees_per_second = -60.000000
 
 [node name="MinuteHand" parent="MinuteHand" instance=ExtResource("MinuteHand")]
