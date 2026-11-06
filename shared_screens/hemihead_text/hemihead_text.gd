@@ -47,6 +47,12 @@ func _init(parent: Node3D, text: String, layers: int = 1, word_gap: float = 0.03
 			index += 1
 		words.append(pivots)
 
+## Hauteur du centre des minuscules au-dessus de la ligne de base : le centre
+## de la boite du "x" (sa plaque deborde autant en haut qu'en bas).
+static func lowercase_centre() -> float:
+	_load_glyphs()
+	return _glyphs["x"].mesh.get_aabb().get_center().y
+
 ## Largeur de `text` une fois pose, sans creer de noeuds.
 static func width(text: String, word_gap: float = 0.03) -> float:
 	return _bounds(_layout(text, word_gap)).size.x
