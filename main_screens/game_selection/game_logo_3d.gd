@@ -33,6 +33,11 @@ const UNMERGED_GROUP := &"logo_unmerged"
 @export var line_gap: float = 0.004
 ## Taille d'une ligne entre crochets (voir set_text()) par rapport aux autres.
 @export var small_line_scale: float = 0.6
+## Descente d'un nom tenant sur une ligne, en metres, sous le centre du noeud
+## Name : il laisse voir le haut de la cible et son decor, comme la
+## calligraphie peinte sur celle de Shanghai. Le centre de ses minuscules est
+## alors a cette hauteur (voir set_text()).
+@export var single_line_drop: float = 0.045
 
 @onready var name_root: Node3D = $Name
 
@@ -55,11 +60,14 @@ var _opacity_listeners: Array[Node] = []
 ## GameDefinition.logo_text. Un "\n" force un retour a la ligne, et une ligne
 ## entre crochets ("Around\n[the]\nClock") est reduite a `small_line_scale`.
 ## Les lignes sont empilees selon leur hauteur, a `line_gap` l'une de
-## l'autre, et le bloc est centre sur le noeud Name, decale de `text_offset`
-## (GameDefinition.logo_text_offset). `decoration`
+## l'autre, et le bloc est centre sur le noeud Name. Un nom d'une seule ligne
+## est centre sur ses minuscules plutot que sur sa boite, que les capitales,
+## les hampes et les jambages decalent d'un nom a l'autre : leurs minuscules
+## sont toutes a la meme hauteur, `single_line_drop` sous le noeud Name.
+## `decoration`
 ## (GameDefinition.logo_decoration) est ajoute au logo avant la fusion de ses
 ## maillages. A appeler une fois, apres l'ajout du logo a l'arbre.
-func set_text(text: String, decoration: PackedScene = null, text_offset := Vector2.ZERO) -> void:
+func set_text(text: String, decoration: PackedScene = null) -> void:
 	if decoration:
 		add_child(decoration.instantiate())
 	var block: AABB
@@ -76,10 +84,14 @@ func set_text(text: String, decoration: PackedScene = null, text_offset := Vecto
 		block = bounds if k == 0 else block.merge(bounds)
 		widest = maxf(widest, bounds.size.x)
 
+	var centre := block.get_center().y
+	if lines.size() == 1:
+		centre = HemiHeadText.lowercase_centre() * lines[0][1]
 	for line: Node3D in name_root.get_children():
-		line.position.y -= block.get_center().y
+		line.position.y -= centre
 	name_root.scale = Vector3.ONE * minf(name_scale, max_name_width / widest)
-	name_root.position += Vector3(text_offset.x, text_offset.y, 0.0)
+	if lines.size() == 1:
+		name_root.position.y -= single_line_drop
 	_merge_meshes()
 
 ## Opacite du logo entier (cible et nom) ; masque a 0. Estomper un logo en
