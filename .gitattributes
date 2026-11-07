@@ -9,3 +9,8 @@
 *.blend filter=lfs diff=lfs merge=lfs -text
 assets/udg-3d-assets/**/*.png filter=lfs diff=lfs merge=lfs -text
 *.hdr filter=lfs diff=lfs merge=lfs -text
+
+# Unused sounds and voices kept in assets-vault (ignored by Godot) also go
+# through Git LFS, to keep them out of the Git history.
+assets-vault/**/*.mp3 filter=lfs diff=lfs merge=lfs -text
+assets-vault/**/*.wav filter=lfs diff=lfs merge=lfs -text
