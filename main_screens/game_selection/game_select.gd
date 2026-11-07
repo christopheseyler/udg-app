@@ -169,6 +169,8 @@ func _set_scroll_offset(value: float) -> void:
 ## pression sur button_down/button_up (independants de "pressed", qui
 ## ne se declenche qu'au relachement a l'interieur du bouton).
 func _setup_play_button() -> void:
+	# Selection du jeu : son de selection plutot que le clic (UiSounds).
+	UiSounds.use_select_sound(play_button)
 	play_button.pivot_offset = play_button.size / 2.0
 	_play_button_base_position = play_button.position
 	play_button.button_down.connect(_on_play_button_down)
@@ -283,6 +285,7 @@ func _show_players_order(player_names: Array[String]) -> void:
 	var order_screen: PlayersOrderScreen = PLAYERS_ORDER_SCREEN.instantiate()
 	order_screen.z_index = 300
 	add_child(order_screen)
+	UiSounds.play_window()
 	order_screen.set_players(player_names)
 	order_screen.set_reverse_order(games[current_index].reverse_players_order)
 	order_screen.back_pressed.connect(order_screen.queue_free)

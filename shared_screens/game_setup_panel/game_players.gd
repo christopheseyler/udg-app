@@ -141,8 +141,11 @@ func _make_row(index: int) -> Button:
 	return button
 
 ## Affiche une seule des vues du panneau ; `needs_keyboard` affiche le
-## clavier a l'ecran (vues avec saisie de nom).
+## clavier a l'ecran (vues avec saisie de nom). Une vue qui en remplace une
+## autre a l'ecran joue le son d'apparition d'ecran.
 func _show_view(view: Control, needs_keyboard: bool) -> void:
+	if is_visible_in_tree() and not view.visible:
+		UiSounds.play_window()
 	for other in [players_view, edit_panel, database_panel, profile_panel]:
 		other.visible = other == view
 	if needs_keyboard:

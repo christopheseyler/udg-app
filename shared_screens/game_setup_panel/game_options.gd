@@ -67,12 +67,18 @@ func get_values() -> Dictionary:
 		values[row.option_id] = row.get_value()
 	return values
 
+## Aide d'une option a la place de la liste (son d'apparition d'ecran).
 func _show_info(option_name: String, info: String) -> void:
 	info_title.text = option_name
 	info_text.text = info
 	options_view.visible = false
 	info_view.visible = true
+	UiSounds.play_window()
 
+## Retour a la liste des options (son d'apparition d'ecran si l'aide etait
+## affichee).
 func _close_info() -> void:
+	if info_view.visible and is_visible_in_tree():
+		UiSounds.play_window()
 	info_view.visible = false
 	options_view.visible = true
