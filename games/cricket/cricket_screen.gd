@@ -16,6 +16,11 @@ extends GameScreen
 ## - Fin : comme au 321 Zap (end_at_first_finish, max_rounds) ; les joueurs
 ##   qui n'ont pas gagne sont classes selon Ending Rank, les elimines en
 ##   dernier.
+## - Annonces vocales (EVENT_VOICES) : "Closed" / "All closed" quand une
+##   fleche ferme une cible (pour le joueur / pour tous), "Scoring" quand
+##   elle donne des points, "Penalty" quand elle subit All Closed Hit Penalty
+##   ou quand Elite retire des marques en fin de tour ; "Score or die" au
+##   debut d'un round Score or Die (VOICE_SCORE_OR_DIE).
 ##
 ## Comme au 321 Zap, l'etat n'est jamais modifie fleche par fleche : il est
 ## recalcule a chaque changement en rejouant les fleches du tour depuis
@@ -30,6 +35,17 @@ const SKULL_HEIGHT := 150.0
 const SKULL_APPEAR_DURATION := 0.8
 const SKULL_BEAT_SCALE := 1.08
 const SKULL_BEAT_DURATION := 0.45
+
+## Phrase du pack de voix annoncee pour chaque evenement d'une fleche (voir
+## CricketRules.dart_events), et pour la penalite Elite de fin de tour.
+const EVENT_VOICES := {
+	CricketRules.EVENT_CLOSED: "closed",
+	CricketRules.EVENT_ALL_CLOSED: "all_closed",
+	CricketRules.EVENT_SCORING: "scoring",
+	CricketRules.EVENT_PENALTY: "penalty",
+}
+## Annonce du debut d'un round Score or Die (pas quand Cancel hit y revient).
+const VOICE_SCORE_OR_DIE := "score_or_die"
 
 @export var max_rounds: int = 10
 
@@ -72,6 +88,7 @@ func setup(players: Array[String], options: Dictionary) -> void:
 	_rules.configure(options)
 	_end_at_first_finish = options.get("end_at_first_finish", true)
 	max_rounds = int(options.get("max_rounds", str(max_rounds)))
+	last_round = max_rounds
 
 	_state = _rules.new_state(_players.size())
 	_current_player = 0
@@ -92,11 +109,15 @@ func setup(players: Array[String], options: Dictionary) -> void:
 	announce_player(_current_player)
 
 func set_round(number: int) -> void:
+	var advancing := number > round_number
 	super.set_round(number)
 	_update_skull()
+	if advancing and _rules.is_score_or_die_round(_state, round_number):
+		announce_voice(VOICE_SCORE_OR_DIE)
 
-## Jet detecte : ajoute le jet au tour, recalcule l'etat et l'affiche. Un
-## joueur qui gagne termine son tour.
+## Jet detecte : ajoute le jet au tour, recalcule l'etat, l'affiche et
+## annonce ce qu'il a provoque (voir EVENT_VOICES). Un joueur qui gagne
+## termine son tour.
 func _on_dart_hit(hit: DartHit) -> void:
 	if _game_over or confirm_overlay.visible or remove_darts_screen.visible \
 			or Time.get_ticks_msec() < _blocked_until:
@@ -107,6 +128,8 @@ func _on_dart_hit(hit: DartHit) -> void:
 	_turn_hits.append(hit)
 	var winners := _apply_turn_state()
 	add_throw(hit, _state.counted)
+	for event in _state.dart_events:
+		announce_voice(EVENT_VOICES[event])
 	if not winners.is_empty():
 		_announce_winners(winners)
 
@@ -139,7 +162,8 @@ func _on_rank_announcement_closed() -> void:
 func _on_next_player_requested() -> void:
 	if _players.is_empty():
 		return
-	_rules.end_turn(_state, _current_player)
+	if _rules.end_turn(_state, _current_player):
+		announce_voice(EVENT_VOICES[CricketRules.EVENT_PENALTY])
 	_turn_history.append({
 		"player": _current_player, "round": round_number, "start": _turn_start,
 		"hits": _turn_hits.duplicate(),

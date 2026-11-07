@@ -63,6 +63,7 @@ func _ready() -> void:
 func setup(players: Array[String], options: Dictionary) -> void:
 	_players = players.duplicate()
 	_targets = EXTENDED_TARGETS if options.get("game_mode", "9 Rounds") == "Extended" else NINE_ROUNDS_TARGETS
+	last_round = _targets.size()
 	var starting_score := int(options.get("starting_score", "0"))
 
 	_scores.clear()

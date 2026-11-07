@@ -45,11 +45,22 @@ const MAX_FINISH := {"None": 60, "Double": 40, "Triple": 60, "Master": 60}
 
 ## Image "Bust!" affichee au centre de la zone de score quand le joueur fait
 ## un bust (SpinBanner : elle arrive en tourbillonnant et en grossissant tres
-## vite, et finit par un rebond). "Remove your darts" suit apres
-## BUST_DISPLAY_DURATION ; les jets sont ignores entre-temps.
+## vite, et finit par un rebond), avec l'annonce vocale "Bust" (VOICE_BUST).
+## "Remove your darts" suit apres BUST_DISPLAY_DURATION, ou
+## GameScreen.REMOVE_DARTS_DELAY s'il est plus long ; les jets sont ignores
+## entre-temps.
 const BUST_TEXTURE := preload("res://assets/games/x01/bust.png")
 const BUST_SIZE := Vector2(1000, 500)
 const BUST_DISPLAY_DURATION := 1.6
+const VOICE_BUST := "bust"
+## Annonce vocale "Give me your darts", sur le jet qui amene le joueur au
+## score d'un autre en mode same_score_hit "Give-me your darts" (l'autre
+## joueur lui donne des fleches).
+const VOICE_GIVE_ME_YOUR_DARTS := "give_me_your_dart"
+## Annonces vocales d'un jet double (double bull compris) ou triple, sauf
+## s'il fait un bust (seul "Bust" est annonce).
+const VOICE_DOUBLE := "double"
+const VOICE_TRIPLE := "triple"
 
 ## Nombre de rounds (cycles complets de tous les joueurs) au-dela duquel la
 ## partie s'arrete, pour eviter une partie infinie (option max_rounds).
@@ -122,6 +133,7 @@ func setup(players: Array[String], options: Dictionary) -> void:
 	_same_score_hit = options.get("same_score_hit", "Nothing")
 	_end_at_first_finish = options.get("end_at_first_finish", true)
 	max_rounds = int(options.get("max_rounds", str(max_rounds)))
+	last_round = max_rounds
 	var start_value := int(options.get("start_value", "501"))
 
 	_scores.clear()
@@ -152,7 +164,8 @@ func setup(players: Array[String], options: Dictionary) -> void:
 ## Jet detecte : ajoute le jet au tour en cours, recalcule l'etat complet
 ## (voir _apply_turn_state) puis affiche le jet comme d'habitude. Termine le
 ## tour aussitot sur un bust ; declare la victoire aussitot sur un score a 0
-## valide.
+## valide. Annonce "Double" ou "Triple" (sauf sur un bust : "Bust" seul),
+## puis "Give me your darts" si le jet fait donner des fleches.
 func _on_dart_hit(hit: DartHit) -> void:
 	if _game_over or confirm_overlay.visible or remove_darts_screen.visible or _bust_image.visible:
 		return
@@ -161,10 +174,20 @@ func _on_dart_hit(hit: DartHit) -> void:
 		return
 
 	_turn_hits.append(hit)
+	var darts_before := darts_per_turn
 	var result := _apply_turn_state()
 	# Pas de notion de cible en X01 : chaque jet compte toujours pour le
 	# score (badge toujours dore).
 	add_throw(hit, true)
+
+	if result.busted:
+		_show_bust()
+		start_remove_darts_after_throw(BUST_DISPLAY_DURATION)
+		return
+	if hit.is_triple():
+		announce_voice(VOICE_TRIPLE)
+	elif hit.is_double():
+		announce_voice(VOICE_DOUBLE)
 
 	if result.finished:
 		var finisher: Array[String] = [_players[_current_player]]
@@ -173,9 +196,9 @@ func _on_dart_hit(hit: DartHit) -> void:
 			finish_game(_standings())
 		else:
 			_awaiting_rank_close = true
-	elif result.busted:
-		_show_bust()
-		start_remove_darts_after_throw(BUST_DISPLAY_DURATION)
+	elif darts_per_turn > darts_before:
+		# Seul un don de fleches (same_score_hit) allonge le tour en cours.
+		announce_voice(VOICE_GIVE_ME_YOUR_DARTS)
 
 ## Annonce du rang d'un joueur qui vient de terminer fermee, la partie
 ## continue : son tour se termine.
@@ -424,6 +447,7 @@ func _create_bust_image() -> void:
 
 func _show_bust() -> void:
 	_bust_image.play()
+	announce_voice(VOICE_BUST)
 
 func _hide_bust() -> void:
 	_bust_image.stop()
