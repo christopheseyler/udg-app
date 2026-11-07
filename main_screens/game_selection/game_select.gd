@@ -11,6 +11,8 @@ extends Control
 ## relachement. Bouton PlayButton pour valider la selection.
 
 ## Les jeux proposes sont definis dans games/ (voir game_registry.gd).
+## La musique des menus (MenuMusic) demarre en fondu a l'ouverture de cet
+## ecran, s'arrete en fondu au lancement d'une partie et reprend au retour.
 
 const PLAYERS_ORDER_SCREEN := preload("res://shared_screens/players_order_screen/players_order_screen.tscn")
 const SETTINGS_SCREEN := preload("res://main_screens/settings_screen/settings_screen.tscn")
@@ -53,6 +55,7 @@ var _play_button_base_position: Vector2
 var _button_tween: Tween
 
 func _ready() -> void:
+	MenuMusic.play()
 	_setup_carousel_layer()
 	carousel.set_games(games)
 	_update_carousel()
@@ -303,9 +306,11 @@ func _start_game(player_names: Array[String]) -> void:
 	game_screen.back_confirmed.connect(func():
 		game_screen.queue_free()
 		tree.root.add_child(self)
-		tree.current_scene = self)
+		tree.current_scene = self
+		MenuMusic.play())
 	tree.root.add_child(game_screen)
 	game_screen.set_game_name(game.name)
 	game_screen.setup(player_names, options)
 	tree.current_scene = game_screen
 	tree.root.remove_child(self)
+	MenuMusic.stop()
