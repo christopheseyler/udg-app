@@ -17,7 +17,8 @@ var id: String
 var name: String
 ## Texte du logo 3D de l'ecran de selection, quand il differe du nom : un
 ## "\n" force un retour a la ligne, et une ligne entre crochets, comme
-## "[the]", est plus petite (voir GameLogo3D.set_text()).
+## "[the]", est plus petite ; "[the^oc]" la niche au-dessus du "oc" de la
+## ligne suivante (voir GameLogo3D.set_text()).
 var logo_text: String
 ## Decor ajoute au logo 3D, comme le hachoir plante dans la cible de Halve It :
 ## une scene placee dans le repere du logo, ou la cible est centree sur

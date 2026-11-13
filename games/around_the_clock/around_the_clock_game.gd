@@ -29,7 +29,7 @@ func _init() -> void:
 	id = "around_the_clock"
 	name = "Around the Clock"
 	rules = RULES
-	logo_text = "Around\n[the]\nClock"
+	logo_text = "Around\n[the^oc]\nClock"
 	image = "res://assets/game_selector/game_selector_around_the_clock.png"
 	logo_decoration = preload("res://games/around_the_clock/around_the_clock_logo_clockwork.tscn")
 	screen_scene = preload("res://games/around_the_clock/around_the_clock_screen.tscn")

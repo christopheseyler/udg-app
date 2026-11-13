@@ -58,9 +58,14 @@ var _opacity_listeners: Array[Node] = []
 
 ## Construit le texte du logo devant la cible : le nom du jeu, ou son
 ## GameDefinition.logo_text. Un "\n" force un retour a la ligne, et une ligne
-## entre crochets ("Around\n[the]\nClock") est reduite a `small_line_scale`.
+## entre crochets ("[the]") est reduite a `small_line_scale`.
 ## Les lignes sont empilees selon leur hauteur, a `line_gap` l'une de
-## l'autre, et le bloc est centre sur le noeud Name. Un nom d'une seule ligne
+## l'autre, et le bloc est centre sur le noeud Name. Une ligne entre crochets
+## peut se nicher au-dessus de lettres de la ligne suivante : "[the^oc]"
+## est centree au-dessus du "oc" de la ligne d'en dessous, et descendue
+## juste au-dessus de ces lettres, entre leurs voisines hautes (le "l" et le
+## "k" de "Clock") ; les lignes du dessus descendent avec elle, celles du
+## dessous restent en place (voir _nest_position()). Un nom d'une seule ligne
 ## est centre sur ses minuscules plutot que sur sa boite, que les capitales,
 ## les hampes et les jambages decalent d'un nom a l'autre : leurs minuscules
 ## sont toutes a la meme hauteur, `single_line_drop` sous le noeud Name.
@@ -70,21 +75,42 @@ var _opacity_listeners: Array[Node] = []
 func set_text(text: String, decoration: PackedScene = null) -> void:
 	if decoration:
 		add_child(decoration.instantiate())
-	var block: AABB
-	var widest := 0.0
 	var lines := _lines(text)
+	var nodes: Array[Node3D] = []
+	var boxes: Array[AABB] = []
 	for k in lines.size():
 		var line := Node3D.new()
 		line.scale = Vector3.ONE * lines[k][1]
 		name_root.add_child(line)
-		var bounds := line.transform * HemiHeadText.new(line, lines[k][0], LETTERS_LAYER).bounds
-		if k > 0:
-			line.position.y = block.position.y - line_gap - bounds.end.y
-			bounds.position.y += line.position.y
-		block = bounds if k == 0 else block.merge(bounds)
-		widest = maxf(widest, bounds.size.x)
+		nodes.append(line)
+		boxes.append(line.transform * HemiHeadText.new(line, lines[k][0], LETTERS_LAYER).bounds)
 
-	var centre := block.get_center().y
+	# Centre du bloc empile sans nicher : une ligne nichee et celles du dessus
+	# descendent sur le logo, sans remonter les lignes du dessous.
+	var last := lines.size() - 1
+	var plain := boxes[last]
+	for k in range(last - 1, -1, -1):
+		var box := boxes[k]
+		box.position.y = plain.end.y + line_gap
+		plain = plain.merge(box)
+
+	# Empilement de bas en haut : la derniere ligne reste sur y = 0, chaque
+	# ligne se pose au-dessus de tout ce qui est en dessous d'elle, ou se niche
+	# dans la ligne suivante.
+	var block := boxes[last]
+	for k in range(last - 1, -1, -1):
+		var bottom := block.end.y + line_gap
+		var nest: Dictionary = _nest_position(lines[k + 1][0], lines[k][2])
+		if not nest.is_empty():
+			var below := nodes[k + 1]
+			nodes[k].position.x = below.position.x + nest.x * below.scale.x
+			bottom = below.position.y + nest.y * below.scale.y
+		nodes[k].position.y = bottom - boxes[k].position.y
+		boxes[k].position += nodes[k].position
+		block = block.merge(boxes[k])
+	var widest := block.size.x
+
+	var centre := plain.get_center().y
 	if lines.size() == 1:
 		centre = HemiHeadText.lowercase_centre() * lines[0][1]
 	for line: Node3D in name_root.get_children():
@@ -108,18 +134,36 @@ func set_opacity(alpha: float) -> void:
 	for node in _opacity_listeners:
 		node.set_logo_opacity(alpha)
 
-## Lignes du texte, [texte, taille] : coupees aux retours a la ligne, ou a
-## defaut par _split_lines() ; une ligne entre crochets est reduite.
+## Lignes du texte, [texte, taille, lettres d'ancrage] : coupees aux retours
+## a la ligne, ou a defaut par _split_lines() ; une ligne entre crochets est
+## reduite, et "[the^oc]" s'ancre au-dessus du "oc" de la ligne suivante.
 func _lines(text: String) -> Array[Array]:
 	var lines: Array[Array] = []
 	var parts: Array = Array(text.split("\n", false)) if "\n" in text else _split_lines(text)
 	for part: String in parts:
 		part = part.strip_edges()
 		if part.begins_with("[") and part.ends_with("]"):
-			lines.append([part.substr(1, part.length() - 2), small_line_scale])
+			var inner := part.substr(1, part.length() - 2).split("^")
+			lines.append([inner[0], small_line_scale, inner[1] if inner.size() > 1 else ""])
 		else:
-			lines.append([part, 1.0])
+			lines.append([part, 1.0, ""])
 	return lines
+
+## Ou nicher une ligne ancree sur les lettres `anchor` de la ligne `below`,
+## dans le repere de cette derniere : {x: centre de ces lettres, y: bas de la
+## ligne nichee, `line_gap` au-dessus de leur haut}. Choisies basses, comme le
+## "oc" de "Clock", ces lettres laissent la ligne nichee descendre entre leurs
+## voisines hautes (le "l" et le "k"). Vide sans ancrage ou si `anchor` n'est
+## pas dans `below`.
+func _nest_position(below: String, anchor: String) -> Dictionary:
+	if anchor.is_empty():
+		return {}
+	var start := below.find(anchor)
+	if start < 0:
+		push_warning("GameLogo3D : '%s' introuvable dans '%s'" % [anchor, below])
+		return {}
+	var letters := HemiHeadText.chars_bounds(below, start, anchor.length())
+	return {"x": letters.get_center().x, "y": letters.end.y + line_gap}
 
 ## Le nom sur une ligne, ou sur deux s'il est trop large et a plusieurs mots :
 ## coupe a l'espace qui equilibre le mieux la largeur des deux lignes.
