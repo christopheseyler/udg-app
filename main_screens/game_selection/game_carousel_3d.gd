@@ -10,8 +10,8 @@ extends Node3D
 
 const LOGO_SCENE := preload("res://main_screens/game_selection/game_logo_3d.tscn")
 
-@export var ring_radius: float = 1.3
-@export var angle_step_degrees: float = 30.0
+@export var ring_radius: float = 1.8
+@export var angle_step_degrees: float = 22.0
 @export var min_alpha: float = 0.0
 @export var alpha_falloff_power: float = 4.0
 ## Opacite ramenee a 0 : l'opacite des logos est recalee pour s'annuler ici
