@@ -1,7 +1,17 @@
 class_name SettingsScreen
 extends Control
 
-## Ecran de reglages systeme. Deux mises a jour depuis une cle USB (voir
+## Ecran de reglages systeme, en quatre onglets a gauche (issue #7) :
+##
+## - Information : version de l'application, adresses IP filaire et sans fil
+##   (NetworkInfo), version du firmware de la carte d'interface.
+## - Network : choix Ethernet / Wi-Fi et reglage du Wi-Fi, dans son propre
+##   script (SettingsNetworkPage, network_page.gd).
+## - Updates : mises a jour de l'application et de la carte d'interface,
+##   depuis une cle USB ou en ligne (detail ci-dessous).
+## - Maintenance : test de la carte d'interface (point 3 ci-dessous).
+##
+## Mises a jour depuis une cle USB (voir
 ## udg-yocto : meta-udg-min pour le pipeline RAUC app-only A/B + recovery, et
 ## doc/DARTBOARD-INTERFACE.md pour la carte d'interface cible) :
 ##
@@ -49,6 +59,14 @@ extends Control
 ## telecharge est supprime a la fin de l'installation. Sans reseau, affiche
 ## simplement que GitHub est injoignable.
 ##
+## 2bis. "Check online" (carte d'interface) : meme principe avec la derniere
+## release GitHub du firmware (DARTBOARD_LATEST_RELEASE_URL), dont le fichier
+## .dpkg est telecharge, valide par `udg-dartboard-flash --info` puis flashe
+## comme depuis la cle USB, et supprime a la fin. La version installee est
+## celle lue par `alive` a l'ouverture de l'ecran. Le depot du firmware est
+## prive a ce jour : GitHub repond 404 a la borne, affiche comme "aucune
+## release accessible".
+##
 ## Suppose que quelque chose (udev/systemd, hors scope de ce script) monte
 ## deja la cle USB sur ce chemin fixe : ce script ne monte rien lui-meme.
 ## Suppose aussi que le processus a le droit d'executer ces outils (le jeu
@@ -76,6 +94,7 @@ const UPDATE_DIR := "/media/udg-update"
 const BUNDLE_EXTENSION := ".raucb"
 
 const GITHUB_LATEST_RELEASE_URL := "https://api.github.com/repos/christopheseyler/udg-app/releases/latest"
+const DARTBOARD_LATEST_RELEASE_URL := "https://api.github.com/repos/christopheseyler/udg-dartboardif-rbpico/releases/latest"
 ## Dossier (persistant, hors tmpfs) ou est telecharge le bundle avant installation.
 const DOWNLOAD_DIR := "user://update"
 const RELEASE_CHECK_TIMEOUT_S := 15.0
@@ -106,17 +125,30 @@ enum ConfirmAction { NONE, UPGRADE, DOWNLOAD, REBOOT }
 ## Quelle mise a jour est en cours de selection / d'installation.
 enum UpdateKind { APP, DARTBOARD }
 
-@onready var check_update_button: Button = $Panel/Layout/Margin/Content/Buttons/CheckUpdateButton
-@onready var check_online_button: Button = $Panel/Layout/Margin/Content/Buttons/CheckOnlineUpdateButton
-@onready var dartboard_update_button: Button = $Panel/Layout/Margin/Content/Buttons/DartboardUpdateButton
-@onready var dartboard_test_button: Button = $Panel/Layout/Margin/Content/Buttons/DartboardTestButton
-@onready var back_button: Button = $Panel/Layout/Margin/Content/Buttons/BackButton
-@onready var app_version_label: Label = $Panel/Layout/Margin/Content/Buttons/InfoBox/AppVersionLabel
-@onready var dartboard_version_label: Label = $Panel/Layout/Margin/Content/Buttons/InfoBox/DartboardVersionLabel
-@onready var ip_label: Label = $Panel/Layout/Margin/Content/Buttons/InfoBox/IpLabel
-@onready var status_label: Label = $Panel/Layout/Margin/Content/Selection/StatusLabel
-@onready var bundle_scroll: ScrollContainer = $Panel/Layout/Margin/Content/Selection/BundleScroll
-@onready var bundle_list: VBoxContainer = $Panel/Layout/Margin/Content/Selection/BundleScroll/ListMargin/BundleList
+@onready var tab_buttons: Array[Button] = [
+	$Panel/Layout/Margin/Content/Tabs/InfoTab,
+	$Panel/Layout/Margin/Content/Tabs/NetworkTab,
+	$Panel/Layout/Margin/Content/Tabs/UpdatesTab,
+	$Panel/Layout/Margin/Content/Tabs/MaintenanceTab,
+]
+@onready var pages: Array[Control] = [
+	$Panel/Layout/Margin/Content/Pages/InfoPage,
+	$Panel/Layout/Margin/Content/Pages/NetworkPage,
+	$Panel/Layout/Margin/Content/Pages/UpdatesPage,
+	$Panel/Layout/Margin/Content/Pages/MaintenancePage,
+]
+@onready var info_page: VBoxContainer = $Panel/Layout/Margin/Content/Pages/InfoPage
+@onready var network_page: SettingsNetworkPage = $Panel/Layout/Margin/Content/Pages/NetworkPage
+@onready var check_update_button: Button = $Panel/Layout/Margin/Content/Pages/UpdatesPage/AppButtons/CheckUpdateButton
+@onready var check_online_button: Button = $Panel/Layout/Margin/Content/Pages/UpdatesPage/AppButtons/CheckOnlineUpdateButton
+@onready var dartboard_update_button: Button = $Panel/Layout/Margin/Content/Pages/UpdatesPage/DartboardButtons/DartboardUpdateButton
+@onready var dartboard_online_button: Button = $Panel/Layout/Margin/Content/Pages/UpdatesPage/DartboardButtons/DartboardOnlineButton
+@onready var dartboard_test_button: Button = $Panel/Layout/Margin/Content/Pages/MaintenancePage/DartboardTestButton
+@onready var back_button: Button = $Panel/Layout/Margin/Content/Tabs/BackButton
+@onready var status_label: Label = $Panel/Layout/Margin/Content/Pages/UpdatesPage/StatusLabel
+@onready var bundle_scroll: ScrollContainer = $Panel/Layout/Margin/Content/Pages/UpdatesPage/BundleScroll
+@onready var bundle_list: VBoxContainer = $Panel/Layout/Margin/Content/Pages/UpdatesPage/BundleScroll/ListMargin/BundleList
+@onready var keyboard: Control = $OnscreenKeyboard
 @onready var confirm_overlay: Control = $ConfirmOverlay
 @onready var confirm_label: Label = $ConfirmOverlay/Center/Dialog/Margin/Content/ConfirmLabel
 @onready var no_button: Button = $ConfirmOverlay/Center/Dialog/Margin/Content/Buttons/NoButton
@@ -133,6 +165,11 @@ var _pending_target_version := ""
 ## Vrai si _pending_bundle_path est un fichier telecharge (a supprimer apres
 ## l'installation) plutot qu'un fichier de la cle USB.
 var _pending_is_download := false
+## Valeurs de la page Information, par cle (voir _add_info_row).
+var _info_values: Dictionary = {}
+## Version du firmware lue par `alive` a l'ouverture ("" : pas de reponse).
+var _dartboard_version := ""
+var _online_kind := UpdateKind.APP
 var _online_version := ""
 var _online_asset_url := ""
 var _online_asset_name := ""
@@ -158,22 +195,37 @@ var _test_log := PackedStringArray()
 
 func _ready() -> void:
 	check_update_button.pressed.connect(_on_check_update_pressed)
-	check_online_button.pressed.connect(_on_check_online_pressed)
+	check_online_button.pressed.connect(_on_check_online_pressed.bind(UpdateKind.APP))
 	dartboard_update_button.pressed.connect(_on_dartboard_update_pressed)
+	dartboard_online_button.pressed.connect(_on_check_online_pressed.bind(UpdateKind.DARTBOARD))
 	dartboard_test_button.pressed.connect(_on_dartboard_test_pressed)
 	back_button.pressed.connect(func(): back_pressed.emit())
 	no_button.pressed.connect(_on_confirm_no)
 	yes_button.pressed.connect(_on_confirm_yes)
 	test_close_button.pressed.connect(_stop_dartboard_test)
+	network_page.busy_changed.connect(_set_busy)
 	DartInputManager.board_input.line_received.connect(_on_board_line)
 	DartInputManager.board_input.hit_detected.connect(_on_test_hit)
-	for button in [check_update_button, check_online_button, dartboard_update_button,
-			dartboard_test_button, back_button, no_button, yes_button, test_close_button]:
+	for i in tab_buttons.size():
+		tab_buttons[i].pressed.connect(_show_tab.bind(i))
+	for button in tab_buttons + [check_update_button, check_online_button, dartboard_update_button,
+			dartboard_online_button, dartboard_test_button, back_button, no_button, yes_button,
+			test_close_button]:
 		PressScale.attach(button)
 	bundle_scroll.visible = false
 	test_overlay.visible = false
+	keyboard.visible = false
 	set_process(false)
+	_show_tab(0)
 	_show_system_info()
+
+## Affiche la page de l'onglet `index` (meme ordre que tab_buttons et pages).
+func _show_tab(index: int) -> void:
+	for i in tab_buttons.size():
+		tab_buttons[i].theme_type_variation = &"PillButtonActive" if i == index else &"PillButton"
+		pages[i].visible = i == index
+	if index == 0:
+		_refresh_ip_info()
 
 func _exit_tree() -> void:
 	DartInputManager.board_input.line_received.disconnect(_on_board_line)
@@ -205,15 +257,18 @@ func _on_check_update_pressed() -> void:
 		_add_list_button(path.get_file(), _on_bundle_selected.bind(path))
 	bundle_scroll.visible = true
 
-func _on_check_online_pressed() -> void:
+## Derniere release GitHub de l'application (APP) ou du firmware de la carte
+## d'interface (DARTBOARD).
+func _on_check_online_pressed(kind: UpdateKind) -> void:
 	_set_status("Checking for updates online...")
 	_clear_bundle_list()
 	_set_busy(true)
 
 	var request := _new_http_request(RELEASE_CHECK_TIMEOUT_S)
-	request.request_completed.connect(_on_release_info_received.bind(request))
+	request.request_completed.connect(_on_release_info_received.bind(request, kind))
 	var headers := PackedStringArray(["Accept: application/vnd.github+json", "User-Agent: udg-game"])
-	if request.request(GITHUB_LATEST_RELEASE_URL, headers) != OK:
+	var url := GITHUB_LATEST_RELEASE_URL if kind == UpdateKind.APP else DARTBOARD_LATEST_RELEASE_URL
+	if request.request(url, headers) != OK:
 		request.queue_free()
 		_set_busy(false)
 		_set_status("Could not start the online check.")
@@ -224,15 +279,16 @@ func _new_http_request(timeout_s: float) -> HTTPRequest:
 	add_child(request)
 	return request
 
-func _on_release_info_received(result: int, code: int, _headers: PackedStringArray, body: PackedByteArray, request: HTTPRequest) -> void:
+func _on_release_info_received(result: int, code: int, _headers: PackedStringArray, body: PackedByteArray, request: HTTPRequest, kind: UpdateKind) -> void:
 	request.queue_free()
 	_set_busy(false)
+	var what := "Application" if kind == UpdateKind.APP else "DartBoard Interface"
 
 	if result != HTTPRequest.RESULT_SUCCESS:
 		_set_status("Could not reach GitHub (no connection?). HTTPRequest result: %d" % result)
 		return
 	if code == 404:
-		_set_status("No release published yet.")
+		_set_status("No %s release available online." % what)
 		return
 	if code != 200:
 		_set_status("GitHub answered HTTP %d." % code)
@@ -244,33 +300,44 @@ func _on_release_info_received(result: int, code: int, _headers: PackedStringArr
 		return
 
 	var remote_version := str(data.get("tag_name", "")).trim_prefix("v")
-	var current_version: String = ProjectSettings.get_setting("application/config/version", "0.0.0")
-	if remote_version == "" or not _is_newer_version(remote_version, current_version):
-		_set_status("Application is up to date (v%s)." % current_version)
+	var current_version: String
+	if kind == UpdateKind.APP:
+		current_version = ProjectSettings.get_setting("application/config/version", "0.0.0")
+	else:
+		current_version = _dartboard_version
+	if remote_version == "" or (current_version != "" and not _is_newer_version(remote_version, current_version)):
+		_set_status("%s is up to date (v%s)." % [what, current_version])
 		return
 
-	var asset := _find_bundle_asset(data.get("assets", []))
+	var asset: Dictionary
+	if kind == UpdateKind.APP:
+		asset = _find_asset(data.get("assets", []), "", BUNDLE_EXTENSION)
+	else:
+		asset = _find_asset(data.get("assets", []), DARTBOARD_FILE_PREFIX, DARTBOARD_FILE_EXTENSION)
 	if asset.is_empty():
-		_set_status("Release v%s has no update bundle." % remote_version)
+		_set_status("Release v%s has no update file." % remote_version)
 		return
 
+	_online_kind = kind
 	_online_version = remote_version
 	_online_asset_url = asset.url
 	_online_asset_name = asset.name
 	_confirm_action = ConfirmAction.DOWNLOAD
-	confirm_label.text = "Application v%s available online\n(installed: v%s)\nDownload and upgrade?" % [remote_version, current_version]
+	var installed := ("v" + current_version) if current_version != "" else "unknown"
+	confirm_label.text = "%s v%s available online\n(installed: %s)\nDownload and upgrade?" % [what, remote_version, installed]
 	confirm_overlay.visible = true
 	_set_status("Update v%s available." % remote_version)
 
-## Premier asset .raucb d'une release, sous forme {name, url}, ou {} s'il n'y en a pas.
-func _find_bundle_asset(assets) -> Dictionary:
+## Premier asset d'une release dont le nom commence par `prefix` et finit
+## par `extension`, sous forme {name, url}, ou {} s'il n'y en a pas.
+func _find_asset(assets, prefix: String, extension: String) -> Dictionary:
 	if not assets is Array:
 		return {}
 	for asset in assets:
 		if asset is Dictionary:
 			var asset_name := str(asset.get("name", ""))
 			var url := str(asset.get("browser_download_url", ""))
-			if asset_name.ends_with(BUNDLE_EXTENSION) and url != "":
+			if asset_name.begins_with(prefix) and asset_name.ends_with(extension) and url != "":
 				return {"name": asset_name, "url": url}
 	return {}
 
@@ -330,9 +397,23 @@ func _on_download_finished(result: int, code: int, _headers: PackedStringArray, 
 		return
 
 	_pending_bundle_path = path
-	_pending_kind = UpdateKind.APP
+	_pending_kind = _online_kind
 	_pending_is_download = true
-	_start_install()
+	if _online_kind == UpdateKind.APP:
+		_start_install()
+		return
+	# Firmware : meme validation que depuis la cle USB, puis flash (deja
+	# confirme avant le telechargement).
+	var info := _read_dartboard_file_info(path)
+	if not info.ok:
+		DirAccess.remove_absolute(path)
+		_pending_is_download = false
+		_set_busy(false)
+		_set_status("Downloaded file is not a valid DartBoard Interface update: %s" % info.error)
+		return
+	_pending_target_version = info.version
+	_set_busy(false)
+	_flash_dartboard()
 
 func _on_dartboard_update_pressed() -> void:
 	_set_status("Looking for a USB drive...")
@@ -502,12 +583,12 @@ func _on_confirm_yes() -> void:
 		ConfirmAction.REBOOT:
 			OS.execute("systemctl", ["reboot"])
 
+## Pendant une installation, un flash ou une connexion Wi-Fi : plus d'action
+## ni de changement d'onglet, et pas de sortie de l'ecran.
 func _set_busy(busy: bool) -> void:
-	check_update_button.disabled = busy
-	check_online_button.disabled = busy
-	dartboard_update_button.disabled = busy
-	dartboard_test_button.disabled = busy
-	back_button.disabled = busy
+	for button in tab_buttons + [check_update_button, check_online_button, dartboard_update_button,
+			dartboard_online_button, dartboard_test_button, back_button]:
+		button.disabled = busy
 
 func _start_install() -> void:
 	_set_status("Installing update, please wait...")
@@ -606,19 +687,48 @@ func _flash_dartboard() -> void:
 	else:
 		_finish_dartboard_update(false, "board reports v%s, expected v%s" % [new_version, _pending_target_version])
 
-## Renseigne le bloc d'infos en haut a gauche : version de l'application,
-## adresse IP (tout de suite) et version du firmware de la carte
-## d'interface (`alive`, dans un thread : ca dure ~1,5 s, ce qui gelerait
-## l'ecran a l'ouverture).
+## Remplit la page Information : version de l'application, adresses IP
+## (tout de suite) et version du firmware de la carte d'interface (`alive`,
+## dans un thread : ca dure ~1,5 s, ce qui gelerait l'ecran a l'ouverture).
 func _show_system_info() -> void:
 	var app_version: String = ProjectSettings.get_setting("application/config/version", "0.0.0")
-	app_version_label.text = "Application: v%s" % app_version
-	var ip := _local_ip()
-	ip_label.text = "IP: %s" % ip if ip != "" else "No network connection"
+	_add_info_row("app", "Application", "v%s" % app_version)
+	_add_info_row("wired", "Wired IP", "")
+	_add_info_row("wireless", "Wireless IP", "")
+	_add_info_row("dartboard", "DartBoard Interface", "...")
+	_refresh_ip_info()
 
-	dartboard_version_label.text = "DartBoard firmware: ..."
 	_info_thread = Thread.new()
 	_info_thread.start(_info_worker)
+
+## Ligne "titre : valeur" de la page Information, sur une plaque RowPlate ;
+## la valeur se change ensuite par _info_values[key].
+func _add_info_row(key: String, title: String, value: String) -> void:
+	var plate := PanelContainer.new()
+	plate.theme_type_variation = &"RowPlate"
+	var row := HBoxContainer.new()
+	plate.add_child(row)
+	var title_label := Label.new()
+	title_label.text = title
+	title_label.custom_minimum_size.x = 420
+	title_label.add_theme_font_size_override("font_size", 34)
+	row.add_child(title_label)
+	var value_label := Label.new()
+	value_label.text = value
+	value_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	value_label.add_theme_font_size_override("font_size", 34)
+	row.add_child(value_label)
+	info_page.add_child(plate)
+	_info_values[key] = value_label
+
+## Adresses filaire et sans fil (rafraichies a chaque affichage de l'onglet).
+func _refresh_ip_info() -> void:
+	if _info_values.is_empty():
+		return
+	var wired := NetworkInfo.first_ip(false)
+	var wireless := NetworkInfo.first_ip(true)
+	_info_values.wired.text = wired if wired != "" else "Not connected"
+	_info_values.wireless.text = wireless if wireless != "" else "Not connected"
 
 func _info_worker() -> void:
 	call_deferred("_on_dartboard_version_read", _read_alive_version())
@@ -629,21 +739,14 @@ func _on_dartboard_version_read(version: String) -> void:
 	_set_dartboard_version(version)
 
 func _set_dartboard_version(version: String) -> void:
-	dartboard_version_label.text = "DartBoard firmware: v%s" % version if version != "" \
-			else "DartBoard firmware: not connected"
-
-## Premiere adresse IPv4 utilisable (ni loopback ni link-local), ou "" sans reseau.
-func _local_ip() -> String:
-	for iface in IP.get_local_interfaces():
-		if iface.name == "lo":
-			continue
-		for address: String in iface.addresses:
-			if address.contains(":") or address.begins_with("127.") or address.begins_with("169.254."):
-				continue
-			return address
-	return ""
+	_dartboard_version = version
+	_info_values.dartboard.text = "v%s" % version if version != "" else "Not connected"
 
 func _finish_dartboard_update(success: bool, message: String) -> void:
+	if _pending_is_download:
+		# Le firmware telecharge n'est plus utile (flashe ou en echec).
+		DirAccess.remove_absolute(_pending_bundle_path)
+		_pending_is_download = false
 	if success:
 		_set_dartboard_version(_pending_target_version)
 	_set_busy(false)

@@ -20,6 +20,7 @@ config/icon="res://icon.svg"
 
 DartInputManager="*res://dart_input/dart_input_manager.gd"
 PlayerDatabase="*res://players_db/player_database.gd"
+UdgWifi="*res://wifi/udg_wifi.gd"
 _mcp_game_helper="*res://addons/godot_ai/runtime/game_helper.gd"
 
 [display]

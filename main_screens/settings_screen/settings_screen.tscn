@@ -1,8 +1,16 @@
-[gd_scene load_steps=5 format=3]
+[gd_scene format=3]
 
 [ext_resource type="Script" path="res://main_screens/settings_screen/settings_screen.gd" id="1_script"]
 [ext_resource type="Texture2D" uid="uid://nw2qty11nas1" path="res://assets/title_background.png" id="2_bg"]
 [ext_resource type="Theme" path="res://assets/ui/setup/setup_theme.tres" id="3_theme"]
+[ext_resource type="Script" path="res://main_screens/settings_screen/network_page.gd" id="4_network"]
+[ext_resource type="Script" path="res://wifi/wifi_signal_icon.gd" id="5_icon"]
+[ext_resource type="Script" path="res://addons/onscreenkeyboard/onscreen_keyboard.gd" id="7_osk"]
+[ext_resource type="StyleBox" path="res://addons/onscreenkeyboard/customize/styles/defaultBackgroundStyle.tres" id="8_osk_bg"]
+[ext_resource type="StyleBox" path="res://addons/onscreenkeyboard/customize/styles/defaultNormalStyle.tres" id="9_osk_normal"]
+[ext_resource type="StyleBox" path="res://addons/onscreenkeyboard/customize/styles/defaultHoverStlyle.tres" id="10_osk_hover"]
+[ext_resource type="StyleBox" path="res://addons/onscreenkeyboard/customize/styles/defaultPressedStyle.tres" id="11_osk_pressed"]
+[ext_resource type="StyleBox" path="res://addons/onscreenkeyboard/customize/styles/defaultNormalSpecialKeysStyle.tres" id="12_osk_special"]
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_terminal"]
 content_margin_left = 20.0
@@ -40,9 +48,9 @@ stretch_mode = 6
 [node name="Panel" type="PanelContainer" parent="."]
 layout_mode = 1
 anchors_preset = -1
-anchor_left = 0.08
+anchor_left = 0.05
 anchor_top = 0.08
-anchor_right = 0.92
+anchor_right = 0.95
 anchor_bottom = 0.96
 grow_horizontal = 2
 grow_vertical = 2
@@ -85,87 +93,223 @@ size_flags_vertical = 3
 layout_mode = 2
 theme_override_constants/separation = 48
 
-[node name="Buttons" type="VBoxContainer" parent="Panel/Layout/Margin/Content"]
-custom_minimum_size = Vector2(640, 0)
+[node name="Tabs" type="VBoxContainer" parent="Panel/Layout/Margin/Content"]
+custom_minimum_size = Vector2(420, 0)
 layout_mode = 2
 theme_override_constants/separation = 16
 
-[node name="InfoBox" type="VBoxContainer" parent="Panel/Layout/Margin/Content/Buttons"]
+[node name="InfoTab" type="Button" parent="Panel/Layout/Margin/Content/Tabs"]
+custom_minimum_size = Vector2(0, 110)
 layout_mode = 2
-theme_override_constants/separation = 4
+theme_type_variation = &"PillButtonActive"
+theme_override_font_sizes/font_size = 36
+text = "Information"
 
-[node name="AppVersionLabel" type="Label" parent="Panel/Layout/Margin/Content/Buttons/InfoBox"]
-modulate = Color(1, 1, 1, 0.8)
-layout_mode = 2
-theme_override_font_sizes/font_size = 28
-
-[node name="DartboardVersionLabel" type="Label" parent="Panel/Layout/Margin/Content/Buttons/InfoBox"]
-modulate = Color(1, 1, 1, 0.8)
-layout_mode = 2
-theme_override_font_sizes/font_size = 28
-
-[node name="IpLabel" type="Label" parent="Panel/Layout/Margin/Content/Buttons/InfoBox"]
-modulate = Color(1, 1, 1, 0.8)
-layout_mode = 2
-theme_override_font_sizes/font_size = 28
-
-[node name="CheckUpdateButton" type="Button" parent="Panel/Layout/Margin/Content/Buttons"]
-custom_minimum_size = Vector2(0, 120)
+[node name="NetworkTab" type="Button" parent="Panel/Layout/Margin/Content/Tabs"]
+custom_minimum_size = Vector2(0, 110)
 layout_mode = 2
 theme_type_variation = &"PillButton"
 theme_override_font_sizes/font_size = 36
-text = "Check for update from USB"
+text = "Network"
 
-[node name="CheckOnlineUpdateButton" type="Button" parent="Panel/Layout/Margin/Content/Buttons"]
-custom_minimum_size = Vector2(0, 120)
+[node name="UpdatesTab" type="Button" parent="Panel/Layout/Margin/Content/Tabs"]
+custom_minimum_size = Vector2(0, 110)
 layout_mode = 2
 theme_type_variation = &"PillButton"
 theme_override_font_sizes/font_size = 36
-text = "Check for update online"
+text = "Updates"
 
-[node name="DartboardUpdateButton" type="Button" parent="Panel/Layout/Margin/Content/Buttons"]
-custom_minimum_size = Vector2(0, 120)
+[node name="MaintenanceTab" type="Button" parent="Panel/Layout/Margin/Content/Tabs"]
+custom_minimum_size = Vector2(0, 110)
 layout_mode = 2
 theme_type_variation = &"PillButton"
 theme_override_font_sizes/font_size = 36
-text = "DartBoard Interface Update"
+text = "Maintenance"
 
-[node name="DartboardTestButton" type="Button" parent="Panel/Layout/Margin/Content/Buttons"]
-custom_minimum_size = Vector2(0, 120)
-layout_mode = 2
-theme_type_variation = &"PillButton"
-theme_override_font_sizes/font_size = 36
-text = "DartBoard Interface Test"
-
-[node name="Spacer" type="Control" parent="Panel/Layout/Margin/Content/Buttons"]
+[node name="Spacer" type="Control" parent="Panel/Layout/Margin/Content/Tabs"]
 layout_mode = 2
 size_flags_vertical = 3
 
-[node name="BackButton" type="Button" parent="Panel/Layout/Margin/Content/Buttons"]
+[node name="BackButton" type="Button" parent="Panel/Layout/Margin/Content/Tabs"]
 custom_minimum_size = Vector2(300, 120)
 layout_mode = 2
 size_flags_horizontal = 4
 theme_type_variation = &"PillButton"
 text = "Back"
 
-[node name="Selection" type="VBoxContainer" parent="Panel/Layout/Margin/Content"]
+[node name="Pages" type="MarginContainer" parent="Panel/Layout/Margin/Content"]
 layout_mode = 2
 size_flags_horizontal = 3
+
+[node name="InfoPage" type="VBoxContainer" parent="Panel/Layout/Margin/Content/Pages"]
+layout_mode = 2
+theme_override_constants/separation = 16
+
+[node name="NetworkPage" type="VBoxContainer" parent="Panel/Layout/Margin/Content/Pages" node_paths=PackedStringArray("wifi_dialog", "keyboard")]
+visible = false
+layout_mode = 2
+theme_override_constants/separation = 24
+script = ExtResource("4_network")
+wifi_dialog = NodePath("../../../../../../WifiDialog")
+keyboard = NodePath("../../../../../../OnscreenKeyboard")
+
+[node name="ModeButtons" type="HBoxContainer" parent="Panel/Layout/Margin/Content/Pages/NetworkPage"]
+layout_mode = 2
+theme_override_constants/separation = 32
+
+[node name="EthernetButton" type="Button" parent="Panel/Layout/Margin/Content/Pages/NetworkPage/ModeButtons"]
+custom_minimum_size = Vector2(320, 100)
+layout_mode = 2
+theme_type_variation = &"PillButtonActive"
+theme_override_font_sizes/font_size = 36
+text = "Ethernet"
+
+[node name="WifiButton" type="Button" parent="Panel/Layout/Margin/Content/Pages/NetworkPage/ModeButtons"]
+custom_minimum_size = Vector2(320, 100)
+layout_mode = 2
+theme_type_variation = &"PillButton"
+theme_override_font_sizes/font_size = 36
+text = "Wi-Fi"
+
+[node name="EthernetView" type="VBoxContainer" parent="Panel/Layout/Margin/Content/Pages/NetworkPage"]
+layout_mode = 2
 theme_override_constants/separation = 24
 
-[node name="StatusLabel" type="Label" parent="Panel/Layout/Margin/Content/Selection"]
+[node name="EthernetList" type="VBoxContainer" parent="Panel/Layout/Margin/Content/Pages/NetworkPage/EthernetView"]
+layout_mode = 2
+theme_override_constants/separation = 16
+
+[node name="HintLabel" type="Label" parent="Panel/Layout/Margin/Content/Pages/NetworkPage/EthernetView"]
+modulate = Color(1, 1, 1, 0.75)
+layout_mode = 2
+theme_override_font_sizes/font_size = 28
+text = "Plug a network cable to use Ethernet. When Ethernet and Wi-Fi are both connected, Ethernet is used first."
+autowrap_mode = 3
+
+[node name="WifiView" type="VBoxContainer" parent="Panel/Layout/Margin/Content/Pages/NetworkPage"]
+visible = false
+layout_mode = 2
+size_flags_vertical = 3
+theme_override_constants/separation = 16
+
+[node name="Header" type="HBoxContainer" parent="Panel/Layout/Margin/Content/Pages/NetworkPage/WifiView"]
+layout_mode = 2
+theme_override_constants/separation = 24
+
+[node name="StatusIcon" type="Control" parent="Panel/Layout/Margin/Content/Pages/NetworkPage/WifiView/Header"]
+custom_minimum_size = Vector2(76, 40)
+layout_mode = 2
+size_flags_vertical = 4
+script = ExtResource("5_icon")
+bars = 0
+
+[node name="StatusLabel" type="Label" parent="Panel/Layout/Margin/Content/Pages/NetworkPage/WifiView/Header"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_font_sizes/font_size = 32
+text = "Wi-Fi..."
+vertical_alignment = 1
+autowrap_mode = 3
+
+[node name="ScanButton" type="Button" parent="Panel/Layout/Margin/Content/Pages/NetworkPage/WifiView/Header"]
+custom_minimum_size = Vector2(260, 100)
+layout_mode = 2
+theme_type_variation = &"PillButton"
+theme_override_font_sizes/font_size = 36
+text = "Scan"
+
+[node name="MessageLabel" type="Label" parent="Panel/Layout/Margin/Content/Pages/NetworkPage/WifiView"]
+modulate = Color(1, 1, 1, 0.8)
+layout_mode = 2
+theme_override_font_sizes/font_size = 28
+autowrap_mode = 3
+
+[node name="Scroll" type="ScrollContainer" parent="Panel/Layout/Margin/Content/Pages/NetworkPage/WifiView"]
+layout_mode = 2
+size_flags_vertical = 3
+horizontal_scroll_mode = 0
+
+[node name="ListMargin" type="MarginContainer" parent="Panel/Layout/Margin/Content/Pages/NetworkPage/WifiView/Scroll"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/margin_left = 16
+theme_override_constants/margin_top = 16
+theme_override_constants/margin_right = 16
+theme_override_constants/margin_bottom = 16
+
+[node name="NetworkList" type="VBoxContainer" parent="Panel/Layout/Margin/Content/Pages/NetworkPage/WifiView/Scroll/ListMargin"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 16
+
+[node name="UpdatesPage" type="VBoxContainer" parent="Panel/Layout/Margin/Content/Pages"]
+visible = false
+layout_mode = 2
+theme_override_constants/separation = 20
+
+[node name="AppTitle" type="Label" parent="Panel/Layout/Margin/Content/Pages/UpdatesPage"]
+layout_mode = 2
+theme_type_variation = &"GroupTitle"
+text = "Application"
+
+[node name="AppButtons" type="HBoxContainer" parent="Panel/Layout/Margin/Content/Pages/UpdatesPage"]
+layout_mode = 2
+theme_override_constants/separation = 32
+
+[node name="CheckUpdateButton" type="Button" parent="Panel/Layout/Margin/Content/Pages/UpdatesPage/AppButtons"]
+custom_minimum_size = Vector2(0, 110)
+layout_mode = 2
+size_flags_horizontal = 3
+theme_type_variation = &"PillButton"
+theme_override_font_sizes/font_size = 36
+text = "Check from USB"
+
+[node name="CheckOnlineUpdateButton" type="Button" parent="Panel/Layout/Margin/Content/Pages/UpdatesPage/AppButtons"]
+custom_minimum_size = Vector2(0, 110)
+layout_mode = 2
+size_flags_horizontal = 3
+theme_type_variation = &"PillButton"
+theme_override_font_sizes/font_size = 36
+text = "Check online"
+
+[node name="DartboardTitle" type="Label" parent="Panel/Layout/Margin/Content/Pages/UpdatesPage"]
+layout_mode = 2
+theme_type_variation = &"GroupTitle"
+text = "DartBoard Interface"
+
+[node name="DartboardButtons" type="HBoxContainer" parent="Panel/Layout/Margin/Content/Pages/UpdatesPage"]
+layout_mode = 2
+theme_override_constants/separation = 32
+
+[node name="DartboardUpdateButton" type="Button" parent="Panel/Layout/Margin/Content/Pages/UpdatesPage/DartboardButtons"]
+custom_minimum_size = Vector2(0, 110)
+layout_mode = 2
+size_flags_horizontal = 3
+theme_type_variation = &"PillButton"
+theme_override_font_sizes/font_size = 36
+text = "Check from USB"
+
+[node name="DartboardOnlineButton" type="Button" parent="Panel/Layout/Margin/Content/Pages/UpdatesPage/DartboardButtons"]
+custom_minimum_size = Vector2(0, 110)
+layout_mode = 2
+size_flags_horizontal = 3
+theme_type_variation = &"PillButton"
+theme_override_font_sizes/font_size = 36
+text = "Check online"
+
+[node name="StatusLabel" type="Label" parent="Panel/Layout/Margin/Content/Pages/UpdatesPage"]
 modulate = Color(1, 1, 1, 0.8)
 layout_mode = 2
 theme_override_font_sizes/font_size = 32
 vertical_alignment = 1
 autowrap_mode = 3
 
-[node name="BundleScroll" type="ScrollContainer" parent="Panel/Layout/Margin/Content/Selection"]
+[node name="BundleScroll" type="ScrollContainer" parent="Panel/Layout/Margin/Content/Pages/UpdatesPage"]
 layout_mode = 2
 size_flags_vertical = 3
 horizontal_scroll_mode = 0
 
-[node name="ListMargin" type="MarginContainer" parent="Panel/Layout/Margin/Content/Selection/BundleScroll"]
+[node name="ListMargin" type="MarginContainer" parent="Panel/Layout/Margin/Content/Pages/UpdatesPage/BundleScroll"]
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_constants/margin_left = 24
@@ -173,10 +317,35 @@ theme_override_constants/margin_top = 24
 theme_override_constants/margin_right = 24
 theme_override_constants/margin_bottom = 24
 
-[node name="BundleList" type="VBoxContainer" parent="Panel/Layout/Margin/Content/Selection/BundleScroll/ListMargin"]
+[node name="BundleList" type="VBoxContainer" parent="Panel/Layout/Margin/Content/Pages/UpdatesPage/BundleScroll/ListMargin"]
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_constants/separation = 16
+
+[node name="MaintenancePage" type="VBoxContainer" parent="Panel/Layout/Margin/Content/Pages"]
+visible = false
+layout_mode = 2
+theme_override_constants/separation = 24
+
+[node name="DartboardTitle" type="Label" parent="Panel/Layout/Margin/Content/Pages/MaintenancePage"]
+layout_mode = 2
+theme_type_variation = &"GroupTitle"
+text = "DartBoard Interface"
+
+[node name="DescriptionLabel" type="Label" parent="Panel/Layout/Margin/Content/Pages/MaintenancePage"]
+modulate = Color(1, 1, 1, 0.8)
+layout_mode = 2
+theme_override_font_sizes/font_size = 30
+text = "Checks the link with the DartBoard Interface and shows every dart thrown at the target, with its segment and zone, plus the raw lines exchanged with the board."
+autowrap_mode = 3
+
+[node name="DartboardTestButton" type="Button" parent="Panel/Layout/Margin/Content/Pages/MaintenancePage"]
+custom_minimum_size = Vector2(560, 120)
+layout_mode = 2
+size_flags_horizontal = 0
+theme_type_variation = &"PillButton"
+theme_override_font_sizes/font_size = 36
+text = "DartBoard Interface Test"
 
 [node name="ConfirmOverlay" type="Control" parent="."]
 visible = false
@@ -331,3 +500,138 @@ layout_mode = 2
 size_flags_horizontal = 4
 theme_type_variation = &"PillButton"
 text = "Close"
+
+[node name="WifiDialog" type="Control" parent="."]
+visible = false
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="Dim" type="ColorRect" parent="WifiDialog"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0, 0, 0, 0.6)
+
+[node name="Top" type="CenterContainer" parent="WifiDialog"]
+layout_mode = 1
+anchors_preset = -1
+anchor_right = 1.0
+anchor_bottom = 0.57
+grow_horizontal = 2
+mouse_filter = 2
+
+[node name="Dialog" type="PanelContainer" parent="WifiDialog/Top"]
+custom_minimum_size = Vector2(1100, 0)
+layout_mode = 2
+theme_type_variation = &"DialogPanel"
+
+[node name="Margin" type="MarginContainer" parent="WifiDialog/Top/Dialog"]
+layout_mode = 2
+theme_override_constants/margin_left = 40
+theme_override_constants/margin_top = 32
+theme_override_constants/margin_right = 40
+theme_override_constants/margin_bottom = 32
+
+[node name="Content" type="VBoxContainer" parent="WifiDialog/Top/Dialog/Margin"]
+layout_mode = 2
+theme_override_constants/separation = 20
+
+[node name="TitleLabel" type="Label" parent="WifiDialog/Top/Dialog/Margin/Content"]
+layout_mode = 2
+theme_type_variation = &"GroupTitle"
+theme_override_font_sizes/font_size = 44
+text = "Network"
+horizontal_alignment = 1
+text_overrun_behavior = 3
+
+[node name="SsidEdit" type="LineEdit" parent="WifiDialog/Top/Dialog/Margin/Content"]
+custom_minimum_size = Vector2(0, 84)
+layout_mode = 2
+theme_type_variation = &"NameEdit"
+theme_override_font_sizes/font_size = 36
+placeholder_text = "Network name"
+max_length = 32
+virtual_keyboard_enabled = false
+
+[node name="PasswordRow" type="HBoxContainer" parent="WifiDialog/Top/Dialog/Margin/Content"]
+layout_mode = 2
+theme_override_constants/separation = 24
+
+[node name="PasswordEdit" type="LineEdit" parent="WifiDialog/Top/Dialog/Margin/Content/PasswordRow"]
+custom_minimum_size = Vector2(0, 84)
+layout_mode = 2
+size_flags_horizontal = 3
+theme_type_variation = &"NameEdit"
+theme_override_font_sizes/font_size = 36
+placeholder_text = "Password"
+max_length = 64
+secret = true
+virtual_keyboard_enabled = false
+
+[node name="ShowButton" type="Button" parent="WifiDialog/Top/Dialog/Margin/Content/PasswordRow"]
+custom_minimum_size = Vector2(200, 84)
+layout_mode = 2
+theme_type_variation = &"PillButton"
+theme_override_font_sizes/font_size = 32
+toggle_mode = true
+text = "Show"
+
+[node name="MessageLabel" type="Label" parent="WifiDialog/Top/Dialog/Margin/Content"]
+modulate = Color(1, 1, 1, 0.85)
+custom_minimum_size = Vector2(0, 76)
+layout_mode = 2
+theme_override_font_sizes/font_size = 30
+horizontal_alignment = 1
+vertical_alignment = 1
+autowrap_mode = 3
+
+[node name="Buttons" type="HBoxContainer" parent="WifiDialog/Top/Dialog/Margin/Content"]
+layout_mode = 2
+theme_override_constants/separation = 40
+alignment = 1
+
+[node name="ForgetButton" type="Button" parent="WifiDialog/Top/Dialog/Margin/Content/Buttons"]
+custom_minimum_size = Vector2(280, 100)
+layout_mode = 2
+theme_type_variation = &"PillButtonRed"
+text = "Forget"
+
+[node name="CancelButton" type="Button" parent="WifiDialog/Top/Dialog/Margin/Content/Buttons"]
+custom_minimum_size = Vector2(280, 100)
+layout_mode = 2
+theme_type_variation = &"PillButton"
+text = "Cancel"
+
+[node name="ConnectButton" type="Button" parent="WifiDialog/Top/Dialog/Margin/Content/Buttons"]
+custom_minimum_size = Vector2(280, 100)
+layout_mode = 2
+theme_type_variation = &"PillButtonActive"
+text = "Connect"
+
+[node name="OnscreenKeyboard" type="PanelContainer" parent="."]
+z_index = 400
+custom_minimum_size = Vector2(0, 460)
+layout_mode = 1
+anchors_preset = 12
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_top = -460.0
+grow_horizontal = 2
+grow_vertical = 0
+script = ExtResource("7_osk")
+auto_show = false
+separation = Vector2i(8, 8)
+background = ExtResource("8_osk_bg")
+normal = ExtResource("9_osk_normal")
+hover = ExtResource("10_osk_hover")
+pressed = ExtResource("11_osk_pressed")
+special_keys = ExtResource("12_osk_special")
+font_size = 48
