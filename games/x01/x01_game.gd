@@ -1,8 +1,33 @@
 extends GameDefinition
 
+## Regles affichees par le panneau Rules (syntaxe : voir MarkdownView).
+const RULES := """
+# X01
+Count down from the starting score (301, 501, 701 or 1001) to **exactly zero**.
+
+## Turn
+- Each player throws **3 darts** per turn.
+- The value of each dart (number x multiplier) is subtracted from the score.
+- Bull = 25, double bull = 50.
+
+## In / Out
+- **In**: with Double, Triple or Master In, the score only starts counting down once the player hits the required segment. That dart counts.
+- **Out**: the last dart must reach zero with the required segment (Double, Triple or Master Out). With Open Out, any dart finishes.
+
+## Bust
+A dart that takes the score **below zero**, to a score that can't be finished (1 with Double Out), or to zero without meeting the Out condition is a *bust*:
+1. The turn ends immediately.
+2. The score goes back to what it was at the start of the turn.
+
+## End of game
+- The first player to reach zero wins (see *End at First Finish* to keep playing for the next places).
+- When *Max Rounds* is reached, the remaining players are ranked by their remaining score, lowest first.
+"""
+
 func _init() -> void:
 	id = "x01"
 	name = "X01"
+	rules = RULES
 	logo_text = "x01"
 	image = "res://assets/game_selector/game_selector_301.png"
 	logo_decoration = preload("res://games/x01/x01_logo_darts.tscn")

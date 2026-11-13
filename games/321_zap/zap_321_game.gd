@@ -1,10 +1,38 @@
 extends GameDefinition
 
+## Regles affichees par le panneau Rules (syntaxe : voir MarkdownView).
+const RULES := """
+# 3-2-1 Zap
+Start from 0 and reach **exactly 321**, zapping your opponents on the way.
+
+## Turn
+- Each player throws **3 darts** per turn; each dart adds its value to the score.
+- A player who hasn't entered yet (see *In*) is shown as **Out**.
+
+## Bounce
+Going past 321 makes the score **bounce back**: from 301, a triple 20 (60) climbs 20 to reach 321, then falls back 40, to 281.
+
+## Zap
+- Reaching **exactly the score of another player** zaps them: they are Out and must enter the game again.
+- A dart zaps every player sharing that score, even after a bounce.
+- Players who are Out or have finished can't be zapped.
+
+## Options
+- **In / Out conditions**: the entering and finishing darts may have to be a double, a triple or either (Master).
+- **Master Zap**: you must have zapped at least one player to finish.
+- **Both Ways**: an odd entering number reverses the path, from 321 down to 0.
+- **Zop**: reaching the target without meeting the Out condition or Master Zap. See *Zop Behavior* for what happens then.
+
+## End of game
+The first player to reach the target wins. When *Max Rounds* is reached, the others are ranked by their distance to their target, smallest first.
+"""
+
 ## Regles detaillees : voir "321 zap rules.txt" dans ce dossier.
 
 func _init() -> void:
 	id = "321_zap"
 	name = "3-2-1 Zap"
+	rules = RULES
 	logo_text = "321\nZap"
 	image = "res://assets/game_selector/game_selector_321_zap.png"
 	logo_decoration = preload("res://games/321_zap/zap_321_logo_bolt.tscn")

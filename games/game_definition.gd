@@ -33,6 +33,9 @@ var image: String
 var min_players: int = 1
 var max_players: int = DEFAULT_MAX_PLAYERS
 var options: Array = []
+## Regles du jeu affichees par le panneau Rules, en syntaxe markdown-like
+## (voir MarkdownView). Vide : le bouton Rules est desactive.
+var rules: String
 var uses_players_order := true
 var reverse_players_order := false
 ## Ecran de jeu (herite de GameScreen). Null tant que le jeu n'en a pas.
