@@ -12,6 +12,7 @@ const GAME_SCRIPTS: Array[GDScript] = [
 	preload("res://games/shanghai/shanghai_game.gd"),
 	preload("res://games/cricket/cricket_game.gd"),
 	preload("res://games/around_the_clock/around_the_clock_game.gd"),
+	preload("res://games/do_better/do_better_game.gd"),
 ]
 
 static func create_all() -> Array[GameDefinition]:
