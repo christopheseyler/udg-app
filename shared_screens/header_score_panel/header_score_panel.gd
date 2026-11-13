@@ -1,11 +1,12 @@
-class_name DoBetterScorePanel
+class_name HeaderScorePanel
 extends PanelContainer
 
-## Panneau de score de Do Better If You Can : en titre la cible du round et le
-## score a battre (master actuel et ses marques), sous lui le resultat du
-## dernier tour, puis une grille a 3 colonnes (nom du joueur, points, etat du
-## joueur dans le round) avec une ligne par joueur. Le joueur en cours est en
-## surbrillance.
+## Panneau de score a en-tete, partage par Do Better If You Can et le 121 :
+## un titre (ex. la cible du round), un sous-titre dore (ex. le score a
+## battre) et une ligne de resultat (ex. le resultat du dernier tour), puis une
+## grille a 3 colonnes (nom du joueur, score, etat du joueur) avec une ligne
+## par joueur. Le joueur en cours est en surbrillance ; un nom peut etre mis
+## en dore (ex. le master).
 
 const POINTS_COLUMN_WIDTH := 200.0
 ## Tailles selon le nombre de joueurs (le premier seuil atteint), pour
@@ -30,9 +31,9 @@ var _name_labels: Array[Label] = []
 var _score_labels: Array[Label] = []
 var _hint_labels: Array[Label] = []
 
-func set_header(target_text: String, to_beat_text: String, result_text: String) -> void:
-	target_label.text = "Target: %s" % target_text
-	to_beat_label.text = to_beat_text
+func set_header(title: String, subtitle: String, result_text: String) -> void:
+	target_label.text = title
+	to_beat_label.text = subtitle
 	result_label.text = result_text
 
 func set_players(names: Array[String]) -> void:
@@ -56,11 +57,11 @@ func set_players(names: Array[String]) -> void:
 		hint_label.modulate.a = 0.85
 		_hint_labels.append(hint_label)
 
-## Points et etat d'un joueur ; `is_master` met son nom en dore.
-func set_row(index: int, points: int, hint: String, is_master: bool) -> void:
-	_score_labels[index].text = str(points)
+## Score et etat d'un joueur ; `highlight` met son nom en dore.
+func set_row(index: int, score: String, hint: String, highlight: bool) -> void:
+	_score_labels[index].text = score
 	_hint_labels[index].text = hint
-	_name_labels[index].add_theme_color_override("font_color", MASTER_COLOR if is_master else Color.WHITE)
+	_name_labels[index].add_theme_color_override("font_color", MASTER_COLOR if highlight else Color.WHITE)
 
 func set_current_player(index: int) -> void:
 	_row_plates.set_current(index)

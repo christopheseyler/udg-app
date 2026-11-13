@@ -1,8 +1,8 @@
 [gd_scene load_steps=2 format=3]
 
-[ext_resource type="Script" path="res://games/do_better/do_better_score_panel.gd" id="1_script"]
+[ext_resource type="Script" path="res://shared_screens/header_score_panel/header_score_panel.gd" id="1_script"]
 
-[node name="DoBetterScorePanel" type="PanelContainer"]
+[node name="HeaderScorePanel" type="PanelContainer"]
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0

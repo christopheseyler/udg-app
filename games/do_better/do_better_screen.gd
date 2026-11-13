@@ -3,7 +3,7 @@ extends GameScreen
 
 ## Ecran de jeu de Do Better If You Can (titre provisoire), base sur le
 ## template GameScreen. Les regles sont dans DoBetterRules ; le panneau de
-## score (DoBetterScorePanel) affiche la cible du round, le score a battre, le
+## score (HeaderScorePanel) affiche la cible du round, le score a battre, le
 ## resultat du dernier tour et les points de chaque joueur.
 ##
 ## Comme dans Halve It, rien n'est modifie fleche par fleche : l'etat de la
@@ -13,7 +13,7 @@ extends GameScreen
 ## Cancel hit de remonter tour par tour jusqu'au debut de la partie. Pendant
 ## le tour du master initial, sa premiere fleche fixe la cible affichee.
 
-@onready var score_panel: DoBetterScorePanel = $ScoreArea/ScorePanel
+@onready var score_panel: HeaderScorePanel = $ScoreArea/ScorePanel
 
 var _players: Array[String] = []
 ## Etat de la partie (voir DoBetterRules.new_state()), resultat du tour en
@@ -112,12 +112,12 @@ func _refresh_panel() -> void:
 	var to_beat := ""
 	if not DoBetterRules.is_setting_target(_turn_start_state) or _turn_finalized:
 		to_beat = "To beat: %d mark%s (%s)" % [view.best, "" if view.best == 1 else "s", _players[view.master]]
-	score_panel.set_header(DoBetterRules.target_label(target) if not target.is_empty() else "first dart",
+	score_panel.set_header("Target: %s" % (DoBetterRules.target_label(target) if not target.is_empty() else "first dart"),
 		to_beat, view.last_result)
 
 	var live := DoBetterRules.total_marks(_turn_hits, target)
 	for i in _players.size():
-		score_panel.set_row(i, view.points[i], _hint_for(i, view, player, live), i == view.master and not _game_over)
+		score_panel.set_row(i, str(view.points[i]), _hint_for(i, view, player, live), i == view.master and not _game_over)
 	score_panel.set_current_player(player if not _game_over else -1)
 
 ## Etat d'un joueur dans le round : il lance (marques en cours), master,
