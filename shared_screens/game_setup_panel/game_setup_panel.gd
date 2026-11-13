@@ -19,6 +19,8 @@ func _ready() -> void:
 	players_button.pressed.connect(func(): players_pressed.emit())
 	options_button.pressed.connect(func(): options_pressed.emit())
 	start_button.pressed.connect(func(): start_pressed.emit())
+	# Start : son de selection plutot que le clic (UiSounds).
+	UiSounds.use_select_sound(start_button)
 	for button in [back_button, players_button, options_button, start_button]:
 		PressScale.attach(button)
 

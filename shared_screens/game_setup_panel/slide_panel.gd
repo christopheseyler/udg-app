@@ -3,7 +3,8 @@ extends PanelContainer
 
 ## Base des panneaux ancres en bas de l'ecran : show_panel() les fait glisser
 ## depuis le bas de l'ecran (avec un fondu) jusqu'a leur position de repos
-## definie dans la scene, hide_panel() les fait ressortir par le bas.
+## definie dans la scene, avec le son d'apparition d'ecran
+## (UiSounds.play_window) ; hide_panel() les fait ressortir par le bas.
 
 @export var slide_duration: float = 0.4
 
@@ -25,6 +26,7 @@ func show_panel() -> void:
 	_tween.tween_property(self, "position:y", _rest_y(), slide_duration) \
 		.set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
 	_tween.tween_property(self, "modulate:a", 1.0, slide_duration)
+	UiSounds.play_window()
 
 func hide_panel() -> void:
 	if not visible:

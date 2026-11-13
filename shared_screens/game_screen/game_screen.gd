@@ -31,8 +31,12 @@ extends Control
 ##   joueurs (voir rank_standings) : apres l'eventuelle annonce en cours,
 ##   l'ecran de classement (RankingScreen) s'affiche, puis ramene a la
 ##   configuration de la partie quand il se ferme ;
-## - announce_player() joue l'annonce vocale du joueur dont c'est le tour ;
-##   "Please collect your darts" accompagne l'ecran "Remove your darts".
+## - announce_player() joue l'annonce vocale du joueur dont c'est le tour.
+##   Les autres annonces communes a tous les jeux sont faites ici (voir
+##   VoiceAnnouncer) : "Remove your darts" avec cet ecran, "Missed" sur un jet
+##   rate, "Last round" au debut du dernier round (voir last_round) et "We
+##   have a winner" au premier gagnant. announce_voice() joue une phrase
+##   propre au jeu (ex. "Bust" du X01).
 ## Pilote aussi la carte d'interface reelle (DartInputManager) : chaque debut
 ## de tour (reset_turn()) et chaque jet tant qu'il en reste (add_throw())
 ## arme l'attente d'un jet ; la fin du tour (_start_remove_darts(), donc
@@ -90,15 +94,19 @@ const DART_RETURN_DURATION := 0.25
 const DART_RETURN_STAGGER := 0.08
 ## Delai avant l'apparition de la medaille : la fleche est deja bien partie.
 const BADGE_APPEAR_DELAY := 0.1
-## Delai avant "Remove your darts" apres le dernier jet du tour, pour laisser
-## l'animation du jet se terminer (voir start_remove_darts_after_throw).
-const REMOVE_DARTS_DELAY := 0.8
+## Delai minimum avant "Remove your darts" apres le dernier jet du tour (voir
+## start_remove_darts_after_throw) : le temps de voir la valeur de ce jet et,
+## au besoin, de l'annuler (Cancel hit) avant le changement d'ecran.
+const REMOVE_DARTS_DELAY := 2.0
 
-## Annonces vocales (voir assets/sounds/generate_voice.py) : "Player one!"
-## a "Player eight!" (player_01.wav a player_08.wav, numerotes dans l'ordre de
-## passage) et "Please collect your darts." au debut de "Remove your darts".
-const PLAYER_ANNOUNCE_PATH := "res://assets/sounds/player_%02d.wav"
-const REMOVE_DARTS_SOUND := preload("res://assets/sounds/remove_darts.wav")
+## Phrases du pack de voix jouees par le template (voir VoiceAnnouncer) :
+## "Player one" a "Player eight" (numerotes dans l'ordre de passage),
+## "Remove your darts", "Missed", "Last round" et "We have a winner".
+const VOICE_PLAYER := "player_%02d"
+const VOICE_REMOVE_DARTS := "remove_darts"
+const VOICE_MISSED := "missed"
+const VOICE_LAST_ROUND := "last_round"
+const VOICE_WINNER := "game_shot"
 
 ## Duree (secondes) du decompte "Remove your darts" entre deux tours.
 @export var remove_darts_duration: float = 5.0
@@ -135,8 +143,13 @@ var winner_screen: PlayerWinsScreen
 var ranking_screen: RankingScreen
 
 var round_number := 1
+## Dernier round de la partie (0 = pas de limite), a definir par le jeu dans
+## setup() : "Last round" est annonce quand la partie y arrive (set_round).
+var last_round := 0
 
 var _game_over := false
+## "We have a winner" n'est annonce qu'une fois par partie.
+var _winner_announced := false
 ## Classement final (voir finish_game), affiche par ranking_screen.
 var _final_standings: Array[Dictionary] = []
 
@@ -160,13 +173,11 @@ var _throws_serial := 0
 ## Derniere demande de "Remove your darts" differe : seule elle aboutit.
 var _remove_darts_request := 0
 var _next_pulse_tween: Tween
-## Une seule voix a la fois : une nouvelle annonce coupe la precedente (ex.
-## Next presse pendant "Please collect your darts").
-var _announcer: AudioStreamPlayer
+var _voice: VoiceAnnouncer
 
 func _ready() -> void:
-	_announcer = AudioStreamPlayer.new()
-	add_child(_announcer)
+	_voice = VoiceAnnouncer.new()
+	add_child(_voice)
 	remove_darts_screen = REMOVE_DARTS_SCREEN.instantiate()
 	add_child(remove_darts_screen)
 	# Sous le bouton Next : il reste visible et cliquable pendant "Remove your
@@ -214,16 +225,17 @@ func setup(_players: Array[String], _options: Dictionary) -> void:
 	pass
 
 ## Annonce vocale du joueur dont c'est le tour (index dans l'ordre de passage,
-## 0 = "Player one!"). A appeler par le jeu au debut de chaque tour, pas quand
+## 0 = "Player one"). A appeler par le jeu au debut de chaque tour, pas quand
 ## Cancel hit revient au joueur precedent. Sans effet au-dela du huitieme.
+## Coupee par l'annonce suivante (ex. Next presse aussitot, jet rate).
 func announce_player(index: int) -> void:
-	var path := PLAYER_ANNOUNCE_PATH % (index + 1)
-	if ResourceLoader.exists(path):
-		_play_announce(load(path))
+	_voice.say(VOICE_PLAYER % (index + 1), true)
 
-func _play_announce(stream: AudioStream) -> void:
-	_announcer.stream = stream
-	_announcer.play()
+## Joue la phrase key du pack de voix (nom du fichier sans extension, voir
+## VoiceAnnouncer), pour les annonces propres a un jeu. Elle va jusqu'au
+## bout : l'annonce suivante attend sa fin.
+func announce_voice(key: String) -> void:
+	_voice.say(key)
 
 ## Annonce que player_names (plusieurs noms = ex aequo) terminent a la place
 ## rank (1 = victoire) : ecran PlayerWinsScreen, jets bloques tant qu'il est
@@ -234,6 +246,8 @@ func announce_rank(player_names: Array[String], rank: int) -> void:
 		return
 	DartInputManager.set_active(false)
 	winner_screen.show_rank(player_names, rank)
+	if rank == 1:
+		_announce_winner()
 
 ## Termine la partie : bloque les jets et affiche l'ecran de classement
 ## (apres l'annonce announce_rank() en cours, s'il y en a une).
@@ -247,6 +261,16 @@ func finish_game(standings: Array[Dictionary]) -> void:
 	_final_standings = standings
 	if not winner_screen.visible:
 		ranking_screen.show_standings(_final_standings)
+	_announce_winner()
+
+## "We have a winner", une seule fois par partie : au premier joueur classe
+## premier (announce_rank) ou, a defaut, a la fin de la partie (nombre
+## maximum de rounds atteint sans gagnant annonce).
+func _announce_winner() -> void:
+	if _winner_announced:
+		return
+	_winner_announced = true
+	_voice.say(VOICE_WINNER)
 
 ## Construit un classement a passer a finish_game() : entries (un
 ## Dictionary par joueur : "name", "score", "stats" facultatif, plus tout
@@ -282,9 +306,14 @@ func set_score_panel(panel: Control) -> void:
 	panel.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 
 ## Definit le numero du round affiche en haut du panneau lateral. C'est au
-## jeu de l'appeler quand tous les joueurs ont joue.
+## jeu de l'appeler quand tous les joueurs ont joue. "Last round" est
+## annonce quand la partie avance jusqu'a last_round (pas quand Cancel hit y
+## revient).
 func set_round(number: int) -> void:
-	round_number = maxi(number, 1)
+	number = maxi(number, 1)
+	if number > round_number and number == last_round:
+		_voice.say(VOICE_LAST_ROUND)
+	round_number = number
 	round_label.text = "Round #%d" % round_number
 
 ## Affiche le nom du jeu en cours dans la barre du bas.
@@ -300,13 +329,15 @@ func get_remaining_darts() -> int:
 ## Enregistre un jet du tour en cours. highlighted indique si ce jet compte
 ## pour le score du joueur (medaille doree) ou non (medaille neutre) : voir
 ## TargetValueBadge.show_hit(). Retourne false si les fleches du tour sont
-## deja toutes lancees. Le dernier jet declenche "Remove your darts" (une fois
-## son animation terminee).
+## deja toutes lancees. Un jet rate est annonce ("Missed"). Le dernier jet
+## declenche "Remove your darts" (une fois son animation terminee).
 func add_throw(hit: DartHit, highlighted: bool) -> bool:
 	if get_remaining_darts() <= 0:
 		return false
 	_throws.append({"hit": hit, "highlighted": highlighted})
 	_refresh()
+	if hit.is_miss():
+		_voice.say(VOICE_MISSED)
 	if get_remaining_darts() == 0:
 		start_remove_darts_after_throw()
 	else:
@@ -316,15 +347,15 @@ func add_throw(hit: DartHit, highlighted: bool) -> bool:
 	return true
 
 ## Affiche "Remove your darts" apres delay secondes (par defaut
-## REMOVE_DARTS_DELAY, le temps de l'animation du dernier jet ; un jeu peut
-## allonger ce delai pour sa propre animation, ex. le Bust du X01). Un nouvel
-## appel remplace le precedent. Abandonne si un jet est ajoute ou annule
+## REMOVE_DARTS_DELAY ; un jeu peut allonger ce delai pour sa propre
+## animation, ex. le Zap du 321 Zap, mais pas le raccourcir). Un nouvel appel
+## remplace le precedent. Abandonne si un jet est ajoute ou annule
 ## entre-temps, ou si la partie se termine (victoire sur ce jet).
 func start_remove_darts_after_throw(delay: float = REMOVE_DARTS_DELAY) -> void:
 	_remove_darts_request += 1
 	# Connexion plutot qu'await : deconnectee automatiquement si l'ecran est
 	# libere avant la fin du delai (sortie du jeu).
-	get_tree().create_timer(delay).timeout.connect(
+	get_tree().create_timer(maxf(delay, REMOVE_DARTS_DELAY)).timeout.connect(
 		_on_remove_darts_delay_elapsed.bind(_remove_darts_request, _throws_serial))
 
 func _on_remove_darts_delay_elapsed(request: int, serial: int) -> void:
@@ -372,7 +403,7 @@ func _start_remove_darts() -> void:
 		return
 	remove_darts_screen.start(remove_darts_duration)
 	_set_next_button_pulse(true)
-	_play_announce(REMOVE_DARTS_SOUND)
+	_voice.say(VOICE_REMOVE_DARTS, true)
 
 func _set_next_button_pulse(active: bool) -> void:
 	if _next_pulse_tween:

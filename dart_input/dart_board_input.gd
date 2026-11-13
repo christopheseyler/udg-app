@@ -40,6 +40,16 @@ extends DartInput
 ## n'arrivait qu'apres la commande suivante, et un HIT jamais. dd lit et
 ## ecrit (read/write), et transmet tout de suite chaque lecture partielle.
 ##
+## Instance precedente tuee ou plantee pendant une partie (redemarrage du
+## service, remplacement du jeu) : Godot n'arrete pas ses processus lecteur et
+## ecrivain, qui lui survivent ouverts sur le port. Un lecteur survivant vole
+## des lignes de la carte et, constate sur la cible, fait perdre la connexion
+## au nouveau lecteur. connect_to_board() libere donc d'abord le port de tout
+## processus qui le tient encore (_release_stale_port_users), puis annule
+## l'attente que l'instance precedente a pu laisser armee (StopWaitingHit :
+## sinon WaitForHit repond #error:busy#). Une connexion perdue en cours de
+## partie est signalee par connection_lost (DartInputManager se reconnecte).
+##
 ## send_command()/response_received permettent d'envoyer une commande
 ## quelconque (alive, scan, help, ...) et de recuperer sa reponse "#...#",
 ## en dehors de la politique de tour ; utilise par l'ecran Settings pour le
@@ -57,6 +67,10 @@ signal response_received(text: String)
 ## reponse ou evenement, ex. ">scan", "#3,4#", ">*HIT:20-3-N*"), avant
 ## response_received/hit_detected : terminal du test de l'ecran Settings.
 signal line_received(text: String)
+
+## Emis quand la connexion se perd sans avoir ete demandee (le processus
+## lecteur s'est arrete) ; la carte est alors deconnectee.
+signal connection_lost
 
 ## Sortie du processus lecteur (dd if=PORT) et entree du processus ecrivain
 ## (cat > PORT), voir connect_to_board().
@@ -86,14 +100,16 @@ static func _port_exists() -> bool:
 	var dev := DirAccess.open(PORT.get_base_dir())
 	return dev != null and dev.file_exists(PORT)
 
-## Passe le port en mode brut sans echo, lance les processus lecteur et
-## ecrivain puis le thread de lecture. Ne fait rien si la carte n'est pas
-## branchee ou deja connectee.
+## Libere le port des processus restes d'une instance precedente, passe le
+## port en mode brut sans echo, lance les processus lecteur et ecrivain puis
+## le thread de lecture, et annule toute attente deja armee sur la carte. Ne
+## fait rien si la carte n'est pas branchee ou deja connectee.
 func connect_to_board() -> void:
 	if _connected:
 		return
 	if not _port_exists():
 		return
+	_release_stale_port_users()
 	# Avant que les processus n'ouvrent le port : avec l'echo du pilote tty,
 	# carte et hote s'echangeraient les caracteres en boucle
 	# (DARTBOARD-INTERFACE.md §2.2).
@@ -122,6 +138,18 @@ func connect_to_board() -> void:
 	_stop_requested = false
 	_read_thread = Thread.new()
 	_read_thread.start(_read_loop)
+	# Attente laissee armee par une instance precedente (#idle# sinon) :
+	# WaitForHit repondrait #error:busy#.
+	_send_line("StopWaitingHit")
+
+## Tue les processus qui tiennent encore le port (lecteur et ecrivain d'une
+## instance precedente du jeu, voir plus haut) et attend leur fin, au plus
+## une seconde, avant que le nouveau lecteur ne l'ouvre. Aucun de nos propres
+## processus ne le tient ici : on n'est pas connecte.
+func _release_stale_port_users() -> void:
+	var script := "fuser -k %s >/dev/null 2>&1; i=0; " % PORT \
+		+ "while fuser %s >/dev/null 2>&1 && [ $i -lt 20 ]; do sleep 0.05; i=$((i+1)); done" % PORT
+	OS.execute("sh", ["-c", script])
 
 ## Arrete les processus lecteur et ecrivain et le thread de lecture ; libere
 ## la carte pour un autre usage (ex : mise a jour du firmware depuis l'ecran
@@ -225,6 +253,8 @@ func _on_event_line(line: String) -> void:
 		hit_detected.emit(DartHit.create(value, multiplier))
 
 func _on_port_lost() -> void:
-	if _connected:
-		push_warning("DartBoardInput: connexion a %s perdue" % PORT)
+	if not _connected:
+		return
+	push_warning("DartBoardInput: connexion a %s perdue" % PORT)
 	disconnect_from_board()
+	connection_lost.emit()

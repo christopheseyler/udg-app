@@ -11,6 +11,8 @@ extends Control
 ## relachement. Bouton PlayButton pour valider la selection.
 
 ## Les jeux proposes sont definis dans games/ (voir game_registry.gd).
+## La musique des menus (MenuMusic) demarre en fondu a l'ouverture de cet
+## ecran, s'arrete en fondu au lancement d'une partie et reprend au retour.
 
 const PLAYERS_ORDER_SCREEN := preload("res://shared_screens/players_order_screen/players_order_screen.tscn")
 const SETTINGS_SCREEN := preload("res://main_screens/settings_screen/settings_screen.tscn")
@@ -53,6 +55,7 @@ var _play_button_base_position: Vector2
 var _button_tween: Tween
 
 func _ready() -> void:
+	MenuMusic.play()
 	_setup_carousel_layer()
 	carousel.set_games(games)
 	_update_carousel()
@@ -166,6 +169,8 @@ func _set_scroll_offset(value: float) -> void:
 ## pression sur button_down/button_up (independants de "pressed", qui
 ## ne se declenche qu'au relachement a l'interieur du bouton).
 func _setup_play_button() -> void:
+	# Selection du jeu : son de selection plutot que le clic (UiSounds).
+	UiSounds.use_select_sound(play_button)
 	play_button.pivot_offset = play_button.size / 2.0
 	_play_button_base_position = play_button.position
 	play_button.button_down.connect(_on_play_button_down)
@@ -280,6 +285,7 @@ func _show_players_order(player_names: Array[String]) -> void:
 	var order_screen: PlayersOrderScreen = PLAYERS_ORDER_SCREEN.instantiate()
 	order_screen.z_index = 300
 	add_child(order_screen)
+	UiSounds.play_window()
 	order_screen.set_players(player_names)
 	order_screen.set_reverse_order(games[current_index].reverse_players_order)
 	order_screen.back_pressed.connect(order_screen.queue_free)
@@ -303,9 +309,11 @@ func _start_game(player_names: Array[String]) -> void:
 	game_screen.back_confirmed.connect(func():
 		game_screen.queue_free()
 		tree.root.add_child(self)
-		tree.current_scene = self)
+		tree.current_scene = self
+		MenuMusic.play())
 	tree.root.add_child(game_screen)
 	game_screen.set_game_name(game.name)
 	game_screen.setup(player_names, options)
 	tree.current_scene = game_screen
 	tree.root.remove_child(self)
+	MenuMusic.stop()

@@ -14,16 +14,27 @@ extends Node
 ## start_turn()/stop_turn() ; un jet lance depuis le simulateur interrompt
 ## aussi l'attente de la carte reelle (StopWaitingHit), pour eviter qu'un jet
 ## physique tardif ne vienne s'ajouter en double.
+##
+## Connexion perdue pendant une partie (DartBoardInput.connection_lost) :
+## nouvelles tentatives toutes les RECONNECT_INTERVAL secondes, au plus
+## RECONNECT_ATTEMPTS fois, et l'attente d'un jet est rearmee si le tour en
+## cours en attendait un (_wants_hit).
 
 signal hit_detected(hit: DartHit)
 
 const SIMULATOR_SCENE := preload("res://dart_input/dart_simulator.tscn")
+const RECONNECT_INTERVAL := 1.0
+const RECONNECT_ATTEMPTS := 10
 
 var simulated_input: SimulatedDartInput
 var board_input: DartBoardInput
 
 var _simulator: DartSimulator
 var _active := false
+## Le tour en cours attend un jet de la carte reelle : entre start_turn() et
+## stop_turn() ou le jet qui termine l'attente.
+var _wants_hit := false
+var _reconnecting := false
 
 func _ready() -> void:
 	simulated_input = SimulatedDartInput.new()
@@ -33,6 +44,7 @@ func _ready() -> void:
 	board_input = DartBoardInput.new()
 	add_child(board_input)
 	board_input.hit_detected.connect(_on_board_hit_detected)
+	board_input.connection_lost.connect(_reconnect)
 
 	_simulator = SIMULATOR_SCENE.instantiate()
 	add_child(_simulator)
@@ -45,6 +57,7 @@ func _ready() -> void:
 ## l'ecran Settings).
 func set_active(active: bool) -> void:
 	_active = active
+	_wants_hit = false
 	_simulator.set_available(active)
 	if active:
 		board_input.connect_to_board()
@@ -55,17 +68,41 @@ func set_active(active: bool) -> void:
 ## appeler au debut de chaque tour puis apres chaque jet tant qu'il reste des
 ## flechettes (voir GameScreen.reset_turn()/add_throw()).
 func start_turn() -> void:
+	_wants_hit = true
 	board_input.start_waiting()
 
 ## Interrompt l'attente en cours sur la carte reelle (no-op si non connectee
 ## ou pas en attente). A appeler quand le tour se termine avant que la carte
 ## n'ait elle-meme recu de jet (bouton Next player, bust, ...).
 func stop_turn() -> void:
+	_wants_hit = false
 	board_input.stop_waiting()
 
 func _on_simulated_hit_detected(hit: DartHit) -> void:
+	_wants_hit = false
 	board_input.stop_waiting()
 	hit_detected.emit(hit)
 
 func _on_board_hit_detected(hit: DartHit) -> void:
+	# Le jet termine l'attente cote carte ; le jeu la rearme (start_turn)
+	# s'il reste des flechettes.
+	_wants_hit = false
 	hit_detected.emit(hit)
+
+## Connexion a la carte perdue : tant qu'une partie est en cours, retente la
+## connexion jusqu'a RECONNECT_ATTEMPTS fois, puis rearme l'attente d'un jet
+## si le tour en attendait un. Abandonne si la partie se termine entre-temps.
+func _reconnect() -> void:
+	if _reconnecting:
+		return
+	_reconnecting = true
+	for attempt in RECONNECT_ATTEMPTS:
+		await get_tree().create_timer(RECONNECT_INTERVAL).timeout
+		if not _active or board_input.is_connected_to_board():
+			break
+		board_input.connect_to_board()
+		if board_input.is_connected_to_board():
+			if _wants_hit:
+				board_input.start_waiting()
+			break
+	_reconnecting = false

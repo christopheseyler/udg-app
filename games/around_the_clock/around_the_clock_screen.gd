@@ -97,6 +97,7 @@ func setup(players: Array[String], options: Dictionary) -> void:
 	_game_mode = options.get("game_mode", CLASSIC)
 	_end_at_first_finish = options.get("end_at_first_finish", true)
 	max_rounds = int(options.get("max_rounds", str(max_rounds)))
+	last_round = max_rounds
 
 	_path.clear()
 	for value in range(1, 21):
