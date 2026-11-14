@@ -31,6 +31,10 @@ const UNMERGED_GROUP := &"logo_unmerged"
 ## Ecart entre deux lignes (du bas de l'une au haut de la suivante, plaques
 ## comprises), a l'echelle des caracteres.
 @export var line_gap: float = 0.004
+## Descente supplementaire de la ligne posee au-dessus d'une ligne nichee
+## (le "Around" de "Around the Clock"), a l'echelle des caracteres : elle
+## vient mordre sur le haut de la ligne nichee, plus petite.
+@export var above_nest_drop: float = 0.012
 ## Taille d'une ligne entre crochets (voir set_text()) par rapport aux autres.
 @export var small_line_scale: float = 0.6
 ## Descente d'un nom tenant sur une ligne, en metres, sous le centre du noeud
@@ -98,9 +102,13 @@ func set_text(text: String, decoration: PackedScene = null) -> void:
 	# ligne se pose au-dessus de tout ce qui est en dessous d'elle, ou se niche
 	# dans la ligne suivante.
 	var block := boxes[last]
+	var nested_below := false
 	for k in range(last - 1, -1, -1):
 		var bottom := block.end.y + line_gap
+		if nested_below:
+			bottom -= above_nest_drop
 		var nest: Dictionary = _nest_position(lines[k + 1][0], lines[k][2])
+		nested_below = not nest.is_empty()
 		if not nest.is_empty():
 			var below := nodes[k + 1]
 			nodes[k].position.x = below.position.x + nest.x * below.scale.x
@@ -163,7 +171,17 @@ func _nest_position(below: String, anchor: String) -> Dictionary:
 		push_warning("GameLogo3D : '%s' introuvable dans '%s'" % [anchor, below])
 		return {}
 	var letters := HemiHeadText.chars_bounds(below, start, anchor.length())
-	return {"x": letters.get_center().x, "y": letters.end.y + line_gap}
+	var x := letters.get_center().x
+	# Centree entre les fûts des voisines hautes plutot que sur les lettres
+	# d'ancrage : le "l" n'est qu'un fut, celui du "k" est a sa gauche, aussi
+	# large que le "l" (mesures a mi-hauteur, a cause de l'italique).
+	var end := start + anchor.length()
+	if start > 0 and end < below.length():
+		var before := HemiHeadText.chars_bounds(below, start - 1, 1)
+		var after := HemiHeadText.chars_bounds(below, end, 1)
+		if before.has_volume() and after.has_volume():
+			x = (before.get_center().x + after.position.x + before.size.x / 2.0) / 2.0
+	return {"x": x, "y": letters.end.y + line_gap}
 
 ## Le nom sur une ligne, ou sur deux s'il est trop large et a plusieurs mots :
 ## coupe a l'espace qui equilibre le mieux la largeur des deux lignes.
