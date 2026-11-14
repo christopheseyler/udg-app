@@ -29,6 +29,8 @@ var _zone := DartHit.Zone.OUTER
 var _multiplier_buttons: Array[Button] = []
 
 func _ready() -> void:
+	# Ses boutons remplacent des fleches : pas de son de bouton (UiSounds).
+	UiSounds.exclude(self)
 	toggle_button.pressed.connect(_toggle_panel)
 	_build_multiplier_buttons()
 	_build_number_buttons()

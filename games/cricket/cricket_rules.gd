@@ -18,8 +18,10 @@ extends RefCounted
 ##   pendant le tour, Elite), "turn_closed" (cibles fermees pendant le tour,
 ##   Only in closing turn), "turn_valid" (au moins un hit valide : une marque
 ##   ou des points, Elite), "turn_over" (le joueur a gagne : ses fleches
-##   suivantes sont ignorees) et "counted" (la derniere fleche a marque ou
-##   score : medaille doree).
+##   suivantes sont ignorees), "counted" (la derniere fleche a marque ou
+##   score : medaille doree) et "dart_events" (ce qu'a provoque la derniere
+##   fleche, dans l'ordre : EVENT_CLOSED ou EVENT_ALL_CLOSED, puis
+##   EVENT_SCORING ou EVENT_PENALTY ; annonces vocales de l'ecran).
 ##
 ## Les joueurs ayant gagne ou elimines "disparaissent virtuellement" : ils ne
 ## comptent plus pour savoir si une cible est fermee par tout le monde, ne
@@ -36,6 +38,15 @@ const MANIAC_FACTORS: Array[int] = [3, 2, 1]
 const SCORE_OR_DIE_PERIOD := 4
 ## Score or Die s'arrete quand il ne reste que ce nombre de joueurs en jeu.
 const SCORE_OR_DIE_MIN_PLAYERS := 2
+
+## Evenements d'une fleche (state.dart_events) : elle ferme une cible pour le
+## joueur, ou la ferme pour le dernier joueur en jeu qui l'avait ouverte ;
+## ses marques en trop donnent des points ; elle subit All Closed Hit
+## Penalty.
+const EVENT_CLOSED := "closed"
+const EVENT_ALL_CLOSED := "all_closed"
+const EVENT_SCORING := "scoring"
+const EVENT_PENALTY := "penalty"
 
 var cut_throat := true
 var target_selection := "Classic"
@@ -113,6 +124,7 @@ func begin_turn(state: Dictionary) -> void:
 	state.turn_valid = false
 	state.turn_over = false
 	state.counted = false
+	state.dart_events = []
 
 func is_finished(state: Dictionary, player: int) -> bool:
 	return state.finished.has(player)
@@ -182,6 +194,7 @@ func play_dart(state: Dictionary, player: int, hit: DartHit, chain: bool) -> Arr
 
 func _apply_dart(state: Dictionary, player: int, hit: DartHit) -> void:
 	state.counted = false
+	state.dart_events = []
 	if hit.is_miss():
 		return
 	var target: int = state.values.find(hit.segment)
@@ -199,6 +212,7 @@ func _apply_dart(state: Dictionary, player: int, hit: DartHit) -> void:
 		state.counted = true
 		if marks[target] >= MARKS_TO_CLOSE:
 			state.turn_closed[target] = true
+			state.dart_events.append(EVENT_ALL_CLOSED if is_closed_by_all(state, target) else EVENT_CLOSED)
 	var extra: int = hit.multiplier - added
 	if extra > 0:
 		_apply_extra_marks(state, player, target, extra)
@@ -221,6 +235,7 @@ func _apply_extra_marks(state: Dictionary, player: int, target: int, count: int)
 	if not cut_throat:
 		state.scores[player] += value * count
 		state.counted = true
+		state.dart_events.append(EVENT_SCORING)
 		return
 	# Protection evaluee sur les scores d'avant la fleche.
 	var targets := opponents.filter(func(other: int) -> bool: return not is_protected(state, player, other))
@@ -228,8 +243,12 @@ func _apply_extra_marks(state: Dictionary, player: int, target: int, count: int)
 		var factor: int = MANIAC_FACTORS[state.marks[other][target]] if score_maniac else 1
 		state.scores[other] += value * count * factor
 		state.counted = true
+	if not targets.is_empty():
+		state.dart_events.append(EVENT_SCORING)
 
 func _apply_penalty(state: Dictionary, player: int, target: int, count: int, value: int) -> void:
+	if all_closed_penalty != "None":
+		state.dart_events.append(EVENT_PENALTY)
 	match all_closed_penalty:
 		"Score":
 			if cut_throat:
@@ -277,24 +296,28 @@ func check_winners(state: Dictionary, chain: bool) -> Array[int]:
 ## Fin du tour de player : penalite Elite (voir "cricket rules.txt"). Les
 ## cibles ouvertes non marquees pendant le tour perdent une marque ; un joueur
 ## qui a tout ferme (sans avoir gagne) et n'a fait aucun hit valide rouvre
-## une cible au hasard (Mark) ou toutes (Mega Mark) d'une marque.
-func end_turn(state: Dictionary, player: int) -> void:
+## une cible au hasard (Mark) ou toutes (Mega Mark) d'une marque. Renvoie
+## vrai si le joueur a perdu au moins une marque.
+func end_turn(state: Dictionary, player: int) -> bool:
 	if elite == "None" or not is_active(state, player):
-		return
+		return false
 	var marks: Array = state.marks[player]
 	var open_targets := range(TARGET_COUNT).filter(func(target: int) -> bool: return not is_closed(state, player, target))
 	if not open_targets.is_empty():
+		var lost := false
 		for target in open_targets:
 			if not state.turn_marked[target] and marks[target] > 0:
 				marks[target] -= 1
-		return
+				lost = true
+		return lost
 	if state.turn_valid:
-		return
+		return false
 	if elite == "Mega Mark":
 		for target in TARGET_COUNT:
 			marks[target] -= 1
 	else:
 		marks[randi() % TARGET_COUNT] -= 1
+	return true
 
 ## Debut de tour en mode Crazy : chaque cible numerotee ayant au moins une
 ## marque (d'un joueur en jeu) mais fermee par aucun joueur en jeu prend une

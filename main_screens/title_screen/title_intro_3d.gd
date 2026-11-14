@@ -11,10 +11,16 @@ extends Node3D
 ## un spot balaye le titre de gauche a droite, puis les lettres s'envolent
 ## vers l'avant en tournant au hasard et en disparaissant en fondu. Emet
 ## `finished` au moment ou les lettres s'envolent.
+##
+## Sons : TITLE_SOUND quand la cible et le titre apparaissent, DART_HIT_SOUND
+## a chaque impact de flechette, SPOT_SOUND pendant le balayage du spot.
 
 signal finished
 
 const DART_SCENE := preload("res://assets/udg-3d-assets/dart/Dart.glb")
+const TITLE_SOUND := preload("res://assets/sounds/sfx/title.mp3")
+const DART_HIT_SOUND := preload("res://assets/sounds/sfx/dart-hit3.mp3")
+const SPOT_SOUND := preload("res://assets/sounds/sfx/title-spot.mp3")
 ## Panorama de l'environnement (eclairage et reflets) pour le renderer
 ## Compatibility de la carte : il decode le panorama comme du sRGB, d'ou cette
 ## copie pre-encodee de hotel_room.hdr (voir environment/source).
@@ -60,6 +66,9 @@ const TITLE_LAYER := 2
 @export var tip_depth: float = 0.01
 ## Amplitude du tremblement de la flechette a l'impact.
 @export var wobble_degrees: float = 5.0
+## Avance du son d'impact sur l'arrivee de la flechette : le claquement de
+## dart-hit3 ne commence qu'environ 50 ms apres le debut du fichier.
+@export var hit_sound_lead: float = 0.05
 
 @export_group("Spot")
 @export var sweep_delay: float = 0.3
@@ -110,6 +119,7 @@ func play() -> void:
 	board.visible = true
 
 	var tween := create_tween().set_parallel()
+	tween.tween_callback(_play_sound.bind(TITLE_SOUND)).set_delay(start_delay)
 	tween.tween_property(board, "position", _rest_position, rise_duration) \
 		.set_delay(start_delay).set_trans(Tween.TRANS_QUART).set_ease(Tween.EASE_OUT)
 	tween.tween_property(board, "rotation", _rest_rotation, rise_duration) \
@@ -184,6 +194,7 @@ func _sweep_spot() -> void:
 		spot.light_energy = spot_energy * clampf(sin(t * PI) * 3.0, 0.0, 1.0)
 	sweep.call(0.0)
 	spot.visible = true
+	_play_sound(SPOT_SOUND)
 	var tween := create_tween()
 	tween.tween_method(sweep, 0.0, 1.0, sweep_duration).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
 	await tween.finished
@@ -223,6 +234,8 @@ func _throw_dart(index: int) -> void:
 	fly.call(0.0)
 	var tween := create_tween()
 	tween.tween_method(fly, 0.0, 1.0, flight_duration)
+	tween.parallel().tween_callback(_play_sound.bind(DART_HIT_SOUND)) \
+		.set_delay(maxf(flight_duration - hit_sound_lead, 0.0))
 	await tween.finished
 
 	_punch_board()
@@ -238,6 +251,16 @@ func _throw_dart(index: int) -> void:
 ## flechette vers +Z de la cible), avec une rotation propre autour de cet axe.
 func _dart_basis(roll: float) -> Basis:
 	return (Basis(Vector3.RIGHT, PI / 2.0) * Basis(Vector3.UP, roll)).scaled_local(Vector3.ONE * dart_scale)
+
+## Joue un son ponctuel sur un lecteur dedie, libere a la fin du son : les
+## sons de l'intro se chevauchent (la fin de TITLE_SOUND deborde sur les
+## premieres flechettes).
+func _play_sound(stream: AudioStream) -> void:
+	var player := AudioStreamPlayer.new()
+	player.stream = stream
+	player.finished.connect(player.queue_free)
+	add_child(player)
+	player.play()
 
 ## Petit recul de la cible a chaque impact.
 func _punch_board() -> void:

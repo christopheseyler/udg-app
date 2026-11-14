@@ -1,7 +1,9 @@
 # Godot 4+ specific ignores
 .godot/
 /android/
-export/
+# Build output at the project root only: addons/godot_ai/export/ (the godot_ai
+# export plugin) must stay in the repository.
+/export/
 
 # Never commit private keys / secrets (RAUC signing key, voice API key, ...)
 secrets/

@@ -11,7 +11,7 @@ config_version=5
 [application]
 
 config/name="udg-app"
-config/version="0.8.16"
+config/version="0.8.17"
 run/main_scene="uid://bqeofgftf7u1o"
 config/features=PackedStringArray("4.7", "Mobile")
 config/icon="res://icon.svg"
@@ -20,6 +20,8 @@ config/icon="res://icon.svg"
 
 DartInputManager="*res://dart_input/dart_input_manager.gd"
 PlayerDatabase="*res://players_db/player_database.gd"
+MenuMusic="*res://audio/menu_music.gd"
+UiSounds="*res://audio/ui_sounds.gd"
 UdgWifi="*res://wifi/udg_wifi.gd"
 _mcp_game_helper="*res://addons/godot_ai/runtime/game_helper.gd"
 
