@@ -9,7 +9,8 @@ extends SlidePanel
 ##    "default": true, "info": "Texte d'aide"}
 ##   {"id": "legs", "type": "enum", "name": "Legs",
 ##    "items": ["1", "3", "5"], "default": "3", "info": "Texte d'aide"}
-## Chaque option a un bouton "?" qui remplace la liste par son texte d'aide.
+## Chaque option a un bouton "?" qui remplace la liste par son texte d'aide,
+## en syntaxe markdown-like (voir MarkdownView ; un texte simple reste valide).
 ## get_values() renvoie {id: valeur} (bool ou String pour les enums).
 
 signal options_changed(values: Dictionary)
@@ -22,7 +23,7 @@ const ENUM_ROW := preload("res://shared_screens/game_setup_panel/option_enum_row
 @onready var option_list: VBoxContainer = $Layout/Margin/OptionsView/Scroll/ListMargin/OptionList
 @onready var info_view: VBoxContainer = $Layout/Margin/InfoView
 @onready var info_title: Label = $Layout/Margin/InfoView/InfoTitle
-@onready var info_text: Label = $Layout/Margin/InfoView/InfoText
+@onready var info_text: MarkdownView = $Layout/Margin/InfoView/InfoText
 @onready var close_button: Button = $Layout/Margin/InfoView/CloseButton
 
 var _elements: Array[Control] = []
@@ -70,7 +71,7 @@ func get_values() -> Dictionary:
 ## Aide d'une option a la place de la liste (son d'apparition d'ecran).
 func _show_info(option_name: String, info: String) -> void:
 	info_title.text = option_name
-	info_text.text = info
+	info_text.set_markdown(info)
 	options_view.visible = false
 	info_view.visible = true
 	UiSounds.play_window()

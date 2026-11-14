@@ -44,29 +44,35 @@ theme_override_constants/margin_bottom = 24
 
 [node name="Buttons" type="HBoxContainer" parent="Margin" unique_id=714688909]
 layout_mode = 2
-theme_override_constants/separation = 80
+theme_override_constants/separation = 48
 alignment = 1
 
 [node name="BackButton" type="Button" parent="Margin/Buttons" unique_id=190691682]
-custom_minimum_size = Vector2(300, 120)
+custom_minimum_size = Vector2(280, 120)
 layout_mode = 2
 theme_type_variation = &"PillButton"
 text = "Back"
 
 [node name="PlayersButton" type="Button" parent="Margin/Buttons" unique_id=1850851355]
-custom_minimum_size = Vector2(300, 120)
+custom_minimum_size = Vector2(280, 120)
 layout_mode = 2
 theme_type_variation = &"PillButton"
 text = "Players"
 
 [node name="OptionsButton" type="Button" parent="Margin/Buttons" unique_id=1601949072]
-custom_minimum_size = Vector2(300, 120)
+custom_minimum_size = Vector2(280, 120)
 layout_mode = 2
 theme_type_variation = &"PillButton"
 text = "Options"
 
+[node name="RulesButton" type="Button" parent="Margin/Buttons"]
+custom_minimum_size = Vector2(280, 120)
+layout_mode = 2
+theme_type_variation = &"PillButton"
+text = "Rules"
+
 [node name="StartButton" type="Button" parent="Margin/Buttons" unique_id=38918722]
-custom_minimum_size = Vector2(300, 120)
+custom_minimum_size = Vector2(280, 120)
 layout_mode = 2
 theme_type_variation = &"PillButtonRed"
 text = "Start"

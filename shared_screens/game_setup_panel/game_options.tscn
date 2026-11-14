@@ -1,7 +1,8 @@
-[gd_scene load_steps=3 format=3]
+[gd_scene load_steps=4 format=3]
 
 [ext_resource type="Script" path="res://shared_screens/game_setup_panel/game_options.gd" id="1_script"]
 [ext_resource type="Theme" path="res://assets/ui/setup/setup_theme.tres" id="2_theme"]
+[ext_resource type="Script" path="res://shared_screens/markdown_view/markdown_view.gd" id="3_markdown"]
 
 [node name="GameOptions" type="PanelContainer"]
 anchors_preset = -1
@@ -86,11 +87,10 @@ theme_override_font_sizes/font_size = 52
 text = "Option"
 horizontal_alignment = 1
 
-[node name="InfoText" type="Label" parent="Layout/Margin/InfoView"]
+[node name="InfoText" type="ScrollContainer" parent="Layout/Margin/InfoView"]
 layout_mode = 2
 size_flags_vertical = 3
-theme_override_font_sizes/font_size = 36
-autowrap_mode = 3
+script = ExtResource("3_markdown")
 
 [node name="CloseButton" type="Button" parent="Layout/Margin/InfoView"]
 custom_minimum_size = Vector2(300, 120)

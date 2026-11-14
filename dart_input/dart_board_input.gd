@@ -250,7 +250,8 @@ func _on_event_line(line: String) -> void:
 	if value == DartHit.MISS_SEGMENT or multiplier == 0:
 		hit_detected.emit(DartHit.miss())
 	else:
-		hit_detected.emit(DartHit.create(value, multiplier))
+		var zone: DartHit.Zone = {"O": DartHit.Zone.OUTER, "I": DartHit.Zone.INNER}.get(extra, DartHit.Zone.UNKNOWN)
+		hit_detected.emit(DartHit.create(value, multiplier, zone))
 
 func _on_port_lost() -> void:
 	if not _connected:

@@ -36,6 +36,7 @@ const SETTINGS_SCREEN := preload("res://main_screens/settings_screen/settings_sc
 @onready var setup_panel: GameSetupPanel = $SetupPanel
 @onready var players_panel: GamePlayers = $PlayersPanel
 @onready var options_panel: GameOptions = $OptionsPanel
+@onready var rules_panel: RulesPanel = $RulesPanel
 @onready var keyboard: PanelContainer = $OnscreenKeyboard
 @onready var settings_button: Button = $SettingsButton
 
@@ -224,39 +225,44 @@ func _set_selection_amount(value: float) -> void:
 	_selection_amount = value
 	_update_carousel()
 
-## Branche les panneaux de configuration : Players / Options s'ouvrent
+## Branche les panneaux de configuration : Players / Options / Rules s'ouvrent
 ## au-dessus du panneau de boutons (un seul a la fois), Back ferme tout et
 ## revient au carrousel, Start lance la partie.
 func _setup_panels() -> void:
 	setup_panel.back_pressed.connect(_on_back_pressed)
 	setup_panel.players_pressed.connect(_toggle_sub_panel.bind(players_panel))
 	setup_panel.options_pressed.connect(_toggle_sub_panel.bind(options_panel))
+	setup_panel.rules_pressed.connect(_toggle_sub_panel.bind(rules_panel))
 	setup_panel.start_pressed.connect(_on_start_pressed)
 	players_panel.name_edit_opened.connect(keyboard.show)
 	players_panel.name_edit_closed.connect(keyboard.hide)
 
-## Adapte les panneaux au jeu choisi : nombre max de joueurs, options (le
-## bouton Options est desactive si le jeu n'en a pas).
+## Adapte les panneaux au jeu choisi : nombre max de joueurs, options et
+## regles (les boutons Options / Rules sont desactives si le jeu n'en a pas).
 func _configure_panels_for(game: GameDefinition) -> void:
 	players_panel.set_max_players(game.max_players)
 	options_panel.set_options(game.options)
 	setup_panel.set_options_enabled(not game.options.is_empty())
+	rules_panel.set_rules(game.rules)
+	setup_panel.set_rules_enabled(not game.rules.is_empty())
 
 func _toggle_sub_panel(panel: SlidePanel) -> void:
 	keyboard.hide()
-	var other: SlidePanel = options_panel if panel == players_panel else players_panel
-	other.hide_panel()
+	for other: SlidePanel in [players_panel, options_panel, rules_panel]:
+		if other != panel:
+			other.hide_panel()
 	if panel.is_open:
 		panel.hide_panel()
 	else:
 		panel.show_panel()
-	setup_panel.set_open_panels(players_panel.is_open, options_panel.is_open)
+	setup_panel.set_open_panels(players_panel.is_open, options_panel.is_open, rules_panel.is_open)
 
 func _on_back_pressed() -> void:
 	keyboard.hide()
 	players_panel.hide_panel()
 	options_panel.hide_panel()
-	setup_panel.set_open_panels(false, false)
+	rules_panel.hide_panel()
+	setup_panel.set_open_panels(false, false, false)
 	setup_panel.hide_panel()
 	_animate_selection(0.0).finished.connect(_on_selection_cancelled)
 

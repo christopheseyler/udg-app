@@ -57,22 +57,48 @@ static func lowercase_centre() -> float:
 static func width(text: String, word_gap: float = 0.03) -> float:
 	return _bounds(_layout(text, word_gap)).size.x
 
-## Caracteres de `text` avec leur abscisse sur la ligne ([glyphe, x]), un
-## tableau par mot. Les caracteres sans modele 3D sont ignores.
+## Encombrement des caracteres `from` a `from + count - 1` de `text` une fois
+## la ligne posee (centree comme dans _init()), sans creer de noeuds. Vide si
+## aucun de ces caracteres n'a de modele 3D.
+static func chars_bounds(text: String, from: int, count: int, word_gap: float = 0.03) -> AABB:
+	var layout := _layout(text, word_gap)
+	var picked: Array[Array] = [[]]
+	for word in layout:
+		for placed in word:
+			if placed[2] >= from and placed[2] < from + count:
+				picked[0].append(placed)
+	if picked[0].is_empty():
+		return AABB()
+	var box := _bounds(picked)
+	box.position.x -= _bounds(layout).get_center().x
+	return box
+
+## Caracteres de `text` avec leur abscisse sur la ligne et leur position dans
+## `text` ([glyphe, x, index]), un tableau par mot. Les caracteres sans modele
+## 3D sont ignores.
 static func _layout(text: String, word_gap: float) -> Array[Array]:
 	_load_glyphs()
 	var layout: Array[Array] = []
 	var x := 0.0
-	for word in text.split(" ", false):
-		var placed := []
-		for ch in word:
-			if not _glyphs.has(ch):
-				push_warning("HemiHeadText : pas de caractere 3D pour '%s'" % ch)
-				continue
-			placed.append([_glyphs[ch], x])
-			x += _glyphs[ch].advance
+	var placed := []
+	var in_word := false
+	for i in text.length():
+		var ch := text[i]
+		if ch == " ":
+			if in_word:
+				layout.append(placed)
+				placed = []
+				in_word = false
+				x += word_gap
+			continue
+		in_word = true
+		if not _glyphs.has(ch):
+			push_warning("HemiHeadText : pas de caractere 3D pour '%s'" % ch)
+			continue
+		placed.append([_glyphs[ch], x, i])
+		x += _glyphs[ch].advance
+	if in_word:
 		layout.append(placed)
-		x += word_gap
 	return layout
 
 static func _bounds(layout: Array[Array]) -> AABB:

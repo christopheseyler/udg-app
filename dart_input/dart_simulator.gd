@@ -2,9 +2,10 @@ class_name DartSimulator
 extends CanvasLayer
 
 ## Panneau de simulation des jets, affiche par-dessus le jeu (bouton
-## "Simulator" en haut de l'ecran ou touche F1). Choisir Single / Double /
-## Triple puis un numero, ou Bull / Miss. Le multiplicateur revient a Single
-## apres chaque jet. Les jets sont envoyes au SimulatedDartInput fourni par
+## "Simulator" en haut de l'ecran ou touche F1). Choisir Single / Single In /
+## Double / Triple puis un numero, ou Bull / Miss. Single est le simple
+## exterieur (entre le triple et le double), Single In le simple interieur
+## (entre le bull et le triple). Le choix revient a Single apres chaque jet. Les jets sont envoyes au SimulatedDartInput fourni par
 ## setup().
 
 const NUMBER_COUNT := 20
@@ -18,7 +19,13 @@ const NUMBER_COLUMNS := 5
 @onready var miss_button: Button = $Panel/Margin/Content/ExtraRow/MissButton
 
 var _input: SimulatedDartInput
+## Multiplicateur et zone de chaque bouton de MultiplierRow, dans l'ordre.
+const MULTIPLIER_CHOICES := [
+	[1, DartHit.Zone.OUTER], [1, DartHit.Zone.INNER], [2, DartHit.Zone.UNKNOWN], [3, DartHit.Zone.UNKNOWN],
+]
+
 var _multiplier := 1
+var _zone := DartHit.Zone.OUTER
 var _multiplier_buttons: Array[Button] = []
 
 func _ready() -> void:
@@ -54,7 +61,9 @@ func _build_multiplier_buttons() -> void:
 		var button: Button = multiplier_row.get_child(i)
 		button.toggle_mode = true
 		button.button_group = group
-		button.pressed.connect(func(): _multiplier = i + 1)
+		button.pressed.connect(func():
+			_multiplier = MULTIPLIER_CHOICES[i][0]
+			_zone = MULTIPLIER_CHOICES[i][1])
 		_multiplier_buttons.append(button)
 	_reset_multiplier()
 
@@ -65,7 +74,7 @@ func _build_number_buttons() -> void:
 		button.text = str(number)
 		button.custom_minimum_size = Vector2(120, 90)
 		button.add_theme_font_size_override("font_size", 40)
-		button.pressed.connect(func(): _send_hit(DartHit.create(number, _multiplier)))
+		button.pressed.connect(func(): _send_hit(DartHit.create(number, _multiplier, _zone)))
 		number_grid.add_child(button)
 
 func _send_hit(hit: DartHit) -> void:
@@ -75,4 +84,5 @@ func _send_hit(hit: DartHit) -> void:
 
 func _reset_multiplier() -> void:
 	_multiplier = 1
+	_zone = DartHit.Zone.OUTER
 	_multiplier_buttons[0].button_pressed = true

@@ -2,33 +2,41 @@ class_name GameSetupPanel
 extends SlidePanel
 
 ## Panneau de configuration de partie, ancre en bas de l'ecran. Contient
-## les boutons Back, Players, Options et Start, exposes via des signaux.
+## les boutons Back, Players, Options, Rules et Start, exposes via des signaux.
 
 signal back_pressed
 signal players_pressed
 signal options_pressed
+signal rules_pressed
 signal start_pressed
 
 @onready var back_button: Button = $Margin/Buttons/BackButton
 @onready var players_button: Button = $Margin/Buttons/PlayersButton
 @onready var options_button: Button = $Margin/Buttons/OptionsButton
+@onready var rules_button: Button = $Margin/Buttons/RulesButton
 @onready var start_button: Button = $Margin/Buttons/StartButton
 
 func _ready() -> void:
 	back_button.pressed.connect(func(): back_pressed.emit())
 	players_button.pressed.connect(func(): players_pressed.emit())
 	options_button.pressed.connect(func(): options_pressed.emit())
+	rules_button.pressed.connect(func(): rules_pressed.emit())
 	start_button.pressed.connect(func(): start_pressed.emit())
 	# Start : son de selection plutot que le clic (UiSounds).
 	UiSounds.use_select_sound(start_button)
-	for button in [back_button, players_button, options_button, start_button]:
+	for button in [back_button, players_button, options_button, rules_button, start_button]:
 		PressScale.attach(button)
 
 ## Desactive le bouton Options pour un jeu qui n'a aucune option.
 func set_options_enabled(enabled: bool) -> void:
 	options_button.disabled = not enabled
 
+## Desactive le bouton Rules pour un jeu sans regles redigees.
+func set_rules_enabled(enabled: bool) -> void:
+	rules_button.disabled = not enabled
+
 ## Met en surbrillance (halo dore) le bouton du panneau ouvert.
-func set_open_panels(players_open: bool, options_open: bool) -> void:
+func set_open_panels(players_open: bool, options_open: bool, rules_open: bool = false) -> void:
 	players_button.theme_type_variation = &"PillButtonActive" if players_open else &"PillButton"
 	options_button.theme_type_variation = &"PillButtonActive" if options_open else &"PillButton"
+	rules_button.theme_type_variation = &"PillButtonActive" if rules_open else &"PillButton"

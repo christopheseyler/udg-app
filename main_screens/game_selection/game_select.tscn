@@ -15,6 +15,7 @@
 [ext_resource type="Texture2D" path="res://assets/settings_icon.svg" id="13_settings_icon"]
 [ext_resource type="PackedScene" path="res://main_screens/game_selection/game_carousel_3d.tscn" id="14_carousel"]
 [ext_resource type="Shader" path="res://main_screens/title_screen/intro_fxaa.gdshader" id="15_fxaa"]
+[ext_resource type="PackedScene" path="res://shared_screens/game_setup_panel/rules_panel.tscn" id="16_rules"]
 
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_fxaa"]
 shader = ExtResource("15_fxaa")
@@ -131,6 +132,11 @@ z_index = 200
 layout_mode = 1
 
 [node name="OptionsPanel" parent="." instance=ExtResource("6_options")]
+visible = false
+z_index = 200
+layout_mode = 1
+
+[node name="RulesPanel" parent="." instance=ExtResource("16_rules")]
 visible = false
 z_index = 200
 layout_mode = 1

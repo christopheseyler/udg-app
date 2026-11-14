@@ -1,10 +1,37 @@
 extends GameDefinition
 
+## Regles affichees par le panneau Rules (syntaxe : voir MarkdownView).
+const RULES := """
+# Cricket
+Close the **7 targets** (15 to 20 and the bull in Classic) before your opponents, with the best score.
+
+## Marks
+- Single = **1 mark**, double = **2**, triple = **3**. Outer bull = 1, bull = 2.
+- **3 marks** close a target for that player.
+- Extra marks on a closed target **score** its value while at least one opponent still has it open.
+
+## Modes
+- **Straight**: points add to your own score. Close everything with the *highest* score to win.
+- **Cut-Throat**: points go to every opponent who hasn't closed that target. Close everything with the *lowest* score to win.
+
+## Target selection
+- **Classic**: 15 to 20 and the bull.
+- **Wild** / **Ultra-Wild**: 6 random values (12 to 20 / 1 to 20), plus the bull.
+- **Crazy**: targets with marks that nobody has closed yet change value at the start of every turn; marks are kept.
+
+## End of game
+- The first player to close everything with the best score wins.
+- When *Max Rounds* is reached, the others are ranked by score (see *Ending Rank*).
+
+Every option has its own help: press **?** next to it in the Options panel.
+"""
+
 ## Regles detaillees : voir "cricket rules.txt" dans ce dossier.
 
 func _init() -> void:
 	id = "cricket"
 	name = "Cricket"
+	rules = RULES
 	image = "res://assets/game_selector/game_selector_cricket.png"
 	logo_decoration = preload("res://games/cricket/cricket_logo_mark.tscn")
 	screen_scene = preload("res://games/cricket/cricket_screen.tscn")

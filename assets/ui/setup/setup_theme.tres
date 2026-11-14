@@ -1,4 +1,4 @@
-[gd_resource type="Theme" load_steps=72 format=3]
+[gd_resource type="Theme" load_steps=73 format=3]
 
 [ext_resource type="Texture2D" path="res://assets/ui/setup/pill_button_normal.png" id="1_pill_button_normal"]
 [ext_resource type="Texture2D" path="res://assets/ui/setup/pill_button_disabled.png" id="2_pill_button_disabled"]
@@ -37,6 +37,7 @@
 [ext_resource type="Texture2D" path="res://assets/ui/setup/toggle_off.png" id="35_toggle_off"]
 [ext_resource type="Texture2D" path="res://assets/ui/setup/toggle_on_disabled.png" id="36_toggle_on_disabled"]
 [ext_resource type="Texture2D" path="res://assets/ui/setup/toggle_off_disabled.png" id="37_toggle_off_disabled"]
+[ext_resource type="FontFile" path="res://assets/fonts/HemiHead-BoldItalic.otf" id="font_title"]
 
 [sub_resource type="StyleBoxEmpty" id="sb_empty"]
 
@@ -687,6 +688,7 @@ SetupTitle/constants/outline_size = 4
 SetupTitle/constants/shadow_offset_x = 3
 SetupTitle/constants/shadow_offset_y = 3
 SetupTitle/font_sizes/font_size = 52
+SetupTitle/fonts/font = ExtResource("font_title")
 SpinLeftButton/base_type = &"Button"
 SpinLeftButton/styles/disabled = SubResource("sb_spinner_left_disabled")
 SpinLeftButton/styles/focus = SubResource("sb_empty")

@@ -8,6 +8,8 @@ from pathlib import Path
 
 DIR = "res://assets/ui/setup/"
 PAD = 24  # transparent margin rendered around every kit element
+TITLE_FONT = "res://assets/fonts/HemiHead-BoldItalic.otf"
+TITLE_FONT_ID = "font_title"
 
 ext: dict[str, str] = {}
 subs: list[str] = []
@@ -116,6 +118,9 @@ for variation, name in (("GameBar", "game_bar"), ("GameSidePanel", "game_side_pa
 props.append('TitlePlaque/base_type = &"PanelContainer"')
 props.append(f"TitlePlaque/styles/panel = {stylebox('title_plaque', (PAD + 50, PAD + 59), (40, 8, 40, 8))}")
 props.append('SetupTitle/base_type = &"Label"')
+# Same font as the 3D title letters (HemiHead Bold Italic, see
+# assets/udg-3d-assets/hemihead/source/make_hemihead.py).
+props.append(f'SetupTitle/fonts/font = ExtResource("{TITLE_FONT_ID}")')
 props.append("SetupTitle/font_sizes/font_size = 52")
 props.append(f"SetupTitle/colors/font_color = {WHITE}")
 props.append(f"SetupTitle/colors/font_outline_color = {GOLD}")
@@ -167,9 +172,10 @@ for icon, name in (("checked", "toggle_on"), ("unchecked", "toggle_off"),
 for state in ("normal", "hover", "pressed", "hover_pressed", "disabled", "focus"):
     props.append(f"CheckButton/styles/{state} = {EMPTY}")
 
-lines = [f'[gd_resource type="Theme" load_steps={len(ext) + len(subs) + 1} format=3]', ""]
+lines = [f'[gd_resource type="Theme" load_steps={len(ext) + len(subs) + 2} format=3]', ""]
 for name, rid in ext.items():
     lines.append(f'[ext_resource type="Texture2D" path="{DIR}{name}.png" id="{rid}"]')
+lines.append(f'[ext_resource type="FontFile" path="{TITLE_FONT}" id="{TITLE_FONT_ID}"]')
 lines.append("")
 lines += subs
 lines.append("[resource]")

@@ -1,9 +1,35 @@
 extends GameDefinition
 
+## Regles affichees par le panneau Rules (syntaxe : voir MarkdownView).
+const RULES := """
+# Around the Clock
+Hit the numbers **in order**, from 1 to 20. The first player to finish wins.
+
+## Classic
+- Each player has a current target, starting at **1**.
+- Each player throws **3 darts** per turn.
+- Any hit on the current target (single, double or triple) moves it to the next number.
+- Several targets can be validated in the same turn.
+- **Classic Extended**: after 20, finish on the bull (outer bull or bull).
+
+## The Irish Way
+1 to 20, then the bull, with faster progress:
+- **From 1 to 9**: a double moves you **2** numbers ahead, a triple **3**.
+- **On 10**: a *double 10* takes you straight to the bull.
+- **From 11 to 20**: every hit moves you 1 number ahead.
+- **Bull**: hit **2 bulls in the same turn** to win (a bull counts as 2).
+
+## End of game
+- A player finishes as soon as they validate their last target; their turn stops there.
+- With *End at First Finish* off, the others keep playing for the next places.
+- When *Max Rounds* is reached, unfinished players are ranked by the target they reached.
+"""
+
 func _init() -> void:
 	id = "around_the_clock"
 	name = "Around the Clock"
-	logo_text = "Around\n[the]\nClock"
+	rules = RULES
+	logo_text = "Around\n[the^oc]\nClock"
 	image = "res://assets/game_selector/game_selector_around_the_clock.png"
 	logo_decoration = preload("res://games/around_the_clock/around_the_clock_logo_clockwork.tscn")
 	screen_scene = preload("res://games/around_the_clock/around_the_clock_screen.tscn")

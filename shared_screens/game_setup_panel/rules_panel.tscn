@@ -1,0 +1,59 @@
+[gd_scene load_steps=4 format=3]
+
+[ext_resource type="Script" path="res://shared_screens/game_setup_panel/rules_panel.gd" id="1_script"]
+[ext_resource type="Theme" path="res://assets/ui/setup/setup_theme.tres" id="2_theme"]
+[ext_resource type="Script" path="res://shared_screens/markdown_view/markdown_view.gd" id="3_markdown"]
+
+[node name="RulesPanel" type="PanelContainer"]
+anchors_preset = -1
+anchor_left = 0.0
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 20.0
+offset_top = -1016.0
+offset_right = -20.0
+offset_bottom = -204.0
+grow_horizontal = 2
+grow_vertical = 0
+theme = ExtResource("2_theme")
+theme_type_variation = &"SetupPanel"
+script = ExtResource("1_script")
+
+[node name="Layout" type="VBoxContainer" parent="."]
+layout_mode = 2
+theme_override_constants/separation = 16
+
+[node name="TitleSpace" type="Control" parent="Layout"]
+custom_minimum_size = Vector2(0, 42)
+layout_mode = 2
+
+[node name="TitlePlaque" type="PanelContainer" parent="Layout/TitleSpace"]
+custom_minimum_size = Vector2(640, 120)
+layout_mode = 1
+anchors_preset = 5
+anchor_left = 0.5
+anchor_right = 0.5
+offset_left = -320.0
+offset_top = -78.0
+offset_right = 320.0
+offset_bottom = 42.0
+grow_horizontal = 2
+mouse_filter = 2
+theme_type_variation = &"TitlePlaque"
+
+[node name="TitleLabel" type="Label" parent="Layout/TitleSpace/TitlePlaque"]
+layout_mode = 2
+theme_type_variation = &"SetupTitle"
+text = "RULES"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="Margin" type="MarginContainer" parent="Layout"]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="RulesView" type="ScrollContainer" parent="Layout/Margin"]
+layout_mode = 2
+size_flags_vertical = 3
+script = ExtResource("3_markdown")

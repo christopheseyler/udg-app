@@ -9,13 +9,20 @@ extends RefCounted
 const BULL := 25
 const MISS_SEGMENT := 0
 
+## Zone d'un simple sur un numero (icd.md : champ EXTRA "O" / "I") : entre
+## le triple et le double (OUTER) ou entre le bull et le triple (INNER).
+## UNKNOWN pour tout autre jet, ou si la source ne la donne pas.
+enum Zone { UNKNOWN, OUTER, INNER }
+
 var segment := MISS_SEGMENT
 var multiplier := 0
+var zone := Zone.UNKNOWN
 
 ## Cree un impact. Un segment 0, un multiplicateur 0 ou un segment invalide
 ## donnent un jet manque ; le multiplicateur est borne a ce que le segment
-## permet (2 au bull, 3 ailleurs).
-static func create(p_segment: int, p_multiplier: int) -> DartHit:
+## permet (2 au bull, 3 ailleurs). `p_zone` n'est garde que pour un simple
+## sur un numero.
+static func create(p_segment: int, p_multiplier: int, p_zone: Zone = Zone.UNKNOWN) -> DartHit:
 	var hit := DartHit.new()
 	if p_segment == MISS_SEGMENT or p_multiplier <= 0:
 		return hit
@@ -24,6 +31,8 @@ static func create(p_segment: int, p_multiplier: int) -> DartHit:
 		return hit
 	hit.segment = p_segment
 	hit.multiplier = clampi(p_multiplier, 1, 2 if p_segment == BULL else 3)
+	if hit.multiplier == 1 and p_segment != BULL:
+		hit.zone = p_zone
 	return hit
 
 static func miss() -> DartHit:
