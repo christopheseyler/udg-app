@@ -1,7 +1,7 @@
 class_name DoBetterLogoTiming
 extends RefCounted
 
-## Horloge commune de l'animation du logo de Do Better If You Can
+## Horloge commune de l'animation du logo de Beat the King
 ## (do_better_logo.tscn) : trois flechettes visent tour a tour la couronne,
 ## qui s'ecarte juste avant chaque impact ; la flechette se plante la ou etait
 ## la couronne. Une fois les trois plantees, elles s'effacent en fondu et la

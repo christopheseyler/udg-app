@@ -1,0 +1,67 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://games/do_better/leader_crown.gd" id="1_script"]
+[ext_resource type="Shader" path="res://games/do_better/leader_crown_shine.gdshader" id="2_shader"]
+[ext_resource type="PackedScene" path="res://games/do_better/crown.glb" id="3_crown"]
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_shine"]
+shader = ExtResource("2_shader")
+shader_parameter/shine = -1.0
+shader_parameter/flash = 0.0
+shader_parameter/band_width = 0.16
+
+[sub_resource type="ProceduralSkyMaterial" id="ProceduralSkyMaterial_warm"]
+sky_top_color = Color(0.12, 0.09, 0.07, 1)
+sky_horizon_color = Color(0.42, 0.3, 0.17, 1)
+ground_bottom_color = Color(0.03, 0.02, 0.015, 1)
+ground_horizon_color = Color(0.3, 0.21, 0.12, 1)
+
+[sub_resource type="Sky" id="Sky_warm"]
+sky_material = SubResource("ProceduralSkyMaterial_warm")
+
+[sub_resource type="Environment" id="Environment_crown"]
+sky = SubResource("Sky_warm")
+ambient_light_source = 3
+ambient_light_energy = 0.5
+reflected_light_source = 2
+tonemap_mode = 2
+
+[node name="LeaderCrown" type="SubViewportContainer"]
+material = SubResource("ShaderMaterial_shine")
+offset_right = 140.0
+offset_bottom = 112.0
+mouse_filter = 2
+stretch = true
+script = ExtResource("1_script")
+
+[node name="SubViewport" type="SubViewport" parent="."]
+own_world_3d = true
+transparent_bg = true
+handle_input_locally = false
+msaa_3d = 1
+size = Vector2i(140, 112)
+render_target_update_mode = 4
+
+[node name="WorldEnvironment" type="WorldEnvironment" parent="SubViewport"]
+environment = SubResource("Environment_crown")
+
+[node name="Camera3D" type="Camera3D" parent="SubViewport"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.046, 1)
+projection = 1
+size = 0.15
+near = 0.05
+far = 3.0
+
+[node name="KeyLight" type="DirectionalLight3D" parent="SubViewport"]
+transform = Transform3D(0.70710677, 0.579228, -0.4055798, 0, 0.57357645, 0.81915206, 0.70710677, -0.579228, 0.4055798, 0, 0, 0)
+light_energy = 2.5
+
+[node name="FillLight" type="DirectionalLight3D" parent="SubViewport"]
+transform = Transform3D(0.34202015, -0.3213938, 0.8830222, 0, 0.9396926, 0.34202012, -0.9396926, -0.11697777, 0.32139382, 0, 0, 0)
+light_color = Color(1, 0.86, 0.68, 1)
+light_energy = 0.5
+
+[node name="Crown" type="Node3D" parent="SubViewport"]
+transform = Transform3D(1, 0, 0, 0, 0.9781476, 0.2079117, 0, -0.2079117, 0.9781476, 0, 0, 0)
+
+[node name="CrownModel" parent="SubViewport/Crown" instance=ExtResource("3_crown")]

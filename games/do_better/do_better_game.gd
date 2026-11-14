@@ -1,35 +1,41 @@
 extends GameDefinition
 
-## Do Better If You Can : titre provisoire, le nom definitif reste a choisir
-## (voir l'issue #1). Regles dans DoBetterRules.
+## Beat the King, if you can (anciennement Do Better If You Can ; l'id, les
+## fichiers et les classes gardent l'ancien nom). Regles dans DoBetterRules.
 
 ## Regles affichees par le panneau Rules (syntaxe : voir MarkdownView).
 const RULES := """
-# Do Better If You Can
-Beat the **master** of the round on the target they chose. The player with the most **points** at the end wins.
+# Beat the King, if you can
+Beat the **king** of the round on the target they chose. The player with the most **points** at the end wins.
 
 ## Round
-1. The **master** throws first: their **first dart sets the target** of the round.
+1. The **king** throws first: their **first dart sets the target** of the round.
 2. Their 3 darts, the first one included, give the **marks to beat**.
 3. Each other player then throws **3 darts** at the same target, in order:
-   - more marks than the master: **+1 point for the player**;
-   - fewer marks: **+1 point for the master**;
+   - more marks than the king: **+1 point for the player**;
+   - fewer marks: **+1 point for the king**;
    - a tie: no point.
 
-The master role moves to the next player every round: everyone is master the same number of times.
+The king role moves to the next player every round: everyone is king the same number of times (unless *Keep the Crown* is on).
+
+## The crown
+The **crown** shows the best player of the round. The king wears it first; a player who scores **more marks than the crown's wearer** takes it.
 
 ## Marks
 - On a number: single = **1**, double = **2**, triple = **3**. A first dart in the triple 20 sets the target to 20 and already scores 3 marks.
 - On the bull: outer bull = **1**, bull = **2**.
-- If the master's first dart misses the board, the target is **Miss**: every missed dart scores 1 mark.
+- If the king's first dart misses the board, the target is **Miss**: every missed dart scores 1 mark.
 - Darts outside the target score nothing.
 
 ## Get the Lead (option)
-- A player who beats the **current master** scores 1 point, **becomes the master**, and their marks become the marks to beat. The target never changes.
-- If the first master lost the title, they get a **last turn** after everyone else:
-  - better: they take the title back, score 1 point and **take back every point** the other players scored during this round;
-  - worse: the current master scores 1 point;
+- A player who beats the **current king** scores 1 point, **becomes the king**, and their marks become the marks to beat. The target never changes.
+- If the first king lost the crown, they get a **last turn** after everyone else:
+  - better: they take the crown back, score 1 point and **take back every point** the other players scored during this round;
+  - worse: the current king scores 1 point;
   - a tie: no point.
+
+## Keep the Crown (option)
+The king role no longer moves to the next player: the player wearing the **crown at the end of a round** is the **king of the next round**. A king keeps the crown as long as nobody beats them.
 
 ## End of game
 After the last round, the player with the most points wins. Players with the same points share the same place.
@@ -37,9 +43,9 @@ After the last round, the player with the most points wins. Players with the sam
 
 func _init() -> void:
 	id = "do_better"
-	name = "Do Better If You Can"
+	name = "Beat the King, if you can"
 	rules = RULES
-	logo_text = "Do Better\n[if you can]"
+	logo_text = "Beat the King\n[if you can]"
 	logo_decoration = preload("res://games/do_better/do_better_logo.tscn")
 	screen_scene = preload("res://games/do_better/do_better_screen.tscn")
 	min_players = 2
@@ -48,11 +54,16 @@ func _init() -> void:
 		{
 			"id": "rounds_per_player", "type": "enum", "name": "Rounds per Player",
 			"items": ["1", "2", "3", "4"], "default": "2",
-			"info": "Number of times each player is the master. The game has this many rounds **per player** (e.g. 2 with 4 players: 8 rounds), so that everyone is the first master the same number of times.",
+			"info": "The game has this many rounds **per player** (e.g. 2 with 4 players: 8 rounds), so that everyone is the first king the same number of times (unless Keep the Crown is on).",
 		},
 		{
 			"id": "get_the_lead", "type": "bool", "name": "Get the Lead",
 			"default": false,
-			"info": "**Off**: the first master's marks stay the marks to beat for the whole round.\n\n**On**: a player who beats the current master scores 1 point and **becomes the master**; their marks become the marks to beat (the target doesn't change). If the first master lost the title, they get a last turn: if they do better, they take the title back, score 1 point and take back every point the other players scored during the round; if they do worse, the current master scores 1 point.",
+			"info": "**Off**: the first king's marks stay the marks to beat for the whole round.\n\n**On**: a player who beats the current king scores 1 point and **becomes the king**; their marks become the marks to beat (the target doesn't change). If the first king lost the crown, they get a last turn: if they do better, they take the crown back, score 1 point and take back every point the other players scored during the round; if they do worse, the current king scores 1 point.",
+		},
+		{
+			"id": "keep_the_crown", "type": "bool", "name": "Keep the Crown",
+			"default": false,
+			"info": "**Off**: the king role moves to the next player every round.\n\n**On**: the king keeps the crown as long as nobody beats them. The player wearing the **crown at the end of a round** (the best score of the round) is the **king of the next round**.",
 		},
 	]

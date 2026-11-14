@@ -1,8 +1,8 @@
 class_name DoBetterScreen
 extends GameScreen
 
-## Ecran de jeu de Do Better If You Can (titre provisoire), base sur le
-## template GameScreen. Les regles sont dans DoBetterRules ; le panneau de
+## Ecran de jeu de Beat the King, if you can (ex Do Better If You Can ; fichiers et
+## classes gardent l'ancien nom), base sur le template GameScreen. Les regles sont dans DoBetterRules ; le panneau de
 ## score (HeaderScorePanel) affiche la cible du round, le score a battre, le
 ## resultat du dernier tour et les points de chaque joueur.
 ##
@@ -13,7 +13,16 @@ extends GameScreen
 ## Cancel hit de remonter tour par tour jusqu'au debut de la partie. Pendant
 ## le tour du master initial, sa premiere fleche fixe la cible affichee.
 
+const LEADER_CROWN_SCENE := preload("res://games/do_better/leader_crown.tscn")
+
 @onready var score_panel: HeaderScorePanel = $ScoreArea/ScorePanel
+
+## Couronne posee sur la ligne du master ; elle saute sur le nouveau master
+## quand le titre change de main. Ajoutee juste apres ScoreArea, donc sous le
+## panneau lateral et les ecrans superposes (Remove your darts, etc.).
+var leader_crown: LeaderCrown
+## Joueur qui doit porter la couronne (-1 : aucun).
+var _crown_player := -1
 
 var _players: Array[String] = []
 ## Etat de la partie (voir DoBetterRules.new_state()), resultat du tour en
@@ -32,15 +41,21 @@ func _ready() -> void:
 	next_player_requested.connect(_on_next_player_requested)
 	previous_player_requested.connect(_on_previous_player_requested)
 	throw_cancelled.connect(_on_throw_cancelled)
+	leader_crown = LEADER_CROWN_SCENE.instantiate()
+	leader_crown.row_rect = score_panel.row_rect
+	score_area.add_sibling(leader_crown)
+	remove_darts_screen.visibility_changed.connect(_sync_crown)
 
 func setup(players: Array[String], options: Dictionary) -> void:
 	_players = players.duplicate()
 	var rounds := _players.size() * int(options.get("rounds_per_player", "2"))
-	_state = DoBetterRules.new_state(_players.size(), rounds, options.get("get_the_lead", false))
+	_state = DoBetterRules.new_state(_players.size(), rounds, options.get("get_the_lead", false),
+		options.get("keep_the_crown", false))
 	darts_per_turn = 3
 	reset_turn()
 	clear_history()
 	_turn_history.clear()
+	score_panel.name_indent_ratio = LeaderCrown.NAME_INDENT_RATIO
 	score_panel.set_players(_players)
 	_start_turn()
 
@@ -67,12 +82,16 @@ func _on_dart_hit(hit: DartHit) -> void:
 ## darts", pour que les points soient deja a jour pendant que le joueur
 ## retire ses fleches.
 func _start_remove_darts() -> void:
-	if not _turn_finalized:
+	var finalize := not _turn_finalized
+	if finalize:
 		_state = DoBetterRules.copy(_turn_start_state)
 		DoBetterRules.apply_turn(_state, _turn_hits, _players)
 		_turn_finalized = true
-		_refresh_panel()
+	# Ecran affiche avant la mise a jour du panneau : la couronne attend sa
+	# fermeture pour sauter sur le nouveau porteur (voir _sync_crown).
 	super._start_remove_darts()
+	if finalize:
+		_refresh_panel()
 
 func _on_next_player_requested() -> void:
 	if _players.is_empty():
@@ -119,6 +138,14 @@ func _refresh_panel() -> void:
 	for i in _players.size():
 		score_panel.set_row(i, str(view.points[i]), _hint_for(i, view, player, live), i == view.master and not _game_over)
 	score_panel.set_current_player(player if not _game_over else -1)
+	_crown_player = view.crown if not _game_over else -1
+	_sync_crown()
+
+## Pose la couronne sur _crown_player, sauf pendant "Remove your darts" qui
+## cacherait son deplacement : elle part a la fermeture de cet ecran.
+func _sync_crown() -> void:
+	if not remove_darts_screen.visible:
+		leader_crown.show_on(_crown_player)
 
 ## Etat d'un joueur dans le round : il lance (marques en cours), master,
 ## marques deja faites, ou rien.
@@ -135,9 +162,9 @@ func _hint_for(index: int, view: Dictionary, player: int, live: int) -> String:
 	elif view.played.has(index):
 		hint = "%d mark%s" % [view.played[index], "" if view.played[index] == 1 else "s"]
 	if index == view.initial and index != view.master and not view.comeback:
-		hint += " (initial master)" if hint else "Initial master"
+		hint += " (first king)" if hint else "First king"
 	elif index == view.master:
-		hint = ("Master · " + hint) if hint else "Master"
+		hint = ("King · " + hint) if hint else "King"
 	return hint
 
 ## Fin de partie : classement par points decroissants, les egalites partagent

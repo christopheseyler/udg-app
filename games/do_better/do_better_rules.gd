@@ -1,7 +1,7 @@
 class_name DoBetterRules
 extends RefCounted
 
-## Regles de Do Better If You Can (titre provisoire), sans affichage : l'etat
+## Regles de Beat the King, if you can, sans affichage : l'etat
 ## de la partie est un Dictionary (voir new_state()) que apply_turn() fait
 ## evoluer a la fin de chaque tour et advance() fait passer au tour suivant.
 ## L'ecran (DoBetterScreen) garde un instantane de l'etat au debut de chaque
@@ -25,12 +25,23 @@ extends RefCounted
 ## gagnes pendant ce round par les autres joueurs ; sinon, le master actuel
 ## gagne 1 point (rien en cas d'egalite).
 ##
+## Couronne (affichee par l'ecran) : portee par le joueur qui a fait le
+## meilleur score du round, en commencant par le master initial ; un joueur
+## la prend en faisant strictement mieux que celui qui la porte. Avec Get the
+## Lead, c'est toujours le master actuel.
+##
+## Option Keep the Crown : le master initial ne tourne plus ; celui qui porte
+## la couronne a la fin d'un round est le master initial du suivant.
+##
 ## A la fin du dernier round (un multiple du nombre de joueurs, pour que
-## chacun soit master initial autant de fois), le plus de points gagne ; les
-## egalites partagent la place.
+## chacun soit master initial autant de fois sans Keep the Crown), le plus de
+## points gagne ; les egalites partagent la place.
+##
+## A l'ecran, le master s'appelle le "king" (le jeu est Beat the King, if you
+## can) ; le code garde le terme master.
 
 ## Etat d'une nouvelle partie de `player_count` joueurs, en `rounds` rounds.
-static func new_state(player_count: int, rounds: int, get_the_lead: bool) -> Dictionary:
+static func new_state(player_count: int, rounds: int, get_the_lead: bool, keep_the_crown: bool = false) -> Dictionary:
 	var points: Array[int] = []
 	points.resize(player_count)
 	points.fill(0)
@@ -38,21 +49,29 @@ static func new_state(player_count: int, rounds: int, get_the_lead: bool) -> Dic
 		"players": player_count,
 		"rounds": rounds,
 		"get_the_lead": get_the_lead,
+		"keep_the_crown": keep_the_crown,
 		"points": points,
 		"round": 1,
 		"over": false,
+		"crown": 0,
 	}
 	_start_round(state)
 	return state
 
-## Prepare le round state.round : master initial selon la rotation, cible a
-## fixer par sa premiere fleche.
+## Prepare le round state.round : master initial selon la rotation (ou celui
+## qui a garde la couronne, avec Keep the Crown), cible a fixer par sa
+## premiere fleche.
 static func _start_round(state: Dictionary) -> void:
 	var gains: Array[int] = []
 	gains.resize(state.players)
 	gains.fill(0)
 	var initial: int = (state.round - 1) % state.players
+	if state.keep_the_crown:
+		initial = state.crown
 	state.merge({
+		# Porteur de la couronne et son score dans le round.
+		"crown": initial,
+		"crown_best": 0,
 		# Rang du tour dans le round : 0 = master initial, puis les autres.
 		"turn": 0,
 		# Vrai pendant le retour du master initial (Get the Lead).
@@ -138,10 +157,15 @@ static func apply_turn(state: Dictionary, hits: Array[DartHit], names: Array[Str
 		state.target = target
 		state.best = score
 		state.master = player
+		state.crown = player
+		state.crown_best = score
 		state.last_result = "%s sets the target: %s, %s to beat" % [
 			names[player], target_label(target), _marks_text(score)]
 		return
 
+	if score > state.crown_best:
+		state.crown = player
+		state.crown_best = score
 	var master: int = state.master
 	if state.comeback:
 		if score > state.best:
@@ -156,10 +180,10 @@ static func apply_turn(state: Dictionary, hits: Array[DartHit], names: Array[Str
 			state.gains[player] += recovered
 			state.master = player
 			state.best = score
-			state.last_result = "%s takes the lead back: +1 and %d recovered" % [names[player], recovered]
+			state.last_result = "%s takes the crown back: +1 and %d recovered" % [names[player], recovered]
 		elif score < state.best:
 			_give_point(state, master)
-			state.last_result = "%s keeps the lead: +1 %s" % [names[master], names[master]]
+			state.last_result = "%s keeps the crown: +1 %s" % [names[master], names[master]]
 		else:
 			state.last_result = "Tie with %s: no point" % names[master]
 		return
@@ -169,9 +193,9 @@ static func apply_turn(state: Dictionary, hits: Array[DartHit], names: Array[Str
 		if state.get_the_lead:
 			state.master = player
 			state.best = score
-			state.last_result = "%s does better: +1, new master" % names[player]
+			state.last_result = "%s does better: +1, new king" % names[player]
 		else:
-			state.last_result = "%s does better: +1 %s" % [names[player], names[player]]
+			state.last_result = "%s does better: +1%s" % [names[player], ", takes the crown" if state.crown == player else ""]
 	elif score < state.best:
 		_give_point(state, master)
 		state.last_result = "%s fails: +1 %s" % [names[player], names[master]]

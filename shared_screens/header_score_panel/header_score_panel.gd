@@ -25,6 +25,11 @@ const MASTER_COLOR := Color(1, 0.78, 0.25)
 @onready var result_label: Label = $Margin/Content/ResultLabel
 @onready var grid: GridContainer = $Margin/Content/Scroll/Grid
 
+## Retrait a gauche des noms, en proportion de la hauteur d'une ligne, pour
+## laisser la place a un decor pose sur le coin de la ligne (la couronne de
+## Beat the King). A fixer avant set_players().
+var name_indent_ratio := 0.0
+
 var _sizes: Dictionary = ROW_SIZES[-1]
 var _row_plates: ScoreRowPlates
 var _name_labels: Array[Label] = []
@@ -51,7 +56,12 @@ func set_players(names: Array[String]) -> void:
 			break
 
 	for player_name in names:
-		_name_labels.append(_add_cell(player_name, _sizes.name, HORIZONTAL_ALIGNMENT_LEFT, 3.0, 0.0))
+		var name_label := _add_cell(player_name, _sizes.name, HORIZONTAL_ALIGNMENT_LEFT, 3.0, 0.0)
+		if name_indent_ratio > 0.0:
+			var row_height: float = _sizes.name * 1.4 + _sizes.pad * 2
+			var style := (name_label.get_parent() as PanelContainer).get_theme_stylebox("panel") as StyleBoxFlat
+			style.content_margin_left += roundf(row_height * name_indent_ratio)
+		_name_labels.append(name_label)
 		_score_labels.append(_add_cell("", _sizes.score, HORIZONTAL_ALIGNMENT_CENTER, 0.0, POINTS_COLUMN_WIDTH))
 		var hint_label := _add_cell("", _sizes.hint, HORIZONTAL_ALIGNMENT_LEFT, 4.0, 0.0)
 		hint_label.modulate.a = 0.85
@@ -65,6 +75,16 @@ func set_row(index: int, score: String, hint: String, highlight: bool) -> void:
 
 func set_current_player(index: int) -> void:
 	_row_plates.set_current(index)
+
+## Rectangle global de la ligne du joueur `index` (celui de sa plaque, sans
+## la marge du kit UI), vide s'il n'existe pas.
+func row_rect(index: int) -> Rect2:
+	if index < 0 or index >= _name_labels.size():
+		return Rect2()
+	var cell := _name_labels[index].get_parent() as Control
+	var cell_rect := cell.get_global_rect()
+	var grid_rect := grid.get_global_rect()
+	return Rect2(grid_rect.position.x, cell_rect.position.y, grid_rect.size.x, cell_rect.size.y)
 
 ## Ajoute une cellule (label, sans fond : voir ScoreRowPlates) a la grille et
 ## retourne son label. stretch > 0 : la colonne s'etire avec ce ratio ;

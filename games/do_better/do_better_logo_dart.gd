@@ -1,7 +1,7 @@
 class_name DoBetterLogoDart
 extends Node3D
 
-## Flechette du logo de Do Better If You Can : lancee vers la couronne a son
+## Flechette du logo de Beat the King : lancee vers la couronne a son
 ## tour, elle se plante dans la cible la ou etait la couronne, puis s'efface
 ## en fondu avec les autres (voir DoBetterLogoTiming). Sa position de repos
 ## est celle de la couronne, sur la face de la cible ; ses maillages restent

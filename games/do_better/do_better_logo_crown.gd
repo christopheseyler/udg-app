@@ -1,7 +1,7 @@
 class_name DoBetterLogoCrown
 extends LogoMover
 
-## Couronne du logo de Do Better If You Can : s'ecarte de la flechette qui la
+## Couronne du logo de Beat the King : s'ecarte de la flechette qui la
 ## vise, puis revient a sa place (voir DoBetterLogoTiming). Penche un peu du
 ## cote ou elle part, comme si elle esquivait.
 
