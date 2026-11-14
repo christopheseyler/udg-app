@@ -138,7 +138,7 @@ func _refresh_panel() -> void:
 	for i in _players.size():
 		score_panel.set_row(i, str(view.points[i]), _hint_for(i, view, player, live), i == view.master and not _game_over)
 	score_panel.set_current_player(player if not _game_over else -1)
-	_crown_player = view.crown if not _game_over else -1
+	_crown_player = view.master if not _game_over else -1
 	_sync_crown()
 
 ## Pose la couronne sur _crown_player, sauf pendant "Remove your darts" qui

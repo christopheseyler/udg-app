@@ -19,7 +19,7 @@ Beat the **king** of the round on the target they chose. The player with the mos
 The king role moves to the next player every round: everyone is king the same number of times (unless *Keep the Crown* is on).
 
 ## The crown
-The **crown** shows the best player of the round. The king wears it first; a player who scores **more marks than the crown's wearer** takes it.
+The king wears the **crown**. Without *Get the Crown*, the first king keeps it, and their marks stay the marks to beat, for the whole round.
 
 ## Marks
 - On a number: single = **1**, double = **2**, triple = **3**. A first dart in the triple 20 sets the target to 20 and already scores 3 marks.
@@ -27,15 +27,16 @@ The **crown** shows the best player of the round. The king wears it first; a pla
 - If the king's first dart misses the board, the target is **Miss**: every missed dart scores 1 mark.
 - Darts outside the target score nothing.
 
-## Get the Lead (option)
-- A player who beats the **current king** scores 1 point, **becomes the king**, and their marks become the marks to beat. The target never changes.
+## Get the Crown (option)
+- A player who beats the **current king** scores 1 point, **takes the crown** and becomes the king: their marks become the marks to beat. The target never changes.
+- A tie: the king keeps the crown, and nobody scores.
 - If the first king lost the crown, they get a **last turn** after everyone else:
   - better: they take the crown back, score 1 point and **take back every point** the other players scored during this round;
   - worse: the current king scores 1 point;
   - a tie: no point.
 
 ## Keep the Crown (option)
-The king role no longer moves to the next player: the player wearing the **crown at the end of a round** is the **king of the next round**. A king keeps the crown as long as nobody beats them.
+The king role no longer moves to the next player: the player wearing the **crown at the end of a round** is the **king of the next round**. A king keeps the crown as long as nobody takes it (with *Get the Crown*; without it, the first king keeps it for the whole game).
 
 ## End of game
 After the last round, the player with the most points wins. Players with the same points share the same place.
@@ -57,13 +58,13 @@ func _init() -> void:
 			"info": "The game has this many rounds **per player** (e.g. 2 with 4 players: 8 rounds), so that everyone is the first king the same number of times (unless Keep the Crown is on).",
 		},
 		{
-			"id": "get_the_lead", "type": "bool", "name": "Get the Lead",
+			"id": "get_the_lead", "type": "bool", "name": "Get the Crown",
 			"default": false,
-			"info": "**Off**: the first king's marks stay the marks to beat for the whole round.\n\n**On**: a player who beats the current king scores 1 point and **becomes the king**; their marks become the marks to beat (the target doesn't change). If the first king lost the crown, they get a last turn: if they do better, they take the crown back, score 1 point and take back every point the other players scored during the round; if they do worse, the current king scores 1 point.",
+			"info": "**Off**: the first king keeps the crown, and their marks stay the marks to beat, for the whole round.\n\n**On**: a player who beats the current king scores 1 point and **takes the crown**; their marks become the marks to beat (the target doesn't change). A tie: the king keeps the crown, no point. If the first king lost the crown, they get a last turn: if they do better, they take the crown back, score 1 point and take back every point the other players scored during the round; if they do worse, the current king scores 1 point.",
 		},
 		{
 			"id": "keep_the_crown", "type": "bool", "name": "Keep the Crown",
 			"default": false,
-			"info": "**Off**: the king role moves to the next player every round.\n\n**On**: the king keeps the crown as long as nobody beats them. The player wearing the **crown at the end of a round** (the best score of the round) is the **king of the next round**.",
+			"info": "**Off**: the king role moves to the next player every round.\n\n**On**: the king at the end of a round is the **king of the next round**. With Get the Crown, a king keeps the crown as long as nobody beats them; without it, the first king keeps it for the whole game.",
 		},
 	]

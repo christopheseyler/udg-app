@@ -18,20 +18,20 @@ extends RefCounted
 ## master est ratee, la cible est "Miss" : chaque fleche ratee vaut 1 marque.
 ## Les fleches hors de la cible ne valent rien.
 ##
-## Option Get the Lead : le joueur qui bat le master actuel prend son titre et
-## son score devient le score a battre ; la cible ne change pas. Si le master
-## initial a perdu son titre, il rejoue en dernier : s'il bat le master
-## actuel, il reprend le titre, gagne 1 point et recupere tous les points
-## gagnes pendant ce round par les autres joueurs ; sinon, le master actuel
-## gagne 1 point (rien en cas d'egalite).
+## Option Get the Crown (id "get_the_lead", son ancien nom) : le joueur qui
+## bat le master actuel prend son titre (la couronne) et son score devient le
+## score a battre ; la cible ne change pas. En cas d'egalite, le master garde
+## son titre, sans point. Si le master initial a perdu son titre, il rejoue
+## en dernier : s'il bat le master actuel, il reprend le titre, gagne 1 point
+## et recupere tous les points gagnes pendant ce round par les autres
+## joueurs ; sinon, le master actuel gagne 1 point (rien en cas d'egalite).
+## Sans cette option, le master initial garde le titre tout le round.
 ##
-## Couronne (affichee par l'ecran) : portee par le joueur qui a fait le
-## meilleur score du round, en commencant par le master initial ; un joueur
-## la prend en faisant strictement mieux que celui qui la porte. Avec Get the
-## Lead, c'est toujours le master actuel.
+## La couronne affichee par l'ecran est toujours sur le master actuel.
 ##
-## Option Keep the Crown : le master initial ne tourne plus ; celui qui porte
-## la couronne a la fin d'un round est le master initial du suivant.
+## Option Keep the Crown : le master initial ne tourne plus ; le master a la
+## fin d'un round est le master initial du suivant (sans Get the Crown, le
+## premier master le reste donc toute la partie).
 ##
 ## A la fin du dernier round (un multiple du nombre de joueurs, pour que
 ## chacun soit master initial autant de fois sans Keep the Crown), le plus de
@@ -53,7 +53,7 @@ static func new_state(player_count: int, rounds: int, get_the_lead: bool, keep_t
 		"points": points,
 		"round": 1,
 		"over": false,
-		"crown": 0,
+		"master": 0,
 	}
 	_start_round(state)
 	return state
@@ -67,14 +67,11 @@ static func _start_round(state: Dictionary) -> void:
 	gains.fill(0)
 	var initial: int = (state.round - 1) % state.players
 	if state.keep_the_crown:
-		initial = state.crown
+		initial = state.master
 	state.merge({
-		# Porteur de la couronne et son score dans le round.
-		"crown": initial,
-		"crown_best": 0,
 		# Rang du tour dans le round : 0 = master initial, puis les autres.
 		"turn": 0,
-		# Vrai pendant le retour du master initial (Get the Lead).
+		# Vrai pendant le retour du master initial (Get the Crown).
 		"comeback": false,
 		"initial": initial,
 		"master": initial,
@@ -157,15 +154,10 @@ static func apply_turn(state: Dictionary, hits: Array[DartHit], names: Array[Str
 		state.target = target
 		state.best = score
 		state.master = player
-		state.crown = player
-		state.crown_best = score
 		state.last_result = "%s sets the target: %s, %s to beat" % [
 			names[player], target_label(target), _marks_text(score)]
 		return
 
-	if score > state.crown_best:
-		state.crown = player
-		state.crown_best = score
 	var master: int = state.master
 	if state.comeback:
 		if score > state.best:
@@ -185,7 +177,7 @@ static func apply_turn(state: Dictionary, hits: Array[DartHit], names: Array[Str
 			_give_point(state, master)
 			state.last_result = "%s keeps the crown: +1 %s" % [names[master], names[master]]
 		else:
-			state.last_result = "Tie with %s: no point" % names[master]
+			state.last_result = "Tie: %s keeps the crown, no point" % names[master]
 		return
 
 	if score > state.best:
@@ -193,14 +185,14 @@ static func apply_turn(state: Dictionary, hits: Array[DartHit], names: Array[Str
 		if state.get_the_lead:
 			state.master = player
 			state.best = score
-			state.last_result = "%s does better: +1, new king" % names[player]
+			state.last_result = "%s takes the crown: +1" % names[player]
 		else:
-			state.last_result = "%s does better: +1%s" % [names[player], ", takes the crown" if state.crown == player else ""]
+			state.last_result = "%s does better: +1 %s" % [names[player], names[player]]
 	elif score < state.best:
 		_give_point(state, master)
 		state.last_result = "%s fails: +1 %s" % [names[player], names[master]]
 	else:
-		state.last_result = "Tie with %s: no point" % names[master]
+		state.last_result = ("Tie: %s keeps the crown, no point" if state.get_the_lead else "Tie with %s: no point") % names[master]
 
 static func _give_point(state: Dictionary, player: int) -> void:
 	state.points[player] += 1
@@ -210,7 +202,7 @@ static func _marks_text(count: int) -> String:
 	return "%d mark%s" % [count, "" if count == 1 else "s"]
 
 ## Passe au tour suivant apres apply_turn() : joueur suivant du round, retour
-## du master initial (Get the Lead, s'il a perdu son titre), ou round suivant.
+## du master initial (Get the Crown, s'il a perdu son titre), ou round suivant.
 ## state.over devient vrai apres le dernier tour du dernier round.
 static func advance(state: Dictionary) -> void:
 	if not state.comeback and state.turn < state.players - 1:
