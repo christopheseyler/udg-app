@@ -18,8 +18,10 @@ const LOGO_SCENE := preload("res://main_screens/game_selection/game_logo_3d.tscn
 ## plutot qu'a +-90 deg, et les logos plus estompes ne sont plus dessines (voir
 ## GameLogo3D.set_opacity()). Les deux logos a +-60 deg, a 6 % d'opacite et
 ## presque invisibles, faisaient rater des images au carrousel sur la carte
-## quand le glow tourne (3-2-1 Zap ou Cricket au centre).
-@export var fade_cutoff: float = 0.1
+## quand le glow tourne (3-2-1 Zap ou Cricket au centre). Avec l'anneau
+## elargi (22 deg), la paire a +-44 deg (19 % d'opacite a 0.1) avait le meme
+## effet : 45-53 FPS au lieu de 57-60 ; a 0.3 elle n'est plus dessinee.
+@export var fade_cutoff: float = 0.3
 
 @export_group("Selection")
 @export var selected_zoom: float = 1.15
